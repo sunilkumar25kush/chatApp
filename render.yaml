@@ -1,0 +1,59 @@
+services:
+  # ─── Backend (Node.js / Express + Socket.io) ───────────────────────────────
+  - type: web
+    name: chatapp-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false          # Set this manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure random value
+      - key: CLIENT_URL
+        sync: false          # Set to your Render static site URL after deploy
+      - key: LIVEKIT_URL
+        sync: false          # e.g. wss://<your-project>.livekit.cloud
+      - key: LIVEKIT_API_KEY
+        sync: false          # From LiveKit Cloud dashboard
+      - key: LIVEKIT_API_SECRET
+        sync: false          # From LiveKit Cloud dashboard
+      # Optional — Cloudinary (for image/file uploads)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  # ─── Frontend (React / Vite — Static Site) ─────────────────────────────────
+  - type: web
+    name: chatapp-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      # Send all routes to index.html for React Router (SPA fallback)
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # Cache hashed assets forever, HTML never
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+    envVars:
+      - key: VITE_API_URL
+        sync: false          # Set to your backend Render URL, e.g. https://chatapp-backend.onrender.com
+      - key: VITE_SOCKET_URL
+        sync: false          # Same as VITE_API_URL (backend handles Socket.io too)

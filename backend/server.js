@@ -33,6 +33,8 @@ app.use(cors({
       !origin ||
       allowedOrigins.includes(origin) ||
       (typeof origin === 'string' && origin.endsWith('.vercel.app')) ||
+      (typeof origin === 'string' && origin.endsWith('.onrender.com')) ||
+      (typeof origin === 'string' && origin.endsWith('.netlify.app')) ||
       (typeof origin === 'string' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')))
     ) {
       callback(null, true);
