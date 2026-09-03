@@ -105,10 +105,25 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 const callRoutes = require('./routes/callRoutes');
+const { cleanupInactiveCallSessions } = require('./controllers/callSessionController');
+
+// Stricter limiter for call sessions & SFU tokens (prevents token exhaustion / call spamming)
+const callLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30, // 30 call token/history requests per min per IP
+  message: { success: false, message: 'Too many call requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // API Routes
 app.use('/api', apiRoutes);
-app.use('/api/calls', callRoutes);
+app.use('/api/calls', callLimiter, callRoutes);
+
+// Periodic cleanup of abandoned or inactive call sessions (every 10 minutes)
+setInterval(() => {
+  cleanupInactiveCallSessions().catch(() => {});
+}, 10 * 60 * 1000);
 
 // 404 for unknown API routes (must be before the error handler)
 app.use('/api', notFoundHandler);

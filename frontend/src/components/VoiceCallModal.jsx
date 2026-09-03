@@ -620,7 +620,7 @@ export default function VoiceCallModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 17, 23, 0.88)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
-      <div className="modal-box voice-modal" style={{ background: '#1D2129', border: '1px solid #313743', borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+      <div className="modal-box voice-modal" style={{ background: '#1D2129', border: '1px solid #313743', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
         {/* FIX: Added playsInline to prevent mobile Safari autoplay block */}
         <audio ref={remoteAudioRef} autoPlay />
 
@@ -641,29 +641,29 @@ export default function VoiceCallModal({
           </p>
         )}
 
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+        <div className="call-controls-row" style={{ display: 'flex', gap: 10, justifyContent: 'center', width: '100%' }}>
           {callState === 'incoming' ? (
             <>
-              <button onClick={acceptCall} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#22C55E', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button onClick={acceptCall} style={{ flex: 1, minWidth: 80, padding: '10px 14px', borderRadius: 8, border: 'none', background: '#22C55E', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 📞 Accept
               </button>
-              <button onClick={handleEndCall} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button onClick={handleEndCall} style={{ flex: 1, minWidth: 80, padding: '10px 14px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 🔴 Decline
               </button>
             </>
           ) : (
             <>
-              <button onClick={toggleMute} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #313743', background: isMuted ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isMuted ? '#EF4444' : '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}>
+              <button onClick={toggleMute} style={{ flex: 1, minWidth: 75, padding: '10px 12px', borderRadius: 8, border: '1px solid #313743', background: isMuted ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isMuted ? '#EF4444' : '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}>
                 {isMuted ? '🎙️ Unmute' : '🎤 Mute'}
               </button>
               <button
                 onClick={toggleSpeaker}
                 title="Toggle speaker / earpiece"
-                style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid #313743', background: isSpeakerOn ? 'rgba(34, 197, 94, 0.2)' : '#242930', color: isSpeakerOn ? '#22C55E' : '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}
+                style={{ flex: 1, minWidth: 75, padding: '10px 12px', borderRadius: 8, border: '1px solid #313743', background: isSpeakerOn ? 'rgba(34, 197, 94, 0.2)' : '#242930', color: isSpeakerOn ? '#22C55E' : '#fff', fontWeight: 500, fontSize: 12, cursor: 'pointer' }}
               >
                 {isSpeakerOn ? '🔊 Speaker' : '🎧 Earpiece'}
               </button>
-              <button onClick={handleEndCall} style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              <button onClick={handleEndCall} style={{ flex: 1, minWidth: 75, padding: '10px 12px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
                 🔴 End Call
               </button>
             </>

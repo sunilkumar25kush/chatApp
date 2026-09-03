@@ -167,13 +167,36 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         </div>
 
         {/* Close Button */}
-        <button onClick={onClose} style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: 30, height: 30, borderRadius: '50%', cursor: 'pointer', zIndex: 10 }}>
-          ✖
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            background: 'rgba(0,0,0,0.65)',
+            border: 'none',
+            color: '#fff',
+            width: 40,
+            height: 40,
+            minWidth: 40,
+            minHeight: 40,
+            borderRadius: '50%',
+            cursor: 'pointer',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 16,
+          }}
+        >
+          ✕
         </button>
 
         {/* Action Button (Edit / Save) */}
         {isMe && (
-          <div style={{ position: 'absolute', top: 190, right: 20 }}>
+          <div className="profile-actions-bar" style={{ position: 'absolute', top: 190, right: 20 }}>
             {isEditing ? (
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => { setIsEditing(false); setEditForm(profileData); }} style={{ ...btnStyle, background: '#374151' }}>Cancel</button>
@@ -193,7 +216,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         <div style={{ padding: '10px 20px 20px 20px' }}>
           {isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 15, marginTop: 10 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="profile-form-row" style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>Username</label>
                   <input type="text" name="username" value={editForm.username || ''} onChange={handleEditChange} style={inputStyle} />
@@ -207,7 +230,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 <label style={labelStyle}>Bio</label>
                 <textarea name="bio" value={editForm.bio || ''} onChange={handleEditChange} style={{ ...inputStyle, height: 80, resize: 'none' }} placeholder="About me..." />
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="profile-form-row" style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>Location</label>
                   <input type="text" name="location" value={editForm.location || ''} onChange={handleEditChange} style={inputStyle} />
@@ -217,7 +240,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                   <input type="text" name="website" value={editForm.website || ''} onChange={handleEditChange} style={inputStyle} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="profile-form-row" style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>GitHub</label>
                   <input type="text" name="github" value={editForm.github || ''} onChange={handleEditChange} style={inputStyle} />
@@ -244,7 +267,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 {profileData.bio || <span style={{ color: '#6b7280', fontStyle: 'italic' }}>No bio provided.</span>}
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 15 }}>
+              <div className="ui-chip-group" style={{ gap: 10, marginTop: 15 }}>
                 {profileData.location && (
                   <div style={infoCardStyle}>
                     <span style={infoIconStyle}>📍</span> {profileData.location}
@@ -298,7 +321,7 @@ const modalStyle = {
   width: '100%', maxWidth: 600, background: '#181a20', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', position: 'relative', overflowY: 'auto', maxHeight: '90vh'
 };
 const btnStyle = {
-  padding: '8px 16px', borderRadius: 4, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600
+  minHeight: 42, padding: '8px 16px', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
 };
 const inputStyle = {
   width: '100%', padding: '10px', borderRadius: 6, background: '#111216', border: '1px solid #2d3241', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box'
@@ -307,7 +330,7 @@ const labelStyle = {
   display: 'block', marginBottom: 5, fontSize: 12, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase'
 };
 const infoCardStyle = {
-  display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#d1d5db', background: '#1c1f28', padding: '6px 12px', borderRadius: 6
+  display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#d1d5db', background: '#1c1f28', padding: '8px 14px', borderRadius: 8, minHeight: 36, border: '1px solid #2d3241'
 };
 const infoIconStyle = {
   fontSize: 16

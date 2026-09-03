@@ -267,9 +267,9 @@ export default function Sidebar({
             </div>
 
             {/* Filter Tabs */}
-            <div className="filter-tabs" role="tablist" aria-label="Filter chats">
-                <button className={`tab-item ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')} role="tab" aria-selected={activeTab === 'chats'}>All</button>
-                <button className={`tab-item ${activeTab === 'joined' ? 'active' : ''}`} onClick={() => setActiveTab('joined')} role="tab" aria-selected={activeTab === 'joined'}>Rooms</button>
+            <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter chats">
+                <button className={`tab-item ui-tab-chip ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')} role="tab" aria-selected={activeTab === 'chats'}>All</button>
+                <button className={`tab-item ui-tab-chip ${activeTab === 'joined' ? 'active' : ''}`} onClick={() => setActiveTab('joined')} role="tab" aria-selected={activeTab === 'joined'}>Rooms</button>
             </div>
 
             {/* Chat List Scrollable Roster */}

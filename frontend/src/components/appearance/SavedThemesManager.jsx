@@ -23,20 +23,23 @@ export default function SavedThemesManager() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Save Active Theme Form */}
-      <form onSubmit={handleSave} style={{ display: 'flex', gap: 8 }}>
+      <form onSubmit={handleSave} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         <input
           type="text"
           placeholder="Enter theme name (e.g. My Neon Setup)..."
           value={themeName}
           onChange={(e) => setThemeName(e.target.value)}
+          className="form-input"
           style={{
-            flex: 1,
+            flex: '1 1 180px',
+            minWidth: 0,
             background: '#1a1d25',
             border: '1px solid #2d3241',
             borderRadius: 8,
             padding: '8px 12px',
             color: '#fff',
-            fontSize: 12,
+            fontSize: 13,
+            minHeight: 40,
             outline: 'none',
           }}
         />
@@ -47,10 +50,16 @@ export default function SavedThemesManager() {
             color: '#fff',
             border: 'none',
             borderRadius: 8,
-            padding: '8px 14px',
-            fontSize: 12,
+            padding: '0 16px',
+            minHeight: 40,
+            fontSize: 13,
             fontWeight: 600,
             cursor: 'pointer',
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
           }}
         >
           💾 Save Current
@@ -79,23 +88,25 @@ export default function SavedThemesManager() {
                   border: '1px solid #282c37',
                   borderRadius: 8,
                   padding: '8px 12px',
+                  gap: 8,
                 }}
               >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6' }}>{t.name}</div>
-                  <div style={{ fontSize: 10, color: '#6b7280' }}>Preset: {t.activeThemeId}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                  <div style={{ fontSize: 10, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Preset: {t.activeThemeId}</div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button
                     onClick={() => handleApplySaved(t)}
-                    style={{ background: '#222530', border: '1px solid #2d3241', color: '#38bdf8', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
+                    style={{ background: '#222530', border: '1px solid #2d3241', color: '#38bdf8', borderRadius: 6, padding: '6px 12px', minHeight: 36, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                   >
                     Apply
                   </button>
                   <button
                     onClick={() => deleteCustomTheme(t.id)}
-                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', color: '#f87171', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}
+                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', color: '#f87171', borderRadius: 6, width: 36, minHeight: 36, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    aria-label="Delete theme"
                   >
                     🗑
                   </button>

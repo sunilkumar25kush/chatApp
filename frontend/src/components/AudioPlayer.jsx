@@ -65,7 +65,7 @@ export default function AudioPlayer({ src }) {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#222530', padding: '8px 12px', borderRadius: 24, border: '1px solid #3f4657', minWidth: 250, marginTop: 6 }}>
+    <div className="audio-player-container" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#222530', padding: '8px 12px', borderRadius: 24, border: '1px solid #3f4657', width: '100%', maxWidth: 280, minWidth: 0, marginTop: 6, boxSizing: 'border-box' }}>
       <audio ref={audioRef} src={src} preload="metadata" />
       
       {/* Play / Pause */}

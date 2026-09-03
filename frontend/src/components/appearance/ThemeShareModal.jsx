@@ -54,8 +54,9 @@ export default function ThemeShareModal({ isOpen, onClose }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 'var(--z-dropdown)',
-        padding: 'var(--space-lg)',
+        zIndex: 'calc(var(--z-drawer) + 10)',
+        padding: 'clamp(12px, 3vw, var(--space-lg))',
+        overscrollBehavior: 'contain',
       }}
       onClick={onClose}
     >
@@ -67,16 +68,19 @@ export default function ThemeShareModal({ isOpen, onClose }) {
           background: 'var(--color-bg-card)',
           border: '1px solid var(--color-border-dark)',
           borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-xl)',
+          padding: 'clamp(16px, 4vw, 24px)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--space-lg)',
+          gap: 'var(--space-md)',
           boxShadow: 'var(--shadow-xl)',
+          maxHeight: '88dvh',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
         }}
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 'var(--font-xl)', fontWeight: 700, color: 'var(--color-white)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--color-white)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>📤</span> Export &amp; Import Theme
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-faint)', fontSize: 18, cursor: 'pointer' }}>
@@ -85,9 +89,9 @@ export default function ThemeShareModal({ isOpen, onClose }) {
         </div>
 
         {/* QR Code Section */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-lg)', background: 'var(--color-bg-surface)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-bg-elevated)' }}>
-          <canvas ref={qrCanvasRef} style={{ width: 100, height: 100, borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
-          <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-md)', background: 'var(--color-bg-surface)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-bg-elevated)' }}>
+          <canvas ref={qrCanvasRef} style={{ width: 90, height: 90, borderRadius: 'var(--radius-sm)', flexShrink: 0, margin: '0 auto' }} />
+          <div style={{ flex: '1 1 180px', minWidth: 0 }}>
             <div style={{ fontSize: 'var(--font-md)', fontWeight: 700, color: 'var(--color-text-bright)' }}>Scan QR Code</div>
             <div style={{ fontSize: 'var(--font-xs)', color: 'var(--color-text-faint)', marginTop: 2 }}>
               Share this theme visually with another mobile or desktop user.

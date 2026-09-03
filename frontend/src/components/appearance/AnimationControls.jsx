@@ -16,9 +16,9 @@ const S = {
   toggle: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     fontSize: 'var(--font-sm)', color: 'var(--color-text-soft)', cursor: 'pointer',
-    paddingTop: 6, borderTop: '1px solid var(--color-bg-elevated)',
+    minHeight: 44, padding: '8px 0', borderTop: '1px solid var(--color-bg-elevated)',
   },
-  hint: { fontSize: 'var(--font-xs)', color: 'var(--color-text-ghost)', marginTop: -8 },
+  hint: { fontSize: 'var(--font-xs)', color: 'var(--color-text-ghost)', marginTop: -4 },
 };
 
 export default function AnimationControls() {
@@ -69,7 +69,7 @@ export default function AnimationControls() {
           type="checkbox"
           checked={!!anim.batterySaver}
           onChange={(e) => updateAnimationControls({ batterySaver: e.target.checked })}
-          style={{ width: 16, height: 16, accentColor: 'var(--theme-primary)' }}
+          style={{ width: 20, height: 20, accentColor: 'var(--theme-primary)' }}
         />
       </label>
       <div style={S.hint}>
@@ -83,7 +83,7 @@ export default function AnimationControls() {
           type="checkbox"
           checked={!!anim.reduceMotion}
           onChange={(e) => updateAnimationControls({ reduceMotion: e.target.checked })}
-          style={{ width: 16, height: 16, accentColor: 'var(--theme-primary)' }}
+          style={{ width: 20, height: 20, accentColor: 'var(--theme-primary)' }}
         />
       </label>
       <div style={S.hint}>

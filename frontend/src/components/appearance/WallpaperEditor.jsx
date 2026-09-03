@@ -204,13 +204,16 @@ export default function WallpaperEditor() {
           <select
             value={controls.fitMode ?? 'cover'}
             onChange={(e) => updateControls({ fitMode: e.target.value })}
+            className="form-control"
             style={{
               background: 'var(--color-bg-elevated)',
               color: 'var(--color-white)',
               border: '1px solid var(--color-border-dark)',
-              borderRadius: 'var(--radius-xs)',
-              padding: 'var(--space-3xs) var(--space-sm)',
+              borderRadius: 'var(--radius-xs, 8px)',
+              padding: '0 12px',
               fontSize: 'var(--font-xs)',
+              minHeight: 38,
+              height: 38,
             }}
           >
             <option value="cover">Cover</option>

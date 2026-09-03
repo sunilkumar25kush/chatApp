@@ -21,38 +21,46 @@ export default function ChatPersonalityStudioModal({ isOpen, onClose, targetRoom
     >
       <div className="personality-studio-modal modal-box" style={modalStyle}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <h3 style={{ margin: 0, color: '#f8fafc', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16, minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h3 style={{ margin: 0, color: '#f8fafc', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               ✨ Chat Personality Studio
             </h3>
-            <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: 12 }}>
+            <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: 12, lineHeight: 1.3 }}>
               {targetRoomId ? `Personalizing wallpaper for "${roomName || 'this chat'}"` : 'Customize your global chat theme & appearance'}
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
+            type="button"
             style={{
               background: 'rgba(255,255,255,0.08)',
               border: 'none',
               color: '#cbd5e1',
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
+              width: 40,
+              height: 40,
+              minWidth: 40,
+              minHeight: 40,
+              borderRadius: 8,
               cursor: 'pointer',
               fontSize: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            ✖
+            ✕
           </button>
         </div>
 
-        {/* Modal Layout: Split View (Left Controls, Right Live Preview) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, flex: 1, minHeight: 0 }}>
+        {/* Modal Layout: Split View on Desktop, Stacked on Mobile */}
+        <div className="personality-studio-layout">
           {/* Left Panel: Tabs & Settings */}
-          <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', minWidth: 0 }}>
             {/* Primary Studio Tabs */}
-            <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 10, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 10, marginBottom: 16, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', flexWrap: 'nowrap' }}>
               {[
                 { id: 'personalities', label: '🎭 Personalities' },
                 { id: 'wallpapers', label: '🖼 Wallpapers' },
@@ -71,6 +79,8 @@ export default function ChatPersonalityStudioModal({ isOpen, onClose, targetRoom
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {tab.label}
@@ -154,9 +164,10 @@ const modalStyle = {
   borderRadius: 20,
   width: '100%',
   maxWidth: 860,
-  maxHeight: '85vh',
+  maxHeight: '90vh',
   display: 'flex',
   flexDirection: 'column',
-  padding: 24,
+  padding: 'clamp(14px, 3vw, 24px)',
   boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+  overflowY: 'auto',
 };

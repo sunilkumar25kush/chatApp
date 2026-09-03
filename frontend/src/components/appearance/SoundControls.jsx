@@ -15,16 +15,22 @@ const S = {
   subRow: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     fontSize: 'var(--font-sm)', color: 'var(--color-text-faint)',
+    minHeight: 40,
   },
-  innerGroup: { display: 'flex', alignItems: 'center', gap: 8 },
+  innerGroup: { display: 'flex', alignItems: 'center', gap: 10 },
   testBtn: {
     background: 'var(--color-bg-elevated)',
     border: '1px solid var(--color-border-dark)',
     color: 'var(--color-blue)',
-    borderRadius: 'var(--radius-2xs)',
-    padding: 'var(--space-3xs) var(--space-sm)',
-    fontSize: 'var(--font-2xs)',
+    borderRadius: 'var(--radius-xs, 6px)',
+    padding: '6px 12px',
+    minHeight: 34,
+    fontSize: 12,
+    fontWeight: 600,
     cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subSection: {
     paddingTop: 8,
@@ -43,13 +49,13 @@ export default function SoundControls() {
       <div style={S.cardTitle}>🔊 Theme Sound Effects</div>
 
       {/* Main Enable Sounds Toggle */}
-      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--font-sm)', color: 'var(--color-text-soft)', cursor: 'pointer' }}>
+      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--font-sm)', color: 'var(--color-text-soft)', cursor: 'pointer', minHeight: 44 }}>
         <span style={{ fontWeight: 600 }}>Enable UI Sounds</span>
         <input
           type="checkbox"
           checked={!!snd.enableSounds}
           onChange={(e) => updateSoundControls({ enableSounds: e.target.checked })}
-          style={{ width: 16, height: 16, accentColor: 'var(--theme-primary)' }}
+          style={{ width: 20, height: 20, accentColor: 'var(--theme-primary)' }}
         />
       </label>
 
@@ -64,7 +70,7 @@ export default function SoundControls() {
               type="checkbox"
               checked={!!snd.enableSentSound}
               onChange={(e) => updateSoundControls({ enableSentSound: e.target.checked })}
-              style={{ width: 15, height: 15 }}
+              style={{ width: 18, height: 18 }}
             />
           </div>
         </div>
@@ -78,7 +84,7 @@ export default function SoundControls() {
               type="checkbox"
               checked={!!snd.enableTypingSound}
               onChange={(e) => updateSoundControls({ enableTypingSound: e.target.checked })}
-              style={{ width: 15, height: 15 }}
+              style={{ width: 18, height: 18 }}
             />
           </div>
         </div>
@@ -92,7 +98,7 @@ export default function SoundControls() {
               type="checkbox"
               checked={!!snd.enableNotificationSound}
               onChange={(e) => updateSoundControls({ enableNotificationSound: e.target.checked })}
-              style={{ width: 15, height: 15 }}
+              style={{ width: 18, height: 18 }}
             />
           </div>
         </div>

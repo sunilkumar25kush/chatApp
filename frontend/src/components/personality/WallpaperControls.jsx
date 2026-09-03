@@ -33,10 +33,10 @@ export default function WallpaperControls() {
         </button>
       </div>
 
-      {/* Background Fit Mode */}
+      {/* Background Fit Mode (Wrapping Chips) */}
       <div>
         <label style={labelStyle}>Background Fit Mode</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 6 }}>
+        <div className="ui-chip-group" style={{ marginTop: 8 }}>
           {[
             { id: 'cover', label: 'Cover' },
             { id: 'contain', label: 'Contain' },
@@ -49,17 +49,8 @@ export default function WallpaperControls() {
             <button
               key={mode.id}
               onClick={() => handleChange('fitMode', mode.id)}
-              style={{
-                background: controls.fitMode === mode.id ? 'var(--theme-primary, #7c3aed)' : 'rgba(255,255,255,0.06)',
-                color: controls.fitMode === mode.id ? '#fff' : '#cbd5e1',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 8,
-                padding: '8px 4px',
-                fontSize: 12,
-                cursor: 'pointer',
-                fontWeight: controls.fitMode === mode.id ? 600 : 400,
-                transition: 'all 0.15s ease',
-              }}
+              type="button"
+              className={`ui-chip ${controls.fitMode === mode.id ? 'active' : ''}`}
             >
               {mode.label}
             </button>
@@ -68,7 +59,7 @@ export default function WallpaperControls() {
       </div>
 
       {/* Sliders Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
         {/* Opacity */}
         <div>
           <div style={sliderHeaderStyle}>
@@ -173,7 +164,7 @@ export default function WallpaperControls() {
       </div>
 
       {/* Overlay Color & Opacity */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
         <div>
           <label style={labelStyle}>Overlay Color</label>
           <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>

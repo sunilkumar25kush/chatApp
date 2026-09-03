@@ -8,6 +8,7 @@ const CallHistory = require('../models/CallHistory');
 const { memoryMessages } = require('../controllers/messageController');
 const { memoryRooms } = require('../controllers/roomController');
 const presenceHandler = require('./presenceHandler');
+const callHandler = require('./callHandler');
 const logger = require('../utils/logger');
 
 let io;
@@ -123,6 +124,9 @@ const initSocket = (server) => {
 
     // Initialize Presence System for this socket
     presenceHandler(io, socket);
+
+    // Initialize Multi-User SFU Call System for this socket
+    callHandler(io, socket);
 
     const rateLimitSend = sendRateLimiter();
 

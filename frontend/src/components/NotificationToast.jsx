@@ -2,12 +2,20 @@ export default function NotificationToast({ notifications, onDismiss }) {
   if (!notifications || notifications.length === 0) return null;
 
   const TOAST_META = {
-    join:       { icon: '👋', accent: 'var(--color-success)' },
-    leave:      { icon: '🚪', accent: 'var(--text-muted)' },
-    message:    { icon: '💬', accent: 'var(--color-primary)' },
-    voice_call: { icon: '📞', accent: 'var(--color-success)' },
-    video_call: { icon: '📹', accent: '#3b82f6' },
-    default:    { icon: '🔔', accent: 'var(--color-primary)' },
+    join:        { icon: '👋', accent: 'var(--color-success, #22c55e)' },
+    leave:       { icon: '🚪', accent: 'var(--text-muted, #9ca3af)' },
+    message:     { icon: '💬', accent: 'var(--color-primary, #7c3aed)' },
+    voice_call:  { icon: '📞', accent: 'var(--color-success, #22c55e)' },
+    video_call:  { icon: '📹', accent: '#3b82f6' },
+    mic_muted:   { icon: '🔇', accent: '#ef4444' },
+    mic_unmuted: { icon: '🎙️', accent: 'var(--color-success, #22c55e)' },
+    camera_off:  { icon: '🚫', accent: '#ef4444' },
+    camera_on:   { icon: '📷', accent: '#3b82f6' },
+    screenshare: { icon: '🖥️', accent: 'var(--color-primary, #7c3aed)' },
+    warning:     { icon: '⚠️', accent: '#f59e0b' },
+    error:       { icon: '❌', accent: '#ef4444' },
+    success:     { icon: '✅', accent: 'var(--color-success, #22c55e)' },
+    default:     { icon: '🔔', accent: 'var(--color-primary, #7c3aed)' },
   };
 
   return (

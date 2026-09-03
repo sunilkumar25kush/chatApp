@@ -4,6 +4,8 @@ import { PresenceProvider } from './hooks/usePresence';
 import { ThemeProvider } from './context/ThemeContext';
 import { WallpaperProvider } from './context/WallpaperContext';
 import { AppearanceProvider } from './context/AppearanceContext';
+import { CallProvider } from './context/CallContext';
+import CallContainer from './components/calling/CallContainer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -16,11 +18,13 @@ import './styles/gajim/gajim-provided.css';
 export default function App() {
   return (
     <AuthProvider>
-      <PresenceProvider>
-        <ThemeProvider>
-          <WallpaperProvider>
-            <AppearanceProvider>
-              <Routes>
+      <CallProvider>
+        <PresenceProvider>
+          <ThemeProvider>
+            <WallpaperProvider>
+              <AppearanceProvider>
+                <CallContainer />
+                <Routes>
                 {/* Full-screen Gajim Desktop Messenger route */}
                 <Route
                   path="/chat"
@@ -52,6 +56,7 @@ export default function App() {
           </WallpaperProvider>
         </ThemeProvider>
       </PresenceProvider>
-    </AuthProvider>
+    </CallProvider>
+  </AuthProvider>
   );
 }

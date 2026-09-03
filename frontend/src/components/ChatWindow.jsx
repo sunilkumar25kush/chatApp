@@ -2,11 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { socket, onSocketStatusChange, isSocketConnected, registerActiveRoom, unregisterActiveRoom } from '../services/socket';
 import { useAuth } from '../context/useAuth';
+import { useCall } from '../context/CallContext';
 import { useAppearance } from '../context/AppearanceContext';
 import { themeSoundManager } from '../utils/themeSoundManager';
 import api from '../services/api';
-import VoiceCallModal from './VoiceCallModal';
-import VideoCallModal from './VideoCallModal';
 import NotificationToast from './NotificationToast';
 import PresenceBadge from './common/PresenceBadge';
 import VoiceRecorder from './VoiceRecorder';
@@ -18,6 +17,7 @@ import { SkeletonMessageList } from './SkeletonLoaders';
 
 export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSidebar }) {
   const { user } = useAuth();
+  const { startCall } = useCall();
   const { getActiveWallpaperForRoom, appearanceState } = useAppearance();
 
   const [messages, setMessages] = useState([]);
@@ -49,25 +49,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   // Image Lightbox Preview State
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
-
-  // Voice Calling State
-  const [isVoiceCallOpen, setIsVoiceCallOpen] = useState(false);
-  const [isVoiceIncoming, setIsVoiceIncoming] = useState(false);
-  const isVoiceCallOpenRef = useRef(false);
-  isVoiceCallOpenRef.current = isVoiceCallOpen;
-  const [voiceCaller, setVoiceCaller] = useState(null);
-  const [voiceOffer, setVoiceOffer] = useState(null);
-  // FIX: Store caller's socket ID so ICE/answer routes directly to them (not room-broadcast)
-  const [voiceCallerSocketId, setVoiceCallerSocketId] = useState(null);
-
-  // Video Calling & Screen Sharing State
-  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
-  const [isVideoIncoming, setIsVideoIncoming] = useState(false);
-  const isVideoCallOpenRef = useRef(false);
-  isVideoCallOpenRef.current = isVideoCallOpen;
-  const [videoCaller, setVideoCaller] = useState(null);
-  const [videoOffer, setVideoOffer] = useState(null);
-  const [videoCallerSocketId, setVideoCallerSocketId] = useState(null);
 
   // Profile Modal State
   const [targetProfileId, setTargetProfileId] = useState(null);
@@ -442,53 +423,13 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       });
     };
 
-    // Incoming Voice Call Socket Event
-    // FIX: Extract fromSocket and store it — this is the caller's socket ID
-    // that we must use to route our SDP answer and ICE candidates directly
-    // back to them instead of broadcasting to the whole room.
-    const handleCallIncoming = ({ offer, caller, fromSocket }) => {
-      if (import.meta.env.DEV) console.log('[Voice] Incoming call from socket:', fromSocket, 'user:', caller?.username);
-      // 🔊 Echo fix: if a video call is already active, auto-decline the
-      // incoming voice call — two live mics/speakers cause a feedback loop.
-      if (isVideoCallOpenRef.current) {
-        if (import.meta.env.DEV) console.log('[Voice] Declined — video call already active');
-        socket.emit('end_call', { toRoom: roomId });
-        return;
-      }
-      setVoiceOffer(offer);
-      setVoiceCaller(caller);
-      setVoiceCallerSocketId(fromSocket || null);  // <-- KEY FIX
-      setIsVoiceIncoming(true);
-      setIsVoiceCallOpen(true);
-      addNotification('Incoming Voice Call', `${caller?.username || 'Member'} is calling...`, 'voice_call');
-    };
-
-    // Incoming Video Call Socket Event
-    // FIX: Same fix for video — extract fromSocket for targeted signaling.
-    const handleVideoCallIncoming = ({ offer, caller, fromSocket }) => {
-      if (import.meta.env.DEV) console.log('[Video] Incoming call from socket:', fromSocket, 'user:', caller?.username);
-      // 🔊 Echo fix: if a voice call is already active, auto-decline the
-      // incoming video call — two live mics/speakers cause a feedback loop.
-      if (isVoiceCallOpenRef.current) {
-        if (import.meta.env.DEV) console.log('[Video] Declined — voice call already active');
-        socket.emit('end_video_call', { toRoom: roomId });
-        return;
-      }
-      setVideoOffer(offer);
-      setVideoCaller(caller);
-      setVideoCallerSocketId(fromSocket || null);  // <-- KEY FIX
-      setIsVideoIncoming(true);
-      setIsVideoCallOpen(true);
-      addNotification('Incoming Video Call', `${caller?.username || 'Member'} initiated a video call...`, 'video_call');
-    };
-
     const handleStatusUpdated = ({ userId, customStatus }) => {
-      setMessages((prev) => 
-        prev.map(msg => {
+      setMessages((prev) =>
+        prev.map((msg) => {
           if ((msg.sender?._id || msg.sender?.id) === userId) {
             return {
               ...msg,
-              sender: { ...msg.sender, customStatus }
+              sender: { ...msg.sender, customStatus },
             };
           }
           return msg;
@@ -504,8 +445,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     socket.on('user_left', handleUserLeft);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
-    socket.on('call_incoming', handleCallIncoming);
-    socket.on('video_call_incoming', handleVideoCallIncoming);
     socket.on('status_updated', handleStatusUpdated);
     socket.on('room_access_denied', ({ message }) => {
       // User tried to join a private room they're not a member of
@@ -527,8 +466,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       socket.off('user_left', handleUserLeft);
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
-      socket.off('call_incoming', handleCallIncoming);
-      socket.off('video_call_incoming', handleVideoCallIncoming);
       socket.off('status_updated', handleStatusUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -706,28 +643,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   };
 
   const handleStartVoiceCall = () => {
-    // 🔊 Echo fix: never run voice + video simultaneously — two live mics
-    // and two speakers create a feedback loop (echo + repeated words).
-    setIsVideoCallOpen(false);
-    setIsVideoIncoming(false);
-    setVideoCaller(null);
-    setVideoOffer(null);
-    setIsVoiceIncoming(false);
-    setVoiceCaller(null);
-    setVoiceOffer(null);
-    setIsVoiceCallOpen(true);
+    startCall(roomId, room.name, 'voice');
   };
 
   const handleStartVideoCall = () => {
-    // 🔊 Echo fix: never run voice + video simultaneously
-    setIsVoiceCallOpen(false);
-    setIsVoiceIncoming(false);
-    setVoiceCaller(null);
-    setVoiceOffer(null);
-    setIsVideoIncoming(false);
-    setVideoCaller(null);
-    setVideoOffer(null);
-    setIsVideoCallOpen(true);
+    startCall(roomId, room.name, 'video');
   };
 
   const formatTime = (isoString) => {
@@ -877,19 +797,22 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
           {/* Mobile ⋮ More Dropdown Menu */}
           {isMobileMoreOpen && (
-            <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: 50, background: 'var(--theme-sidebar-bg)', border: '1px solid #2d3241', borderRadius: 8, padding: 8, zIndex: 100 }}>
-              <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', padding: '8px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer' }}>
+            <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: 50, background: 'var(--theme-sidebar-bg, #1c1f28)', border: '1px solid #2d3241', borderRadius: 10, padding: 6, zIndex: 100, minWidth: 170, boxShadow: 'var(--shadow-xl)' }}>
+              <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <span>✨</span> Appearance Studio
               </button>
-              <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', padding: '8px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer' }}>
+              <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <span>📹</span> Start Video Call
+              </button>
+              <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <span>☑️</span> Select Messages
               </button>
               {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-                <button className="mobile-more-dropdown-item" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }} style={{ width: '100%', padding: '8px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer' }}>
+                <button className="mobile-more-dropdown-item" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                   <span>🗑️</span> Delete Room
                 </button>
               )}
-              <button className="mobile-more-dropdown-item" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }} style={{ width: '100%', padding: '8px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer' }}>
+              <button className="mobile-more-dropdown-item" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <span>🚪</span> Leave Room
               </button>
             </div>
@@ -1030,23 +953,105 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
                   {/* Call History Message */}
                   {msg.fileType === 'call' && (
-                    <div className="system-message" style={{ justifyContent: 'flex-start', maxWidth: 'fit-content', marginLeft: 0 }}>
+                    <div
+                      className="system-message call-history-card"
+                      style={{
+                        justifyContent: 'flex-start',
+                        maxWidth: 'fit-content',
+                        marginLeft: 0,
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        marginTop: 4,
+                      }}
+                    >
                       {(() => {
                         try {
-                          const callData = JSON.parse(msg.content);
+                          const callData = typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content;
+                          const isVideo = callData.type === 'video';
                           const isMissed = callData.status === 'missed';
-                          const icon = callData.type === 'video' ? '📹' : '📞';
-                          const durationStr = callData.duration ? `${Math.floor(callData.duration/60)}m ${callData.duration%60}s` : '';
+                          const isDeclined = callData.status === 'declined';
+                          const isBusy = callData.status === 'busy';
+                          const isGroup = callData.isGroup || (callData.participantsCount > 2);
+
+                          let title = isVideo ? (isGroup ? 'Group Video Call' : 'Video Call') : (isGroup ? 'Group Voice Call' : 'Voice Call');
+                          if (isMissed) title = isGroup ? 'Missed Group Call' : 'Missed Call';
+                          else if (isDeclined) title = 'Declined Call';
+                          else if (isBusy) title = 'Busy';
+
+                          const icon = isMissed ? '📵' : isDeclined || isBusy ? '🚫' : isVideo ? '📹' : '📞';
+                          const iconColor = isMissed || isDeclined || isBusy ? '#ef4444' : '#22c55e';
+                          const durationStr = callData.duration ? `${Math.floor(callData.duration / 60)}m ${callData.duration % 60}s` : '';
+
                           return (
                             <>
-                              <span style={{ fontSize: 18, color: isMissed ? '#ef4444' : '#22c55e' }}>{icon}</span>
-                              <span>
-                                <strong>{callData.type === 'video' ? 'Video Call' : 'Voice Call'}</strong> {isMissed ? 'Missed' : 'Ended'}
-                                {callData.duration > 0 && ` · ${durationStr}`}
-                              </span>
+                              <div
+                                style={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 10,
+                                  background: isMissed || isDeclined || isBusy ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: 18,
+                                  color: iconColor,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {icon}
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+                                  {title}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                  {isMissed
+                                    ? 'No answer'
+                                    : isDeclined
+                                    ? 'Call was declined'
+                                    : isBusy
+                                    ? 'Recipient was busy'
+                                    : durationStr
+                                    ? `Ended · ${durationStr}`
+                                    : 'Call ended'}
+                                  {isGroup && callData.participantsCount && ` · ${callData.participantsCount} participants`}
+                                </div>
+                              </div>
+
+                              {/* Quick Call Back button */}
+                              <button
+                                type="button"
+                                onClick={() => startCall(roomId, room.name || 'Meeting', isVideo ? 'video' : 'voice')}
+                                title={`Call back (${isVideo ? 'video' : 'voice'})`}
+                                style={{
+                                  marginLeft: 8,
+                                  background: 'rgba(124, 58, 237, 0.15)',
+                                  border: '1px solid rgba(124, 58, 237, 0.35)',
+                                  color: '#c4b5fd',
+                                  borderRadius: 8,
+                                  padding: '4px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                              >
+                                <span>{isVideo ? '📹' : '📞'}</span>
+                                <span>Call back</span>
+                              </button>
                             </>
                           );
-                        } catch (e) { return null; }
+                        } catch (e) {
+                          return <span>Call session</span>;
+                        }
                       })()}
                     </div>
                   )}
@@ -1344,6 +1349,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitMessage(); } }}
+                onFocus={() => {
+                  setTimeout(() => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }, 300);
+                }}
                 placeholder={
                   editingMessage ? 'Edit message... (Enter to save)' :
                   replyingTo ? `Replying to @${replyingTo.sender?.username}... (Enter to send)` :
@@ -1387,30 +1397,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           <img src={previewImageUrl} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
         </div>
       )}
-
-      {/* Voice & Video Call Modals */}
-      {/* FIX: Pass callerSocketId so modal routes answer/ICE directly to caller socket */}
-      <VoiceCallModal
-        isOpen={isVoiceCallOpen}
-        roomId={roomId}
-        roomName={room.name}
-        isIncomingCall={isVoiceIncoming}
-        incomingCaller={voiceCaller}
-        incomingOffer={voiceOffer}
-        callerSocketId={voiceCallerSocketId}
-        onCloseCall={() => { setIsVoiceCallOpen(false); setIsVoiceIncoming(false); setVoiceCallerSocketId(null); }}
-      />
-      {/* Video Call Modal */}
-      <VideoCallModal
-        isOpen={isVideoCallOpen}
-        roomId={roomId}
-        roomName={room.name}
-        isIncomingCall={isVideoIncoming}
-        incomingCaller={videoCaller}
-        incomingOffer={videoOffer}
-        onCloseCall={() => { setIsVideoCallOpen(false); setIsVideoIncoming(false); setVideoCallerSocketId(null); }}
-        callerSocketId={videoCallerSocketId}
-      />
 
       {/* User Profile Modal */}
       {targetProfileId && (

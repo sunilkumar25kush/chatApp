@@ -697,25 +697,49 @@ export default function VideoCallModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 17, 23, 0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
-      <div className="modal-box" style={{ background: '#1D2129', border: '1px solid #313743', borderRadius: 16, width: '100%', maxWidth: focusedParticipant ? 960 : 720, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', transition: 'all 0.2s ease' }}>
+      <div className="modal-box video-call-modal-card" style={{ background: '#1D2129', border: '1px solid #313743', borderRadius: 16, width: '100%', maxWidth: focusedParticipant ? 960 : 720, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.6)', transition: 'all 0.2s ease' }}>
         {/* Header */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #313743', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#161921' }}>
-          <div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>📹 #{roomName} Video Room</h3>
-            <span style={{ fontSize: 11, color: '#22C55E' }}>
-              {peerStatus}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #313743', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#161921', flexWrap: 'wrap', gap: 8, minWidth: 0, minHeight: 52 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>📹 #{roomName} Video Room</h3>
+            <span style={{ fontSize: 11, color: '#22C55E', display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span>{peerStatus}</span>
               {callState === 'connected' && (
-                <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 700, color: '#22C55E', fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#22C55E', fontFamily: 'monospace', letterSpacing: '0.04em' }}>
                   ⏱ {formatDuration(callSeconds)}
                 </span>
               )}
             </span>
           </div>
           {screenSharerName && (
-            <div style={{ padding: '4px 10px', background: 'rgba(124, 58, 237, 0.2)', border: '1px solid #7C3AED', borderRadius: 6, fontSize: 11, color: '#8B5CF6' }}>
-              🖥️ {screenSharerName} is sharing screen
+            <div style={{ padding: '4px 10px', background: 'rgba(124, 58, 237, 0.2)', border: '1px solid #7C3AED', borderRadius: 6, fontSize: 11, color: '#8B5CF6', flexShrink: 0 }}>
+              🖥️ {screenSharerName}
             </div>
           )}
+          <button
+            onClick={onCloseCall}
+            aria-label="Close"
+            title="Close Call Window"
+            type="button"
+            style={{
+              width: 38,
+              height: 38,
+              minWidth: 38,
+              minHeight: 38,
+              borderRadius: 8,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#9ca3af',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: 16,
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Video Grid Layout */}
@@ -764,31 +788,32 @@ export default function VideoCallModal({
         <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
         {/* Call Controls Toolbar */}
-        <div style={{ padding: 16, borderTop: '1px solid #313743', display: 'flex', justifyContent: 'center', gap: 10, background: '#161921' }}>
+        <div className="video-call-toolbar" style={{ padding: 16, borderTop: '1px solid #313743', display: 'flex', justifyContent: 'center', gap: 10, background: '#161921' }}>
           {callState === 'incoming' ? (
             <>
-              <button onClick={acceptCall} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#22C55E', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={acceptCall} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#22C55E', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 📹 Accept Video Call
               </button>
-              <button onClick={handleEndCall} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={handleEndCall} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 🔴 Decline
               </button>
             </>
           ) : (
             <>
-              <button onClick={toggleCamera} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #313743', background: isCameraOff ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isCameraOff ? '#EF4444' : '#fff', fontSize: 12, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={toggleCamera} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #313743', background: isCameraOff ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isCameraOff ? '#EF4444' : '#fff', fontSize: 12, cursor: 'pointer' }}>
                 {isCameraOff ? '📷 Camera Off' : '📷 Camera On'}
               </button>
 
-              <button onClick={toggleMute} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #313743', background: isMuted ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isMuted ? '#EF4444' : '#fff', fontSize: 12, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={toggleMute} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #313743', background: isMuted ? 'rgba(239, 68, 68, 0.2)' : '#242930', color: isMuted ? '#EF4444' : '#fff', fontSize: 12, cursor: 'pointer' }}>
                 {isMuted ? '🎙️ Unmute' : '🎤 Mute'}
               </button>
 
-              <button onClick={toggleScreenShare} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #7C3AED', background: isScreenSharing ? '#7C3AED' : 'rgba(124, 58, 237, 0.2)', color: '#fff', fontSize: 12, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={toggleScreenShare} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #7C3AED', background: isScreenSharing ? '#7C3AED' : 'rgba(124, 58, 237, 0.2)', color: '#fff', fontSize: 12, cursor: 'pointer' }}>
                 {isScreenSharing ? '🖥️ Stop Share' : '🖥️ Share Screen'}
               </button>
 
               <button
+                className="btn-call-control"
                 onClick={toggleSpeaker}
                 title="Toggle speaker / earpiece"
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #313743', background: isSpeakerOn ? 'rgba(34, 197, 94, 0.2)' : '#242930', color: isSpeakerOn ? '#22C55E' : '#fff', fontSize: 12, cursor: 'pointer' }}
@@ -796,7 +821,7 @@ export default function VideoCallModal({
                 {isSpeakerOn ? '🔊 Speaker' : '🎧 Earpiece'}
               </button>
 
-              <button onClick={handleEndCall} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              <button className="btn-call-control" onClick={handleEndCall} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
                 🔴 End Call
               </button>
             </>

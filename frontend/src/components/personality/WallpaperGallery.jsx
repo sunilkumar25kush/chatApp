@@ -46,8 +46,8 @@ export default function WallpaperGallery({ targetRoomId }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Sub Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8 }}>
+      {/* Sub Tabs (Horizontal Scroll) */}
+      <div className="ui-scroll-tabs" role="tablist" aria-label="Wallpaper categories" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8 }}>
         {[
           { id: 'presets', label: 'Curated Wallpapers' },
           { id: 'custom', label: `My Uploads (${customList.length})` },
@@ -56,17 +56,10 @@ export default function WallpaperGallery({ targetRoomId }) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              background: activeTab === tab.id ? 'var(--theme-primary, #7c3aed)' : 'transparent',
-              color: activeTab === tab.id ? '#fff' : '#94a3b8',
-              border: 'none',
-              borderRadius: 8,
-              padding: '6px 14px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
+            type="button"
+            className={`ui-tab-chip ${activeTab === tab.id ? 'active' : ''}`}
+            role="tab"
+            aria-selected={activeTab === tab.id}
           >
             {tab.label}
           </button>

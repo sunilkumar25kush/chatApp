@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -11,19 +13,22 @@ export default function Navbar() {
   };
 
   return (
-    <nav style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '1rem 2rem',
-      backgroundColor: 'var(--bg-card)',
-      borderBottom: '1px solid var(--border)'
-    }}>
-      <div style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary)' }}>
+    <nav className="navbar">
+      <div className="navbar-brand" style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary)' }}>
         <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>ChatRoom</Link>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <button
+        className="navbar-mobile-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle Navigation Menu"
+        type="button"
+      >
+        {mobileMenuOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Desktop Links */}
+      <div className="navbar-links navbar-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <Link to="/">Home</Link>
         <Link to="/chat">Chat</Link>
 
@@ -111,6 +116,64 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Mobile Menu Drawer */}
+      {mobileMenuOpen && (
+        <div className="navbar-mobile-drawer" onClick={() => setMobileMenuOpen(false)}>
+          <Link to="/" style={{ color: 'var(--text)', fontWeight: 600, minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6 }}>Home</Link>
+          <Link to="/chat" style={{ color: 'var(--text)', fontWeight: 600, minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6 }}>Chat</Link>
+          {isAuthenticated ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0 8px', minHeight: 38 }}>
+                {user?.avatar && (
+                  <img
+                    src={user.avatar}
+                    alt="Avatar"
+                    style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-slate)', flexShrink: 0 }}
+                  />
+                )}
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.fullName || user?.username || 'User'}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: 'var(--error, #ef4444)',
+                  border: '1px solid var(--border)',
+                  minHeight: 42,
+                  padding: '0 1rem',
+                  borderRadius: 'var(--radius-xs)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+              <Link to="/login" style={{ color: 'var(--text)', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6, fontWeight: 500 }}>Login</Link>
+              <Link to="/register" style={{
+                backgroundColor: 'var(--primary)',
+                color: 'var(--color-white)',
+                minHeight: 42,
+                padding: '0 1rem',
+                borderRadius: 'var(--radius-xs)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 600
+              }}>
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

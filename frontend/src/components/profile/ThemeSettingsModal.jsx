@@ -76,6 +76,7 @@ export default function ThemeSettingsModal({ onClose }) {
                   aria-pressed={mode === m.id}
                   style={{
                     padding: '10px 8px',
+                    minHeight: 52,
                     borderRadius: 10,
                     border: `2px solid ${mode === m.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     background: mode === m.id ? 'var(--primary-light)' : 'var(--bg-input)',
@@ -85,6 +86,7 @@ export default function ThemeSettingsModal({ onClose }) {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: 4,
                   }}
                 >
@@ -111,9 +113,11 @@ export default function ThemeSettingsModal({ onClose }) {
               {THEME_PRESETS.map((p) => (
                 <button
                   key={p.id}
+                  type="button"
                   onClick={() => handleApplyPreset(p)}
                   style={{
                     padding: '10px 8px',
+                    minHeight: 64,
                     borderRadius: 10,
                     border: `2px solid ${localTheme.preset === p.id ? p.primary : 'var(--border-color)'}`,
                     background: p.sidebarBg && p.sidebarBg !== 'transparent' ? p.sidebarBg : 'var(--bg-input)',
@@ -123,6 +127,7 @@ export default function ThemeSettingsModal({ onClose }) {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: 6,
                   }}
                 >
@@ -159,7 +164,7 @@ export default function ThemeSettingsModal({ onClose }) {
                   value={localTheme.borderRadius}
                   onChange={(e) => handleColorChange('borderRadius', e.target.value)}
                   className="form-control"
-                  style={{ width: 'auto', height: 32, padding: '0 10px', fontSize: 12 }}
+                  style={{ width: 'auto', minHeight: 38, height: 38, padding: '0 10px', fontSize: 13, borderRadius: 8 }}
                 >
                   <option value="4px">Square (4px)</option>
                   <option value="12px">Rounded (12px)</option>
@@ -172,7 +177,7 @@ export default function ThemeSettingsModal({ onClose }) {
                   value={localTheme.fontFamily}
                   onChange={(e) => handleColorChange('fontFamily', e.target.value)}
                   className="form-control"
-                  style={{ width: 'auto', height: 32, padding: '0 10px', fontSize: 12 }}
+                  style={{ width: 'auto', minHeight: 38, height: 38, padding: '0 10px', fontSize: 13, borderRadius: 8 }}
                 >
                   <option value="Inter">Inter (Default)</option>
                   <option value="Roboto">Roboto</option>

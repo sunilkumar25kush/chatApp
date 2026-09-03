@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
 import { SkeletonCallHistory } from '../components/SkeletonLoaders';
 
 export default function CallHistoryPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All'); // All, Voice, Video, Missed
@@ -54,25 +56,44 @@ export default function CallHistoryPage() {
   }
 
   return (
-    <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', background: '#181a20', color: '#f3f4f6' }}>
-      <div style={{ padding: '24px 32px', borderBottom: '1px solid #282c37', background: '#1c1f28' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 16px' }}>Call History</h1>
+    <div className="call-history-container">
+      <div className="call-history-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' }}>
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            title="Back"
+            type="button"
+            style={{
+              width: 42,
+              height: 42,
+              minWidth: 42,
+              minHeight: 42,
+              borderRadius: 8,
+              background: '#222530',
+              border: '1px solid #3f4657',
+              color: '#f3f4f6',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: 18,
+            }}
+          >
+            ←
+          </button>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#f3f4f6' }}>Call History</h1>
+        </div>
         
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="ui-scroll-tabs" role="tablist" aria-label="Filter call history">
           {['All', 'Voice', 'Video', 'Missed'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              style={{
-                background: filter === f ? '#5865F2' : '#222530',
-                color: filter === f ? '#fff' : '#9ca3af',
-                border: filter === f ? 'none' : '1px solid #3f4657',
-                borderRadius: 16,
-                padding: '6px 16px',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
+              type="button"
+              className={`ui-tab-chip ${filter === f ? 'active' : ''}`}
+              role="tab"
+              aria-selected={filter === f}
             >
               {f}
             </button>
@@ -80,7 +101,7 @@ export default function CallHistoryPage() {
         </div>
       </div>
 
-      <div className="scrollzone" style={{ flex: 1, overflowY: 'auto', padding: 32 }}>
+      <div className="call-history-feed scrollzone">
         {filteredCalls.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#6b7280', marginTop: 40 }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>📞</div>
@@ -103,31 +124,31 @@ export default function CallHistoryPage() {
               else statusColor = '#3b82f6'; // blue for incoming successful
               
               return (
-                <div key={call._id} className="call-history-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#222530', borderRadius: 12, border: '1px solid #2d3241', flexWrap: 'wrap', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: '#fff', overflow: 'hidden' }}>
+                <div key={call._id} className="call-history-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#222530', borderRadius: 12, border: '1px solid #2d3241', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 180px' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
                       {otherUser?.avatar ? (
                          <img src={otherUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                          otherName.substring(0, 2).toUpperCase()
                       )}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 600, color: isMissed ? '#ef4444' : '#f3f4f6' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: isMissed ? '#ef4444' : '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {otherName}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
-                        <span style={{ color: statusColor, fontSize: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af', marginTop: 4, flexWrap: 'wrap' }}>
+                        <span style={{ color: statusColor, fontSize: 13 }}>
                           {isMissed ? '↙' : isOutgoing ? '↗' : '↙'}
                         </span>
                         <span>{formatDate(call.startTime)}</span>
                         <span>•</span>
-                        <span>{call.room?.name || 'Private Room'}</span>
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{call.room?.name || 'Private Room'}</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 'auto' }}>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, color: '#d1d5db', fontWeight: 500 }}>{formatDuration(call.duration)}</div>
                       <div style={{ fontSize: 12, color: '#6b7280' }}>{call.status}</div>

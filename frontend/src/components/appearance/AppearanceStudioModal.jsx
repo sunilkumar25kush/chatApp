@@ -24,6 +24,8 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
   const { appearanceState, setActiveEffect, resetAppearance } = useAppearance();
   const [activeTab, setActiveTab] = useState('themes');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showKebabMenu, setShowKebabMenu] = useState(false);
+  const [mobileView, setMobileView] = useState('controls'); // 'controls' | 'preview'
 
   if (!isOpen) return null;
 
@@ -31,46 +33,32 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
     <>
       {/* Backdrop */}
       <div
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 2500, padding: 16,
-        }}
+        className="appearance-studio-backdrop"
         onClick={onClose}
       >
         {/* Modal Card */}
         <div
-          className="modal-card"
+          className="appearance-studio-modal modal-card"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            width: '100%', maxWidth: 980,
-            height: '90vh', maxHeight: 700,
-            borderRadius: 16,
-            display: 'flex', flexDirection: 'column',
-            overflow: 'hidden',
-            padding: 0,
-          }}
         >
           {/* ── Header ─────────────────────────────────────────────── */}
-          <div className="modal-header" style={{ padding: '14px 20px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn-icon" onClick={onClose} aria-label="Close" title="Close">
-                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="studio-modal-header">
+            <div className="studio-header-left">
+              <button className="back-btn" onClick={onClose} aria-label="Back" title="Back" type="button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
               </button>
-              <span style={{ fontSize: 22 }}>✨</span>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>Appearance Studio</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Personalize themes, wallpapers, effects &amp; sounds.
+              <div className="studio-header-titles">
+                <div className="studio-header-title">✨ Appearance Studio</div>
+                <div className="studio-header-subtitle">
+                  Personalize themes, wallpapers, effects &amp; sounds
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Desktop Actions */}
+            <div className="studio-desktop-header-actions">
               <button
                 onClick={() => setShowShareModal(true)}
                 className="btn btn-secondary"
@@ -92,42 +80,100 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
                 </svg>
               </button>
             </div>
+
+            {/* Mobile Actions (Kebab Menu + Close) */}
+            <div className="studio-mobile-kebab-btn" style={{ position: 'relative' }}>
+              <button
+                className="btn-icon"
+                onClick={() => setShowKebabMenu((prev) => !prev)}
+                aria-label="More options"
+                title="More options"
+                type="button"
+                style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input, #1a1d25)', border: '1px solid var(--border, #2a2f3d)', borderRadius: 8 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2.2" /><circle cx="12" cy="12" r="2.2" /><circle cx="12" cy="19" r="2.2" />
+                </svg>
+              </button>
+              {showKebabMenu && (
+                <div className="studio-kebab-dropdown" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => { setShowShareModal(true); setShowKebabMenu(false); }}
+                    style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', color: 'var(--text-main)', textAlign: 'left', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <span>📤</span> Share Theme
+                  </button>
+                  <button
+                    onClick={() => { resetAppearance(); setShowKebabMenu(false); }}
+                    style={{ width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', color: 'var(--text-main)', textAlign: 'left', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <span>🔄</span> Reset to Default
+                  </button>
+                </div>
+              )}
+              <button
+                className="btn-icon"
+                onClick={onClose}
+                aria-label="Close"
+                type="button"
+                style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input, #1a1d25)', border: '1px solid var(--border, #2a2f3d)', borderRadius: 8 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
-          {/* ── Tab Strip ──────────────────────────────────────────── */}
-          <div
-            className="filter-tabs scrollzone"
-            style={{ padding: '0 16px 8px', borderBottom: '1px solid var(--border-color)', gap: 4, flexShrink: 0 }}
-          >
+          {/* ── Mobile View Switcher (Controls vs Live Preview) ── */}
+          <div className="studio-mobile-view-switcher">
+            <button
+              type="button"
+              className={`studio-view-switch-btn ${mobileView === 'controls' ? 'active' : ''}`}
+              onClick={() => setMobileView('controls')}
+            >
+              <span>🎛️ Customize Controls</span>
+            </button>
+            <button
+              type="button"
+              className={`studio-view-switch-btn ${mobileView === 'preview' ? 'active' : ''}`}
+              onClick={() => setMobileView('preview')}
+            >
+              <span>👁️ Live Preview</span>
+              <span className="live-pulse-dot" />
+            </button>
+          </div>
+
+          {/* ── Category / Tool Tabs (Dedicated Non-circular Tabs Strip) ── */}
+          <div className={`studio-tab-strip ${mobileView === 'preview' ? 'mobile-hidden' : ''}`}>
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`tab-item ${activeTab === tab.id ? 'active' : ''}`}
+                className={`studio-category-tab ${activeTab === tab.id ? 'active' : ''}`}
+                type="button"
               >
-                <span style={{ marginRight: 4 }}>{tab.icon}</span>{tab.label}
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
 
-          {/* ── Split Content ───────────────────────────────────────── */}
-          <div style={{ flex: 1, display: 'flex', overflow: 'hidden', gap: 0 }}>
+          {/* ── Main Content (Desktop: Split View / Mobile: Switchable Clean View) ── */}
+          <div className="studio-content-layout">
 
-            {/* Controls pane */}
-            <div
-              className="scrollzone"
-              style={{ flex: 1.2, overflowY: 'auto', padding: 16, borderRight: '1px solid var(--border-color)' }}
-            >
+            {/* Controls pane (Visible on desktop, or when mobileView === 'controls') */}
+            <div className={`studio-controls-pane scrollzone ${mobileView === 'preview' ? 'mobile-hidden' : ''}`}>
               {activeTab === 'themes'     && <ThemeGallery />}
               {activeTab === 'wallpapers' && <WallpaperEditor />}
               {activeTab === 'effects'    && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
                   {VISUAL_EFFECTS.map((eff) => (
                     <button
                       key={eff.id}
                       onClick={() => setActiveEffect(eff.id)}
                       style={{
-                        padding: 14,
+                        padding: '12px 8px',
                         borderRadius: 10,
                         background: 'var(--bg-input)',
                         border: appearanceState.activeEffectId === eff.id
@@ -140,7 +186,7 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <span style={{ fontSize: 26 }}>{eff.icon}</span>
+                      <span style={{ fontSize: 24 }}>{eff.icon}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-main)' }}>{eff.name}</span>
                     </button>
                   ))}
@@ -149,10 +195,47 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
               {activeTab === 'animations' && <AnimationControls />}
               {activeTab === 'sounds'     && <SoundControls />}
               {activeTab === 'saved'      && <SavedThemesManager />}
+
+              {/* Jump to Live Preview Banner for Mobile */}
+              <div
+                className="studio-preview-jump-banner"
+                onClick={() => setMobileView('preview')}
+                role="button"
+                tabIndex={0}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>👁️</span>
+                  <span>View Full Chat Live Preview</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>Preview →</span>
+              </div>
             </div>
 
-            {/* Live Preview pane */}
-            <AppearanceLivePreview targetRoomId={targetRoomId} roomName={roomName} />
+            {/* Live Preview pane (Visible on desktop, or when mobileView === 'preview') */}
+            <div className={`studio-preview-pane ${mobileView === 'controls' ? 'mobile-hidden' : ''}`}>
+              <div className="studio-preview-header">
+                <span>👁️ Live Chat Preview</span>
+                <button
+                  type="button"
+                  onClick={() => setMobileView('controls')}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-primary, #a855f7)', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                >
+                  ✏️ Edit Controls
+                </button>
+              </div>
+              <AppearanceLivePreview targetRoomId={targetRoomId} roomName={roomName} />
+            </div>
+          </div>
+
+          {/* ── Mobile Sticky Footer ───────────────────────────────── */}
+          <div className="studio-mobile-footer">
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', height: 44, borderRadius: 10, fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              onClick={onClose}
+            >
+              ✓ Save / Apply Theme
+            </button>
           </div>
         </div>
       </div>
