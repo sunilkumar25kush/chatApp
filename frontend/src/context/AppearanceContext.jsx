@@ -181,13 +181,70 @@ export const AppearanceProvider = ({ children }) => {
     root.style.setProperty('--wallpaper-saturation', `${controls.saturation}%`);
     root.style.setProperty('--wallpaper-scale', `${controls.scale / 100}`);
     root.style.setProperty('--wallpaper-fit-mode', controls.fitMode);
-    root.style.setProperty('--wallpaper-overlay-color', controls.overlayColor);
-    root.style.setProperty('--wallpaper-overlay-opacity', effectiveOverlayOpacity);
+    const activeOverlayColor = (controls.overlayColor && controls.overlayColor !== '#000000')
+      ? controls.overlayColor
+      : (theme.overlayColor || (bgLuminance > 0.5 ? '#ffffff' : '#000000'));
+    const activeOverlayOpacity = (controls.overlayColor && controls.overlayColor !== '#000000')
+      ? effectiveOverlayOpacity
+      : (theme.overlayOpacity ?? (bgLuminance > 0.5 ? 0.05 : effectiveOverlayOpacity));
 
-    // Apply Active Theme Class
-    document.body.className = '';
+    root.style.setProperty('--wallpaper-overlay-color', activeOverlayColor);
+    root.style.setProperty('--wallpaper-overlay-opacity', activeOverlayOpacity);
+
+    // Apply Active Theme Class & Light Mode Contrast Bridge
+    const isLight = bgLuminance > 0.5 || Boolean(theme.isLight);
+
+    Array.from(document.body.classList)
+      .filter((c) => c.startsWith('theme-') && c !== 'theme-light' && c !== 'theme-amoled' && c !== 'theme-glass')
+      .forEach((c) => document.body.classList.remove(c));
     document.body.classList.add(`theme-${appearanceState.activeThemeId}`);
-    if (bgLuminance > 0.5) document.body.classList.add('theme-light');
+
+    if (isLight) {
+      document.body.classList.add('theme-light');
+      root.classList.add('theme-light');
+      root.style.setProperty('--color-bg-window', theme.chatBg);
+      root.style.setProperty('--color-bg-card', theme.inputBg || '#ffffff');
+      root.style.setProperty('--color-bg-hover', 'rgba(0, 0, 0, 0.05)');
+      root.style.setProperty('--color-bg-input', theme.inputBg || '#ffffff');
+      root.style.setProperty('--color-border', adaptiveBorder);
+      root.style.setProperty('--color-text', primaryText);
+      root.style.setProperty('--color-text-muted', mutedText);
+      root.style.setProperty('--color-text-dim', mutedText);
+      root.style.setProperty('--text-main', primaryText);
+      root.style.setProperty('--text', primaryText);
+      root.style.setProperty('--bg-input', theme.inputBg || '#ffffff');
+      root.style.setProperty('--bg-card', theme.inputBg || '#ffffff');
+      root.style.setProperty('--bg-panel', theme.sidebarBg || '#ffffff');
+      root.style.setProperty('--bg-panel-hover', 'rgba(0, 0, 0, 0.05)');
+      root.style.setProperty('--bg-hover', 'rgba(0, 0, 0, 0.05)');
+      root.style.setProperty('--border-color', adaptiveBorder);
+      root.style.setProperty('--border', adaptiveBorder);
+      root.style.colorScheme = 'light';
+    } else {
+      const isThemeContextLight = localStorage.getItem('gajim_theme_mode') === 'light';
+      if (!isThemeContextLight) {
+        document.body.classList.remove('theme-light');
+        root.classList.remove('theme-light');
+        root.style.removeProperty('--color-bg-window');
+        root.style.removeProperty('--color-bg-card');
+        root.style.removeProperty('--color-bg-hover');
+        root.style.removeProperty('--color-bg-input');
+        root.style.removeProperty('--color-border');
+        root.style.removeProperty('--color-text');
+        root.style.removeProperty('--color-text-muted');
+        root.style.removeProperty('--color-text-dim');
+        root.style.removeProperty('--text-main');
+        root.style.removeProperty('--text');
+        root.style.removeProperty('--bg-input');
+        root.style.removeProperty('--bg-card');
+        root.style.removeProperty('--bg-panel');
+        root.style.removeProperty('--bg-panel-hover');
+        root.style.removeProperty('--bg-hover');
+        root.style.removeProperty('--border-color');
+        root.style.removeProperty('--border');
+        root.style.colorScheme = 'dark';
+      }
+    }
   }, [appearanceState]);
 
   // Persist Appearance State
@@ -222,9 +279,14 @@ export const AppearanceProvider = ({ children }) => {
       updateAppearanceSettings({
         activeThemeId: themeId,
         activeEffectId: themeConfig.defaultEffect || 'none',
+        controls: {
+          ...appearanceState.controls,
+          overlayColor: themeConfig.theme.overlayColor || (themeConfig.theme.isLight ? '#ffffff' : '#000000'),
+          overlayOpacity: themeConfig.theme.overlayOpacity ?? (themeConfig.theme.isLight ? 0.05 : 0.2),
+        },
       });
     },
-    [updateAppearanceSettings]
+    [appearanceState.controls, updateAppearanceSettings]
   );
 
   // Set Visual Effect

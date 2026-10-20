@@ -857,10 +857,37 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
             <button className="btn btn-primary" onClick={loadMessages} type="button">Retry</button>
           </div>
         ) : messages.length === 0 ? (
-          <div className="empty-roster-state" style={{ flex: 1 }}>
-            <svg className="icon icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <p className="empty-title">No messages yet</p>
-            <p className="empty-subtitle">Be the first to say something in <strong>{room.name}</strong>!</p>
+          <div className="room-welcome-hero">
+            <div className="room-welcome-avatar" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <span>{getUserInitials(room.name || 'Room')}</span>
+            </div>
+            <h2 className="room-welcome-title">Welcome to #{room.name || 'Chat'}</h2>
+            <p className="room-welcome-sub">
+              {room.topic || `This is the start of the #${room.name || 'conversation'} channel. Messages are secured in transit.`}
+            </p>
+            <div className="room-starter-chips">
+              <button
+                type="button"
+                className="starter-chip"
+                onClick={() => setInputText('👋 Hello everyone!')}
+              >
+                👋 Say Hello
+              </button>
+              <button
+                type="button"
+                className="starter-chip"
+                onClick={() => setInputText('🚀 Checking in with the team!')}
+              >
+                🚀 Check in
+              </button>
+              <button
+                type="button"
+                className="starter-chip"
+                onClick={() => setInputText('✨ Excited to be here!')}
+              >
+                ✨ Say Hi
+              </button>
+            </div>
           </div>
         ) : (
           messages.map((msg) => {
@@ -872,7 +899,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <div
                 key={msg._id}
                 ref={(el) => { if (el) messageRefs.current[msg._id] = el; }}
-                className={`message-row ${isMe ? 'message-row--me' : ''} ${selectedIds.has(msg._id) ? 'message-row--selected' : ''}`}
+                className={`message-row ${isMe ? 'message-row--me' : ''} ${selectedIds.has(msg._id) ? 'message-row--selected' : ''} ${hoveredMessageId === msg._id ? 'is-hovered' : ''}`}
                 onClick={() => (selectionMode ? toggleSelect(msg._id) : setHoveredMessageId(hoveredMessageId === msg._id ? null : msg._id))}
                 onMouseLeave={() => setHoveredMessageId(null)}
                 style={{ display: 'flex', gap: 10, alignItems: 'flex-start', position: 'relative', animation: 'message-appear 150ms ease-out' }}
@@ -1056,29 +1083,66 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                     </div>
                   )}
 
-                  {/* Action buttons (Reply / Copy / Star / Info / Edit / Delete) */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
-                    <button onClick={() => setReplyingTo(msg)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}>Reply</button>
-                    <button onClick={() => copyMessage(msg)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}>Copy</button>
+                  {/* Floating Action toolbar (Reply / Copy / Star / Edit / Delete / Info) */}
+                  <div className="msg-floating-actions" role="toolbar" aria-label="Message actions">
                     <button
-                      onClick={() => toggleStar(msg)}
-                      style={{ background: 'transparent', border: 'none', color: (msg.starredBy || []).includes(currentUserId) ? 'var(--color-amber)' : 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                      type="button"
+                      className="msg-action-btn"
+                      onClick={() => setReplyingTo(msg)}
+                      title="Reply"
+                      aria-label="Reply"
                     >
-                      {(msg.starredBy || []).includes(currentUserId) ? '★ Starred' : '☆ Star'}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                     </button>
                     <button
-                      onClick={() => setInfoMessageId(infoMessageId === msg._id ? null : msg._id)}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                      type="button"
+                      className="msg-action-btn"
+                      onClick={() => copyMessage(msg)}
+                      title="Copy text"
+                      aria-label="Copy text"
                     >
-                      Info
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`msg-action-btn ${(msg.starredBy || []).includes(currentUserId) ? 'starred' : ''}`}
+                      onClick={() => toggleStar(msg)}
+                      title={(msg.starredBy || []).includes(currentUserId) ? 'Unstar' : 'Star message'}
+                      aria-label="Star message"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill={(msg.starredBy || []).includes(currentUserId) ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     </button>
                     {user?.username === senderName && (
-                      <>
-                        <button onClick={() => handleStartEdit(msg)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}>Edit</button>
-                        <button onClick={() => handleDeleteMessage(msg._id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', fontSize: 11, cursor: 'pointer', padding: 0 }}>Delete</button>
-                        <button onClick={() => deleteForMe(msg._id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', padding: 0 }}>Hide</button>
-                      </>
+                      <button
+                        type="button"
+                        className="msg-action-btn"
+                        onClick={() => handleStartEdit(msg)}
+                        title="Edit message"
+                        aria-label="Edit message"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      </button>
                     )}
+                    {user?.username === senderName && (
+                      <button
+                        type="button"
+                        className="msg-action-btn danger"
+                        onClick={() => handleDeleteMessage(msg._id)}
+                        title="Delete message"
+                        aria-label="Delete message"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="msg-action-btn"
+                      onClick={() => setInfoMessageId(infoMessageId === msg._id ? null : msg._id)}
+                      title="Message Info"
+                      aria-label="Message Info"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </button>
                   </div>
 
                   {/* Message Info popover */}

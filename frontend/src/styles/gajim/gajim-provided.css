@@ -75,6 +75,27 @@
   --left-sidebar-width:    56px;
 }
 
+/* ── Gajim Light Theme Token Bridge ─────────────────────────── */
+:root.theme-light,
+body.theme-light {
+  --bg-window:        var(--color-bg-window, #f2f4f8);
+  --bg-panel:         var(--color-bg-card, #ffffff);
+  --bg-panel-hover:   var(--color-bg-hover, rgba(0, 0, 0, 0.05));
+  --bg-panel-active:  var(--color-primary-light, rgba(124, 58, 237, 0.12));
+  --bg-sidebar:       var(--theme-sidebar-bg, #f7f9fc);
+  --bg-input:         var(--theme-input-bg, var(--color-bg-input, #ffffff));
+  --bg-badge:         var(--color-bg-deep, #e9edf3);
+  --bg-popover:       var(--color-bg-card, #ffffff);
+  --bg-elevated:      var(--color-bg-elevated, #ffffff);
+
+  --text-main:        var(--color-text, #16181d);
+  --text-muted:       var(--color-text-muted, #4b5563);
+  --text-dim:         var(--color-text-dim, #5c6a84);
+
+  --border-color:     var(--color-border, #d9dee8);
+  --border-subtle:    var(--color-border-subtle, #e4e8f0);
+}
+
 /* ==========================================================================
    VISUAL CONSISTENCY SYSTEM — Typography, Spacing, Buttons, Cards,
    Borders, Icons, Dark Mode, Hover States, Loading States
@@ -559,14 +580,14 @@
 }
 
 .msg-bubble-in {
-  background: var(--theme-msg-in-bg);
-  color: var(--bubble-text-in, #e2e8f0);
+  background: var(--theme-msg-in-bg, rgba(30, 41, 59, 0.7));
+  color: var(--bubble-text-in, #f1f5f9);
   border-bottom-left-radius: 4px;
 }
 
 .msg-bubble-out {
-  background: var(--theme-msg-out-bg);
-  color: var(--bubble-text-out, #fff);
+  background: var(--theme-msg-out-bg, linear-gradient(135deg, #4f46e5 0%, #6366f1 100%));
+  color: var(--bubble-text-out, #ffffff);
   border-bottom-right-radius: 4px;
 }
 
@@ -1040,17 +1061,21 @@
   width: 100%;
   height: 38px;
   padding: 0 36px 0 36px;
-  background-color: var(--bg-input);
+  background-color: var(--theme-input-bg, var(--bg-input));
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  color: var(--text-main);
+  color: var(--input-text, var(--text-main));
   font-size: var(--font-size-sm);
   transition: var(--transition-default);
 }
 
+.search-input::placeholder {
+  color: var(--placeholder-color, var(--text-muted));
+}
+
 .search-input:focus {
   border-color: var(--border-focus);
-  background-color: var(--bg-panel);
+  background-color: var(--theme-input-bg, var(--bg-panel));
   box-shadow: 0 0 0 3px var(--color-primary-alpha);
 }
 
@@ -1505,7 +1530,7 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-  background-color: var(--bg-input);
+  background-color: var(--theme-input-bg, var(--bg-input));
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 6px 10px;
@@ -1542,10 +1567,11 @@
   max-height: 160px;
   min-height: 24px;
   resize: none;
-  padding: 6px 4px;
+  padding: 8px 6px;
   color: var(--text-main);
-  font-size: var(--font-size-sm);
-  line-height: 1.45;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px;
+  line-height: 1.5;
   background: transparent;
   border: none;
   outline: none;
@@ -1623,13 +1649,14 @@
 .chat-header {
   height: var(--header-height);
   padding: 0 var(--space-3);
-  background-color: var(--bg-sidebar);
+  background-color: var(--theme-header-bg, var(--bg-sidebar));
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
   z-index: 15;
+  color: var(--header-text, var(--text-main));
 }
 
 .header-left {

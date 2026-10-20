@@ -1,177 +1,174 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const displayName = user?.fullName || user?.username || user?.email || 'User';
+
   return (
-    <nav className="navbar">
-      <div className="navbar-brand" style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary)' }}>
-        <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>ChatRoom</Link>
-      </div>
-
-      <button
-        className="navbar-mobile-toggle"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle Navigation Menu"
-        type="button"
-      >
-        {mobileMenuOpen ? '✕' : '☰'}
-      </button>
-
-      {/* Desktop Links */}
-      <div className="navbar-links navbar-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-        <Link to="/">Home</Link>
-        <Link to="/chat">Chat</Link>
-
-        {isAuthenticated ? (
-          (() => {
-            const isGoogle = user?.provider === 'google' || user?.googleId;
-            const displayName = user?.fullName || user?.username || user?.email || 'User';
-
-            if (isGoogle) {
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {user?.avatar && (
-                      <img
-                        src={user.avatar}
-                        alt={displayName}
-                        style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-slate)' }}
-                      />
-                    )}
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{displayName}</span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-muted)',
-                      border: '1px solid var(--border)',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: 'var(--radius-xs)',
-                      fontSize: '0.85rem'
-                    }}
-                    onMouseEnter={(e) => e.target.style.color = 'var(--error)'}
-                    onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
-                  >
-                    Logout
-                  </button>
-                </div>
-              );
-            }
-
-            // Default (normal login) UI — preserve existing layout
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {user?.avatar && (
-                    <img
-                      src={user.avatar}
-                      alt={user.username}
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-slate)' }}
-                    />
-                  )}
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{user?.username}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--text-muted)',
-                    border: '1px solid var(--border)',
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: 'var(--radius-xs)',
-                    fontSize: '0.85rem'
-                  }}
-                  onMouseEnter={(e) => e.target.style.color = 'var(--error)'}
-                  onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
-                >
-                  Logout
-                </button>
-              </div>
-            );
-          })()
-        ) : (
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <Link to="/login">Login</Link>
-            <Link to="/register" style={{
-              backgroundColor: 'var(--primary)',
-              color: 'var(--color-white)',
-              padding: '0.4rem 0.9rem',
-              borderRadius: 'var(--radius-xs)',
-              textDecoration: 'none',
-              fontWeight: 500
-            }}>
-              Register
-            </Link>
+    <nav className="navbar" role="navigation" aria-label="Main Navigation">
+      <div className="navbar-container">
+        {/* Brand Logo */}
+        <Link to="/" className="navbar-brand">
+          <div className="brand-icon-bubble">
+            <span className="brand-spark">✦</span>
           </div>
-        )}
-      </div>
+          <span className="brand-text">
+            Chat<span className="brand-accent">Room</span>
+          </span>
+        </Link>
 
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="navbar-mobile-drawer" onClick={() => setMobileMenuOpen(false)}>
-          <Link to="/" style={{ color: 'var(--text)', fontWeight: 600, minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6 }}>Home</Link>
-          <Link to="/chat" style={{ color: 'var(--text)', fontWeight: 600, minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6 }}>Chat</Link>
+        {/* Desktop Navigation Links */}
+        <div className="navbar-links navbar-desktop-links">
+          <Link
+            to="/"
+            className={`nav-link-item ${location.pathname === '/' ? 'active' : ''}`}
+          >
+            Home
+          </Link>
+          <Link
+            to="/chat"
+            className={`nav-link-item ${location.pathname === '/chat' ? 'active' : ''}`}
+          >
+            Chat
+          </Link>
+
           {isAuthenticated ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0 8px', minHeight: 38 }}>
-                {user?.avatar && (
+            <div className="navbar-user-section">
+              <div className="user-profile-pill">
+                {user?.avatar ? (
                   <img
                     src={user.avatar}
-                    alt="Avatar"
-                    style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-slate)', flexShrink: 0 }}
+                    alt={displayName}
+                    className="user-pill-avatar"
                   />
+                ) : (
+                  <span className="user-pill-initials">
+                    {(displayName.substring(0, 2)).toUpperCase()}
+                  </span>
                 )}
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.fullName || user?.username || 'User'}</span>
+                <span className="user-pill-name">{displayName}</span>
+                <span className="user-status-dot" title="Online" />
               </div>
+
               <button
                 onClick={handleLogout}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: 'var(--error, #ef4444)',
-                  border: '1px solid var(--border)',
-                  minHeight: 42,
-                  padding: '0 1rem',
-                  borderRadius: 'var(--radius-xs)',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className="btn-logout-pill"
+                type="button"
+                title="Log out"
               >
                 Logout
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
-              <Link to="/login" style={{ color: 'var(--text)', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 8px', borderRadius: 6, fontWeight: 500 }}>Login</Link>
-              <Link to="/register" style={{
-                backgroundColor: 'var(--primary)',
-                color: 'var(--color-white)',
-                minHeight: 42,
-                padding: '0 1rem',
-                borderRadius: 'var(--radius-xs)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 600
-              }}>
-                Register
+            <div className="navbar-auth-buttons">
+              <Link to="/login" className="nav-btn-login">
+                Sign In
+              </Link>
+              <Link to="/register" className="nav-btn-register">
+                Get Started
               </Link>
             </div>
           )}
+        </div>
+
+        {/* Mobile Hamburger Toggle */}
+        <button
+          className="navbar-mobile-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle Navigation Menu"
+          aria-expanded={mobileMenuOpen}
+          type="button"
+        >
+          {mobileMenuOpen ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="toggle-svg">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="toggle-svg">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Menu Dropdown Drawer */}
+      {mobileMenuOpen && (
+        <div className="navbar-mobile-drawer" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer-inner" onClick={(e) => e.stopPropagation()}>
+            <Link
+              to="/"
+              className={`mobile-nav-link ${location.pathname === '/' ? 'active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span className="mobile-nav-icon">🏠</span> Home
+            </Link>
+            <Link
+              to="/chat"
+              className={`mobile-nav-link ${location.pathname === '/chat' ? 'active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span className="mobile-nav-icon">💬</span> Chat Dashboard
+            </Link>
+
+            {isAuthenticated ? (
+              <div className="mobile-user-section">
+                <div className="mobile-user-card">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={displayName} className="mobile-user-avatar" />
+                  ) : (
+                    <div className="mobile-user-initials">
+                      {(displayName.substring(0, 2)).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="mobile-user-info">
+                    <div className="mobile-username">{displayName}</div>
+                    <div className="mobile-user-sub">Active Now</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="mobile-btn-logout"
+                  type="button"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="mobile-auth-grid">
+                <Link
+                  to="/login"
+                  className="mobile-btn-login"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="mobile-btn-register"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Create Account
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

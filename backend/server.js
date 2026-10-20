@@ -151,16 +151,17 @@ const shutdown = (signal) => {
   isShuttingDown = true;
   logger.warn(`[Server] ${signal} received — shutting down gracefully...`);
 
-  server.close(() => {
+  server.close(async () => {
     logger.info('[Server] HTTP server closed.');
-    // Let mongoose close connections
-    const mongoose = require('mongoose');
-    mongoose.connection.close(false, () => {
+    try {
+      const mongoose = require('mongoose');
+      await mongoose.connection.close(false);
       logger.info('[Server] MongoDB connection closed. Bye.');
+    } catch (err) {
+      logger.error(`[Server] Error closing MongoDB connection: ${err.message}`);
+    } finally {
       process.exit(0);
-    });
-    // Safety net: force exit if connections hang
-    setTimeout(() => process.exit(0), 5000).unref();
+    }
   });
 };
 

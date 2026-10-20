@@ -76,23 +76,46 @@ export const ThemeProvider = ({ children }) => {
     root.style.setProperty('--theme-radius', theme.borderRadius);
     root.style.setProperty('--theme-font', theme.fontFamily);
 
-    if (resolvedMode === 'light') {
-      // Let the stylesheet's light palette control surfaces for contrast.
-      SURFACE_TOKENS.forEach((t) => root.style.removeProperty(t));
-    } else {
-      root.style.setProperty('--theme-chat-bg', theme.chatBg);
-      root.style.setProperty('--theme-sidebar-bg', theme.sidebarBg);
-      root.style.setProperty('--theme-msg-in-bg', theme.msgIncomingBg);
+    let isAppearanceLight = false;
+    let hasCustomAppearanceTheme = false;
+    const appearance = localStorage.getItem('appearance_studio_v2');
+    try {
+      const parsed = JSON.parse(appearance);
+      if (parsed && parsed.activeThemeId && parsed.activeThemeId !== 'default') {
+        hasCustomAppearanceTheme = true;
+      }
+      if (['sakura', 'pastel', 'snow'].includes(parsed?.activeThemeId)) {
+        isAppearanceLight = true;
+      }
+    } catch (e) {}
+
+    if (!hasCustomAppearanceTheme) {
+      if (resolvedMode === 'light') {
+        // Let the stylesheet's light palette control surfaces for contrast.
+        SURFACE_TOKENS.forEach((t) => root.style.removeProperty(t));
+      } else {
+        root.style.setProperty('--theme-chat-bg', theme.chatBg);
+        root.style.setProperty('--theme-sidebar-bg', theme.sidebarBg);
+        root.style.setProperty('--theme-msg-in-bg', theme.msgIncomingBg);
+      }
     }
 
-    // Apply special classes to body for complex themes
-    document.body.className = ''; // reset
-    if (theme.preset === 'glassmorphism') document.body.classList.add('theme-glass');
-    if (theme.preset === 'amoled') document.body.classList.add('theme-amoled');
-    if (resolvedMode === 'light') document.body.classList.add('theme-light');
+    // Apply special classes to body & root for complex themes
+    document.body.classList.toggle('theme-glass', theme.preset === 'glassmorphism');
+    document.body.classList.toggle('theme-amoled', theme.preset === 'amoled');
+
+    if (resolvedMode === 'light') {
+      root.classList.add('theme-light');
+      document.body.classList.add('theme-light');
+    } else {
+      if (!isAppearanceLight) {
+        root.classList.remove('theme-light');
+        document.body.classList.remove('theme-light');
+      }
+    }
 
     // Native form controls + scrollbars follow the mode
-    root.style.colorScheme = resolvedMode;
+    root.style.colorScheme = (resolvedMode === 'light' || isAppearanceLight) ? 'light' : 'dark';
   }, [theme, resolvedMode]);
 
   // Update theme locally and persist to MongoDB

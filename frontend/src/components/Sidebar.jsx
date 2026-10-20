@@ -268,7 +268,7 @@ export default function Sidebar({
 
             {/* Filter Tabs */}
             <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter chats">
-                <button className={`tab-item ui-tab-chip ${activeTab === 'chats' ? 'active' : ''}`} onClick={() => setActiveTab('chats')} role="tab" aria-selected={activeTab === 'chats'}>All</button>
+                <button className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'explore') ? 'active' : ''}`} onClick={() => setActiveTab('chats')} role="tab" aria-selected={activeTab === 'chats' || activeTab === 'explore'}>All</button>
                 <button className={`tab-item ui-tab-chip ${activeTab === 'joined' ? 'active' : ''}`} onClick={() => setActiveTab('joined')} role="tab" aria-selected={activeTab === 'joined'}>Rooms</button>
             </div>
 

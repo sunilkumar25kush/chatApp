@@ -18,7 +18,7 @@ export default function Chat() {
   const [joinedRooms, setJoinedRooms] = useState([]);
   const [recentRooms, setRecentRooms] = useState([]);
 
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'joined'
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'joined' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory] = useState('All');
 
@@ -354,21 +354,35 @@ export default function Chat() {
                 </ErrorBoundary>
               ) : (
                 /* Empty state */
-                <div className="empty-chat-state" style={{ background: 'var(--theme-chat-bg)' }}>
-                  <div className="empty-chat-icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.25 }}>
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
+                <div className="empty-chat-state">
+                  <div className="empty-chat-card">
+                    <div className="empty-chat-glow" aria-hidden="true" />
+                    <div className="empty-chat-illustration">
+                      <div className="empty-chat-icon-ring">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="empty-chat-icon-svg">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                      </div>
+                    </div>
+                    <h3 className="empty-chat-title">No Conversation Selected</h3>
+                    <p className="empty-chat-sub">Choose a room from the channel list, or start a new public or private discussion space.</p>
+                    <div className="empty-chat-actions">
+                      <button
+                        type="button"
+                        className="btn-empty-action primary"
+                        onClick={() => setIsCreateModalOpen(true)}
+                      >
+                        <span>+ Create New Room</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-empty-action secondary"
+                        onClick={() => setIsJoinModalOpen(true)}
+                      >
+                        <span>🔑 Join with Code</span>
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="empty-chat-title">No chat selected</h3>
-                  <p className="empty-chat-sub">Select a room from the sidebar to start chatting.</p>
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: 8 }}
-                    onClick={() => setIsCreateModalOpen(true)}
-                  >
-                    + Create a Room
-                  </button>
                 </div>
               )}
             </>

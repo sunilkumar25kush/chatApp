@@ -69,36 +69,47 @@ export const WallpaperProvider = ({ children }) => {
   // Inject CSS Variables dynamically for instant Live Preview
   useEffect(() => {
     const root = document.documentElement;
-    const activePersonality = getPersonalityById(personalityState.activePersonalityId);
-    const theme = activePersonality.theme;
 
-    // Set Theme CSS Variables
-    const isLight = theme.isLight || (theme.chatBg && (theme.chatBg.startsWith('#f') || theme.chatBg.includes('253') || theme.chatBg.includes('245')));
-    const textColor = theme.textColor || (isLight ? '#0f172a' : '#f8fafc');
-    const textMuted = theme.textMuted || (isLight ? '#475569' : '#94a3b8');
-    const senderColor = theme.senderColor || (isLight ? '#2563eb' : '#60a5fa');
-    const headerText = theme.headerText || (isLight ? '#0f172a' : '#f8fafc');
+    // If AppearanceContext (v2) is active in localStorage, let it control theme tokens & classes
+    const hasAppearance = !!localStorage.getItem('appearance_studio_v2');
 
-    root.style.setProperty('--theme-primary', theme.primaryColor);
-    root.style.setProperty('--theme-msg-in-bg', theme.msgIncomingBg);
-    root.style.setProperty('--theme-msg-in-text', theme.msgIncomingText || (isLight ? '#0f172a' : '#e2e8f0'));
-    root.style.setProperty('--theme-msg-out-bg', theme.msgOutgoingBg);
-    root.style.setProperty('--theme-msg-out-text', theme.msgOutgoingText || '#ffffff');
-    root.style.setProperty('--theme-chat-bg', theme.chatBg);
-    root.style.setProperty('--theme-sidebar-bg', theme.sidebarBg);
-    root.style.setProperty('--theme-header-bg', theme.headerBg || theme.sidebarBg);
-    root.style.setProperty('--theme-input-bg', theme.inputBg || (isLight ? '#ffffff' : '#222530'));
-    root.style.setProperty('--theme-radius', theme.borderRadius);
-    root.style.setProperty('--theme-font', theme.fontFamily);
-    root.style.setProperty('--theme-accent-glow', theme.accentGlow || 'none');
+    if (!hasAppearance) {
+      const activePersonality = getPersonalityById(personalityState.activePersonalityId);
+      const theme = activePersonality.theme;
 
-    // Dynamic contrast & text readability tokens
-    root.style.setProperty('--theme-text-color', textColor);
-    root.style.setProperty('--theme-text-muted', textMuted);
-    root.style.setProperty('--theme-sender-color', senderColor);
-    root.style.setProperty('--theme-header-text', headerText);
-    root.style.setProperty('--theme-bubble-border', isLight ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(255, 255, 255, 0.08)');
-    root.style.setProperty('--theme-bubble-shadow', isLight ? '0 2px 10px rgba(0, 0, 0, 0.08)' : '0 2px 10px rgba(0, 0, 0, 0.35)');
+      // Set Theme CSS Variables
+      const isLight = theme.isLight || (theme.chatBg && (theme.chatBg.startsWith('#f') || theme.chatBg.includes('253') || theme.chatBg.includes('245')));
+      const textColor = theme.textColor || (isLight ? '#0f172a' : '#f8fafc');
+      const textMuted = theme.textMuted || (isLight ? '#475569' : '#94a3b8');
+      const senderColor = theme.senderColor || (isLight ? '#2563eb' : '#60a5fa');
+      const headerText = theme.headerText || (isLight ? '#0f172a' : '#f8fafc');
+
+      root.style.setProperty('--theme-primary', theme.primaryColor);
+      root.style.setProperty('--theme-msg-in-bg', theme.msgIncomingBg);
+      root.style.setProperty('--theme-msg-in-text', theme.msgIncomingText || (isLight ? '#0f172a' : '#e2e8f0'));
+      root.style.setProperty('--theme-msg-out-bg', theme.msgOutgoingBg);
+      root.style.setProperty('--theme-msg-out-text', theme.msgOutgoingText || '#ffffff');
+      root.style.setProperty('--theme-chat-bg', theme.chatBg);
+      root.style.setProperty('--theme-sidebar-bg', theme.sidebarBg);
+      root.style.setProperty('--theme-header-bg', theme.headerBg || theme.sidebarBg);
+      root.style.setProperty('--theme-input-bg', theme.inputBg || (isLight ? '#ffffff' : '#222530'));
+      root.style.setProperty('--theme-radius', theme.borderRadius);
+      root.style.setProperty('--theme-font', theme.fontFamily);
+      root.style.setProperty('--theme-accent-glow', theme.accentGlow || 'none');
+
+      // Dynamic contrast & text readability tokens
+      root.style.setProperty('--theme-text-color', textColor);
+      root.style.setProperty('--theme-text-muted', textMuted);
+      root.style.setProperty('--theme-sender-color', senderColor);
+      root.style.setProperty('--theme-header-text', headerText);
+      root.style.setProperty('--theme-bubble-border', isLight ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(255, 255, 255, 0.08)');
+      root.style.setProperty('--theme-bubble-shadow', isLight ? '0 2px 10px rgba(0, 0, 0, 0.08)' : '0 2px 10px rgba(0, 0, 0, 0.35)');
+
+      if (isLight) {
+        document.body.classList.add('theme-light');
+        root.classList.add('theme-light');
+      }
+    }
 
     // Set Wallpaper & Controls CSS Variables
     const controls = personalityState.controls || defaultControls;
@@ -112,10 +123,13 @@ export const WallpaperProvider = ({ children }) => {
     root.style.setProperty('--wallpaper-overlay-color', controls.overlayColor);
     root.style.setProperty('--wallpaper-overlay-opacity', controls.overlayOpacity);
 
-    // Apply active personality class on body for particle effects
-    document.body.className = '';
-    document.body.classList.add(`personality-${personalityState.activePersonalityId}`);
-    if (isLight) document.body.classList.add('theme-light');
+    // Apply active personality class on body without obliterating existing theme classes
+    Array.from(document.body.classList)
+      .filter((c) => c.startsWith('personality-'))
+      .forEach((c) => document.body.classList.remove(c));
+    if (personalityState.activePersonalityId) {
+      document.body.classList.add(`personality-${personalityState.activePersonalityId}`);
+    }
   }, [personalityState]);
 
   // Persist personality updates
