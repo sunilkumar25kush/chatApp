@@ -236,8 +236,8 @@ module.exports = (io, socket) => {
 
       logger.socket(`User ${user.username} (${userIdStr}) joined call ${callId}`);
 
-      // Broadcast participant joined to all other participants
-      socket.to(callId).emit('call:participant_joined', {
+      // Broadcast participant joined to all other participants (both callId and roomId)
+      socket.to(callId).to(roomId).emit('call:participant_joined', {
         callId,
         roomId,
         participant: {
@@ -254,16 +254,47 @@ module.exports = (io, socket) => {
         }
       });
 
+      // Send existing active participants directly to the joining user
+      const otherActiveParticipants = (session.participants || []).filter(
+        (p) => !p.leftAt && p.connectionStatus !== 'disconnected' && String(p.user?._id || p.user) !== userIdStr
+      );
+
+      socket.emit('call:existing_participants', {
+        callId,
+        roomId,
+        participants: otherActiveParticipants
+      });
+
       if (typeof ack === 'function') {
         ack({
           success: true,
           callId,
-          callSession: session
+          callSession: session,
+          participants: otherActiveParticipants
         });
       }
     } catch (err) {
       logger.error(`[CallHandler] call:join error: ${err.message}`);
       if (typeof ack === 'function') ack({ success: false, error: 'Internal join error' });
+    }
+  });
+
+  // ── 2b. WebRTC P2P Direct Signaling (Offer / Answer / ICE Candidate) ────
+  socket.on('call:signal', ({ callId, roomId, toUserId, signal }) => {
+    try {
+      if (!signal || !userIdStr) return;
+      const target = callId || roomId;
+      if (target) {
+        socket.to(target).emit('call:signal', {
+          callId,
+          roomId,
+          fromUserId: userIdStr,
+          toUserId: toUserId ? String(toUserId) : null,
+          signal
+        });
+      }
+    } catch (err) {
+      logger.error(`[CallHandler] call:signal error: ${err.message}`);
     }
   });
 

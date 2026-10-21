@@ -593,41 +593,22 @@ export default function CallRoom({ onClose = null }) {
         ) : (
           /* ── Mode C: Normal Dynamic Adaptive Grid ────────────────────────── */
           <div style={layout.gridStyle}>
-            {participantCount === 1 ? (
-              <div
-                style={{
-                  ...(layout.tileStyle ? layout.tileStyle(0) : {}),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ParticipantTile
-                  participant={localParticipant}
-                  isLocal={true}
-                  isActiveSpeaker={activeSpeakerId === localParticipant.identity}
-                  isPinned={false}
-                  onTogglePin={() => handleTogglePin(localParticipant.identity)}
-                />
-              </div>
-            ) : (
-              visibleParticipants.map((p, index) => {
-                const isPLocal = p.identity === localParticipant.identity;
-                const customTileStyle = layout.tileStyle ? layout.tileStyle(index) : {};
+            {visibleParticipants.map((p, index) => {
+              const isPLocal = p.identity === localParticipant.identity;
+              const customTileStyle = layout.tileStyle ? layout.tileStyle(index) : {};
 
-                return (
-                  <div key={p.identity} style={customTileStyle}>
-                    <ParticipantTile
-                      participant={p}
-                      isLocal={isPLocal}
-                      isActiveSpeaker={activeSpeakerId === p.identity}
-                      isPinned={false}
-                      onTogglePin={() => handleTogglePin(p.identity)}
-                    />
-                  </div>
-                );
-              })
-            )}
+              return (
+                <div key={p.identity} style={customTileStyle}>
+                  <ParticipantTile
+                    participant={p}
+                    isLocal={isPLocal}
+                    isActiveSpeaker={activeSpeakerId === p.identity}
+                    isPinned={false}
+                    onTogglePin={() => handleTogglePin(p.identity)}
+                  />
+                </div>
+              );
+            })}
 
             {layout.hasOverflow && overflowParticipants.length > 0 && (
               <ParticipantOverflowCard

@@ -35,17 +35,19 @@ export function calculateParticipantLayout({ count, width, height }) {
         justifyContent: 'center',
         width: '100%',
         height: '100%',
+        padding: isLandscapeMobile ? '4px 8px' : '8px 16px',
+        boxSizing: 'border-box',
       },
       tileStyle: () => ({
         width: '100%',
-        maxWidth: isPortrait ? '100%' : 'min(94vw, 1080px)',
+        maxWidth: isPortrait ? '100%' : '1400px',
         height: '100%',
-        maxHeight: isPortrait
-          ? 'min(84dvh, 680px)'
-          : isLandscapeMobile
-          ? 'min(76dvh, 320px)'
-          : 'min(78dvh, 760px)',
-        aspectRatio: isPortrait ? '9/16' : '16/9',
+        maxHeight: '100%',
+        minWidth: 0,
+        minHeight: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }),
     };
   }
@@ -71,12 +73,22 @@ export function calculateParticipantLayout({ count, width, height }) {
           gap: isCompactPhone ? 6 : 8,
           width: '100%',
           height: '100%',
+          padding: isCompactPhone ? '4px' : '6px',
+          boxSizing: 'border-box',
         },
-        tileStyle: () => ({ width: '100%', height: '100%' }),
+        tileStyle: () => ({
+          width: '100%',
+          height: '100%',
+          minWidth: 0,
+          minHeight: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
       };
     }
 
-    // Landscape: 2 side-by-side balanced tiles centered in call room
+    // Landscape: 2 side-by-side full-width responsive grid columns
     return {
       type: 'two-landscape',
       columns: 2,
@@ -88,22 +100,20 @@ export function calculateParticipantLayout({ count, width, height }) {
       isMobile,
       isLandscapeMobile,
       gridStyle: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: isLandscapeMobile ? 8 : 16,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gridTemplateRows: '1fr',
+        gap: isLandscapeMobile ? 8 : 12,
         width: '100%',
         height: '100%',
-        padding: isLandscapeMobile ? '0 8px' : '0 16px',
+        padding: isLandscapeMobile ? '4px 6px' : '8px 12px',
         boxSizing: 'border-box',
       },
       tileStyle: () => ({
-        flex: '1 1 0',
         width: '100%',
-        maxWidth: isLandscapeMobile ? 'calc(50% - 6px)' : 'min(calc(50% - 10px), 760px)',
         height: '100%',
-        maxHeight: isLandscapeMobile ? 'min(82dvh, 360px)' : 'min(80dvh, 520px)',
-        aspectRatio: '16 / 9',
+        minWidth: 0,
+        minHeight: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

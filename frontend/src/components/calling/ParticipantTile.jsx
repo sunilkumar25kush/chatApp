@@ -57,23 +57,43 @@ function ParticipantTile({
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !videoTrack || isVideoMuted) {
+      if (el) el.srcObject = null;
       setVideoAttached(false);
       return;
     }
 
     try {
-      videoTrack.attach(el);
+      if (typeof videoTrack.attach === 'function') {
+        videoTrack.attach(el);
+      } else if (videoTrack.mediaStreamTrack) {
+        el.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+      } else if (videoTrack instanceof MediaStreamTrack) {
+        el.srcObject = new MediaStream([videoTrack]);
+      }
+      if (el.paused) {
+        el.play().catch(() => {});
+      }
       setVideoAttached(true);
     } catch (err) {
       console.warn('[ParticipantTile] Error attaching video track:', err);
+      if (videoTrack?.mediaStreamTrack) {
+        try {
+          el.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+          el.play().catch(() => {});
+          setVideoAttached(true);
+        } catch {}
+      }
     }
 
     return () => {
       try {
-        videoTrack.detach(el);
+        if (typeof videoTrack.detach === 'function') {
+          videoTrack.detach(el);
+        }
       } catch {
         /* noop */
       }
+      if (el) el.srcObject = null;
       setVideoAttached(false);
     };
   }, [videoTrack, isVideoMuted]);
@@ -82,20 +102,33 @@ function ParticipantTile({
   // NEVER attach local audio track to local element (causes feedback echo!)
   useEffect(() => {
     const el = audioRef.current;
-    if (!el || !audioTrack || isLocal) return;
+    if (!el || !audioTrack || isLocal) {
+      if (el) el.srcObject = null;
+      return;
+    }
 
     try {
-      audioTrack.attach(el);
+      if (typeof audioTrack.attach === 'function') {
+        audioTrack.attach(el);
+      } else if (audioTrack.mediaStreamTrack) {
+        el.srcObject = new MediaStream([audioTrack.mediaStreamTrack]);
+      } else if (audioTrack instanceof MediaStreamTrack) {
+        el.srcObject = new MediaStream([audioTrack]);
+      }
+      el.play().catch(() => {});
     } catch (err) {
       console.warn('[ParticipantTile] Error attaching audio track:', err);
     }
 
     return () => {
       try {
-        audioTrack.detach(el);
+        if (typeof audioTrack.detach === 'function') {
+          audioTrack.detach(el);
+        }
       } catch {
         /* noop */
       }
+      if (el) el.srcObject = null;
     };
   }, [audioTrack, isLocal]);
 

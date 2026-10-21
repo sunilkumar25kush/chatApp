@@ -129,6 +129,7 @@ export function CallProvider({ children }) {
   isMutedRef.current = isMuted;
   const isCameraOffRef = useRef(isCameraOff);
   isCameraOffRef.current = isCameraOff;
+  const peerConnectionsRef = useRef(new Map());
 
   // ── Add Toast Notification ──────────────────────────────────────────────
   const addCallNotification = useCallback((title, message, type = 'default') => {
@@ -282,6 +283,13 @@ export function CallProvider({ children }) {
       }
 
       livekitMediaService.cleanup();
+
+      peerConnectionsRef.current.forEach((pc) => {
+        try {
+          pc.close();
+        } catch {}
+      });
+      peerConnectionsRef.current.clear();
 
       setCallState('ended');
       setOutgoingState('idle');
@@ -475,6 +483,108 @@ export function CallProvider({ children }) {
     });
   }, [updateRemoteParticipant, addCallNotification]);
 
+  // ── WebRTC Direct P2P Fallback Engine ──────────────────────────────────
+  const getP2PConnection = useCallback((peerId, isOfferer = false) => {
+    if (!peerId) return null;
+    let pc = peerConnectionsRef.current.get(peerId);
+    if (pc && pc.signalingState !== 'closed') {
+      return pc;
+    }
+
+    try {
+      pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+        ],
+      });
+    } catch (e) {
+      console.warn('[P2P WebRTC] Failed to create RTCPeerConnection:', e);
+      return null;
+    }
+
+    peerConnectionsRef.current.set(peerId, pc);
+
+    // Add local media tracks to peer connection
+    const localAudio = livekitMediaService.localAudioTrack?.mediaStreamTrack;
+    const localVideo = livekitMediaService.localVideoTrack?.mediaStreamTrack;
+    if (localAudio) {
+      try {
+        pc.addTrack(localAudio);
+      } catch {}
+    }
+    if (localVideo) {
+      try {
+        pc.addTrack(localVideo);
+      } catch {}
+    }
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && currentCallRef.current) {
+        socket.emit('call:signal', {
+          callId: currentCallRef.current.callId,
+          roomId: currentCallRef.current.roomId,
+          toUserId: peerId,
+          signal: { type: 'candidate', candidate: event.candidate },
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      const streamTrack = event.track;
+      const wrapped = {
+        kind: streamTrack.kind,
+        mediaStreamTrack: streamTrack,
+        attach: (el) => {
+          if (el) {
+            el.srcObject = new MediaStream([streamTrack]);
+            if (el.paused) el.play().catch(() => {});
+          }
+          return el;
+        },
+        detach: (el) => {
+          if (el) el.srcObject = null;
+        },
+      };
+
+      setRemoteParticipants((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(peerId) || {
+          identity: peerId,
+          name: 'Participant',
+          avatar: '',
+          isAudioMuted: false,
+          isVideoMuted: false,
+          isSpeaking: false,
+        };
+        if (streamTrack.kind === 'video') existing.videoTrack = wrapped;
+        if (streamTrack.kind === 'audio') existing.audioTrack = wrapped;
+        next.set(peerId, { ...existing });
+        return next;
+      });
+    };
+
+    if (isOfferer) {
+      pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+        .then((offer) => pc.setLocalDescription(offer))
+        .then(() => {
+          if (currentCallRef.current) {
+            socket.emit('call:signal', {
+              callId: currentCallRef.current.callId,
+              roomId: currentCallRef.current.roomId,
+              toUserId: peerId,
+              signal: { type: 'offer', sdp: pc.localDescription.sdp },
+            });
+          }
+        })
+        .catch((err) => console.warn('[P2P WebRTC] Offer creation failed:', err));
+    }
+
+    return pc;
+  }, []);
+
   // ── Core Method: Join or Start Call ─────────────────────────────────────
   const joinOrStartCall = useCallback(
     async ({ roomId, roomName, callType = 'video', existingCallId = null, isInitiator = false }) => {
@@ -507,6 +617,32 @@ export function CallProvider({ children }) {
           sfuRoomName,
         };
         setCurrentCall(callInfo);
+
+        // Pre-populate any existing remote participants returned by token endpoint
+        if (Array.isArray(res.data.participants)) {
+          const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+          setRemoteParticipants((prev) => {
+            const next = new Map(prev);
+            res.data.participants.forEach((p) => {
+              const pId = String(p.user?._id || p.user?.id || p.user || '');
+              if (pId && pId !== myId) {
+                if (!next.has(pId)) {
+                  next.set(pId, {
+                    identity: pId,
+                    name: p.username || 'Participant',
+                    avatar: p.avatar || '',
+                    audioTrack: null,
+                    videoTrack: null,
+                    isAudioMuted: Boolean(p.audioMuted),
+                    isVideoMuted: Boolean(p.videoDisabled),
+                    isSpeaking: false,
+                  });
+                }
+              }
+            });
+            return next;
+          });
+        }
 
         // If initiator: start ringback loop & 30s timeout
         if (isInitiator) {
@@ -559,11 +695,40 @@ export function CallProvider({ children }) {
         // 5. Refresh camera list
         await refreshCameraDevices();
 
-        // 6. Announce Join over Socket.IO
-        socket.emit('call:join', {
-          callId: callInfo.callId,
-          roomId,
-        });
+        // 6. Announce Join over Socket.IO and sync participants via ack
+        socket.emit(
+          'call:join',
+          {
+            callId: callInfo.callId,
+            roomId,
+          },
+          (ack) => {
+            if (ack?.success && Array.isArray(ack.participants)) {
+              const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+              setRemoteParticipants((prev) => {
+                const next = new Map(prev);
+                ack.participants.forEach((p) => {
+                  const pId = String(p.user?._id || p.user?.id || p.user || '');
+                  if (pId && pId !== myId) {
+                    if (!next.has(pId)) {
+                      next.set(pId, {
+                        identity: pId,
+                        name: p.username || 'Participant',
+                        avatar: p.avatar || '',
+                        audioTrack: null,
+                        videoTrack: null,
+                        isAudioMuted: Boolean(p.audioMuted),
+                        isVideoMuted: Boolean(p.videoDisabled),
+                        isSpeaking: false,
+                      });
+                    }
+                  }
+                });
+                return next;
+              });
+            }
+          }
+        );
 
         if (!isInitiator) {
           setCallState('connected');
@@ -670,6 +835,15 @@ export function CallProvider({ children }) {
         ...prev,
         videoTrack: livekitMediaService.localVideoTrack,
       }));
+
+      if (livekitMediaService.localVideoTrack?.mediaStreamTrack) {
+        peerConnectionsRef.current.forEach((pc) => {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(livekitMediaService.localVideoTrack.mediaStreamTrack).catch(() => {});
+          }
+        });
+      }
     }
   }, []);
 
@@ -782,9 +956,10 @@ export function CallProvider({ children }) {
           return;
         }
 
+        const identity = String(participantId);
+
         setRemoteParticipants((prev) => {
           const next = new Map(prev);
-          const identity = String(participantId);
           const existing = next.get(identity) || {
             identity,
             name: participant.username || 'Participant',
@@ -798,6 +973,75 @@ export function CallProvider({ children }) {
           next.set(identity, existing);
           return next;
         });
+
+        // Trigger P2P direct WebRTC connection with the newly joined participant
+        getP2PConnection(identity, true);
+      }
+    };
+
+    // Existing participants in the call when we joined
+    const handleExistingParticipants = ({ participants }) => {
+      if (!Array.isArray(participants)) return;
+      const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+      setRemoteParticipants((prev) => {
+        const next = new Map(prev);
+        participants.forEach((p) => {
+          const pId = String(p.user?._id || p.user?.id || p.user || '');
+          if (pId && pId !== myId) {
+            if (!next.has(pId)) {
+              next.set(pId, {
+                identity: pId,
+                name: p.username || 'Participant',
+                avatar: p.avatar || '',
+                audioTrack: null,
+                videoTrack: null,
+                isAudioMuted: Boolean(p.audioMuted),
+                isVideoMuted: Boolean(p.videoDisabled),
+                isSpeaking: false,
+              });
+            }
+          }
+        });
+        return next;
+      });
+    };
+
+    // P2P WebRTC Signal Exchange (Offer / Answer / ICE Candidate)
+    const handleCallSignal = async ({ fromUserId, toUserId, signal }) => {
+      const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+      if (toUserId && String(toUserId) !== String(myId)) return;
+      if (!fromUserId || String(fromUserId) === String(myId) || !signal) return;
+
+      const peerId = String(fromUserId);
+
+      try {
+        if (signal.type === 'offer' && signal.sdp) {
+          const pc = getP2PConnection(peerId, false);
+          if (!pc) return;
+          await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          if (currentCallRef.current) {
+            socket.emit('call:signal', {
+              callId: currentCallRef.current.callId,
+              roomId: currentCallRef.current.roomId,
+              toUserId: peerId,
+              signal: { type: 'answer', sdp: answer.sdp },
+            });
+          }
+        } else if (signal.type === 'answer' && signal.sdp) {
+          const pc = peerConnectionsRef.current.get(peerId);
+          if (pc && pc.signalingState !== 'closed') {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+          }
+        } else if (signal.type === 'candidate' && signal.candidate) {
+          const pc = peerConnectionsRef.current.get(peerId);
+          if (pc && pc.signalingState !== 'closed') {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          }
+        }
+      } catch (err) {
+        console.warn('[P2P WebRTC] Signal processing error:', err);
       }
     };
 
@@ -805,6 +1049,14 @@ export function CallProvider({ children }) {
     const handleCallParticipantLeft = ({ userId, username }) => {
       if (userId) {
         const strUserId = String(userId);
+        const pc = peerConnectionsRef.current.get(strUserId);
+        if (pc) {
+          try {
+            pc.close();
+          } catch {}
+          peerConnectionsRef.current.delete(strUserId);
+        }
+
         setRemoteParticipants((prev) => {
           const next = new Map();
           for (const [key, val] of prev.entries()) {
@@ -858,6 +1110,8 @@ export function CallProvider({ children }) {
     socket.on('call:declined', handleCallDeclined);
     socket.on('call:busy', handleCallBusy);
     socket.on('call:participant_joined', handleCallParticipantJoined);
+    socket.on('call:existing_participants', handleExistingParticipants);
+    socket.on('call:signal', handleCallSignal);
     socket.on('call:participant_left', handleCallParticipantLeft);
     socket.on('call:media_changed', handleCallMediaChanged);
     socket.on('call:ended', handleCallEnded);
@@ -867,6 +1121,8 @@ export function CallProvider({ children }) {
       socket.off('call:declined', handleCallDeclined);
       socket.off('call:busy', handleCallBusy);
       socket.off('call:participant_joined', handleCallParticipantJoined);
+      socket.off('call:existing_participants', handleExistingParticipants);
+      socket.off('call:signal', handleCallSignal);
       socket.off('call:participant_left', handleCallParticipantLeft);
       socket.off('call:media_changed', handleCallMediaChanged);
       socket.off('call:ended', handleCallEnded);

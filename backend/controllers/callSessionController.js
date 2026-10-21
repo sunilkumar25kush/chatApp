@@ -246,6 +246,10 @@ const getCallToken = async (req, res, next) => {
       ttl: '15m'
     });
 
+    const activeParticipants = (session.participants || []).filter(
+      (p) => !p.leftAt && p.connectionStatus !== 'disconnected' && String(p.user?._id || p.user) !== userIdStr
+    );
+
     return res.json({
       success: true,
       callId: session.callId,
@@ -253,7 +257,8 @@ const getCallToken = async (req, res, next) => {
       token: tokenResult.token,
       sfuRoomName: tokenResult.sfuRoomName,
       callType: session.callType,
-      isHost: session.creator ? session.creator.toString() === userIdStr : false
+      isHost: session.creator ? session.creator.toString() === userIdStr : false,
+      participants: activeParticipants
     });
   } catch (error) {
     logger.error(`[CallSessionController] getCallToken error: ${error.message}`);
