@@ -573,9 +573,10 @@ body.theme-light {
 .msg-bubble {
   display: inline-block;
   max-width: 100%;
-  padding: 8px 12px;
-  border-radius: 12px;
-  line-height: 1.45;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
   word-break: break-word;
 }
 

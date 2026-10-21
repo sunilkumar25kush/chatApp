@@ -756,9 +756,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       {/* Layer 4: Top Header Bar (Dedicated Multi-Header Architecture) */}
       <header className="chat-header" id="chat-header" style={{ position: 'relative', zIndex: 4, flexShrink: 0 }}>
           <div className="header-left">
-              <button className="btn-icon back-to-list-btn hamburger" onClick={onToggleMobileSidebar} title="Menu" aria-label="Menu">
-                  <span style={{ fontSize: 18 }}>☰</span>
-              </button>
               <button className="btn-icon back-to-list-btn" onClick={onBack} title="Back to Chat List" aria-label="Back to Chat List">
                   <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               </button>
@@ -771,7 +768,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               </div>
               <div className="contact-details">
                   <div className="contact-name-row">
-                      <h2 className="contact-name" id="header-contact-name">{room.name || 'Note to myself'}</h2>
+                      <h2 className="contact-name" id="header-contact-name" title={room.name || 'Chat'}>{room.name || 'Chat'}</h2>
                       {room.isPrivate ? (
                         <span className="header-status-badge badge-private" title="Private Space (Code Required)">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -794,7 +791,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                       </span>
                   </div>
                   <p className="contact-status-text" id="header-status-text">
-                    {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) ? `Code: ${room.code}` : 'Encrypted XMPP Session'}
+                    {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) 
+                      ? `Code: ${room.code}` 
+                      : (room.description || (room.isPrivate ? 'Private Space' : 'Active Channel'))}
                   </p>
               </div>
           </div>
@@ -1018,7 +1017,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                   {msg.content && msg.fileType !== 'call' && (
                     <div
                       className={isMe ? 'msg-bubble msg-bubble-out' : 'msg-bubble msg-bubble-in'}
-                      style={{ marginTop: 4, lineHeight: 1.45, wordBreak: 'break-word', fontSize: 13 }}
                     >
                       {msg.content}
                     </div>
@@ -1515,16 +1513,14 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           </form>
         )}
 
-        {/* Composer Bottom Info Bar */}
-        <div className="composer-footer-bar">
-          <div className="typing-status-indicator" id="remote-typing-status">
-            {typingArray.length > 0 && `${typingArray.join(', ')} is typing...`}
+        {/* Composer Bottom Info Bar — only rendered when someone is actively typing to save vertical space */}
+        {typingArray.length > 0 && (
+          <div className="composer-footer-bar">
+            <div className="typing-status-indicator" id="remote-typing-status">
+              {typingArray.join(', ')} is typing...
+            </div>
           </div>
-          <div className="composer-meta">
-            {/* <span className="keyboard-shortcut-hint">Press <strong>Enter</strong> to send</span> */}
-            {/* <span className="char-counter" id="char-counter">{inputText.length} / 2000</span> */}
-          </div>
-        </div>
+        )}
       </footer>
 
       {/* Lightbox Modal */}
