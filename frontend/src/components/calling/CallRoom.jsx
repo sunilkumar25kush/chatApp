@@ -650,6 +650,9 @@ export default function CallRoom({ onClose = null }) {
           gap: isCompactPhone ? 8 : isMobile ? 12 : 14,
           padding: '0 12px',
           paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
           zIndex: 10,
           position: 'relative',
         }}
@@ -664,7 +667,7 @@ export default function CallRoom({ onClose = null }) {
             border: isMuted ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
             color: '#fff',
             borderRadius: isMobile ? '50%' : 12,
-            width: isLandscapeMobile ? 40 : 48,
+            width: isMobile ? (isLandscapeMobile ? 40 : 48) : 'auto',
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
             padding: isMobile ? 0 : '0 16px',
@@ -675,6 +678,7 @@ export default function CallRoom({ onClose = null }) {
             cursor: 'pointer',
             fontSize: isLandscapeMobile ? 15 : 18,
             fontWeight: 600,
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
@@ -693,7 +697,7 @@ export default function CallRoom({ onClose = null }) {
             border: isCameraOff ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
             color: '#fff',
             borderRadius: isMobile ? '50%' : 12,
-            width: isLandscapeMobile ? 40 : 48,
+            width: isMobile ? (isLandscapeMobile ? 40 : 48) : 'auto',
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
             padding: isMobile ? 0 : '0 16px',
@@ -704,6 +708,7 @@ export default function CallRoom({ onClose = null }) {
             cursor: 'pointer',
             fontSize: isLandscapeMobile ? 15 : 18,
             fontWeight: 600,
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
@@ -759,7 +764,9 @@ export default function CallRoom({ onClose = null }) {
               cursor: 'pointer',
               fontSize: 14,
               fontWeight: 600,
+              whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
           >
             <span>🖥️</span>
@@ -1012,6 +1019,8 @@ export default function CallRoom({ onClose = null }) {
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             End for All
