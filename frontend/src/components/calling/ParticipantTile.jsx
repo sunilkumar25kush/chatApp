@@ -9,10 +9,12 @@ function ParticipantTile({
   onTogglePin = null,
 }) {
   const videoRef = useRef(null);
+  const bgVideoRef = useRef(null);
   const audioRef = useRef(null);
   const [videoAttached, setVideoAttached] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState(null);
   const [fitMode, setFitMode] = useState(null); // null = auto, 'contain', 'cover'
+  const [imgError, setImgError] = useState(false);
 
   const {
     name = 'Participant',
@@ -24,6 +26,11 @@ function ParticipantTile({
   } = participant || {};
 
   const hasVideo = Boolean(videoTrack) && !isVideoMuted;
+  const isPortraitStream = Boolean(videoAspectRatio && videoAspectRatio < 0.95);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatar]);
 
   // ── Track Video Stream Aspect Ratio (Portrait vs Landscape) ─────────────
   useEffect(() => {
@@ -56,8 +63,10 @@ function ParticipantTile({
   // ── Attach/Detach Video Track ───────────────────────────────────────────
   useEffect(() => {
     const el = videoRef.current;
+    const bgEl = bgVideoRef.current;
     if (!el || !videoTrack || isVideoMuted) {
       if (el) el.srcObject = null;
+      if (bgEl) bgEl.srcObject = null;
       setVideoAttached(false);
       return;
     }
@@ -65,21 +74,32 @@ function ParticipantTile({
     try {
       if (typeof videoTrack.attach === 'function') {
         videoTrack.attach(el);
+        if (bgEl) videoTrack.attach(bgEl);
       } else if (videoTrack.mediaStreamTrack) {
-        el.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+        const stream = new MediaStream([videoTrack.mediaStreamTrack]);
+        el.srcObject = stream;
+        if (bgEl) bgEl.srcObject = stream;
       } else if (videoTrack instanceof MediaStreamTrack) {
-        el.srcObject = new MediaStream([videoTrack]);
+        const stream = new MediaStream([videoTrack]);
+        el.srcObject = stream;
+        if (bgEl) bgEl.srcObject = stream;
       }
       if (el.paused) {
         el.play().catch(() => {});
+      }
+      if (bgEl && bgEl.paused) {
+        bgEl.play().catch(() => {});
       }
       setVideoAttached(true);
     } catch (err) {
       console.warn('[ParticipantTile] Error attaching video track:', err);
       if (videoTrack?.mediaStreamTrack) {
         try {
-          el.srcObject = new MediaStream([videoTrack.mediaStreamTrack]);
+          const stream = new MediaStream([videoTrack.mediaStreamTrack]);
+          el.srcObject = stream;
+          if (bgEl) bgEl.srcObject = stream;
           el.play().catch(() => {});
+          if (bgEl) bgEl.play().catch(() => {});
           setVideoAttached(true);
         } catch {}
       }
@@ -89,11 +109,13 @@ function ParticipantTile({
       try {
         if (typeof videoTrack.detach === 'function') {
           videoTrack.detach(el);
+          if (bgEl) videoTrack.detach(bgEl);
         }
       } catch {
         /* noop */
       }
       if (el) el.srcObject = null;
+      if (bgEl) bgEl.srcObject = null;
       setVideoAttached(false);
     };
   }, [videoTrack, isVideoMuted]);
@@ -151,7 +173,10 @@ function ParticipantTile({
       style={{
         position: 'relative',
         width: '100%',
+        maxWidth: videoAspectRatio ? (videoAspectRatio < 0.95 ? `min(100%, calc(100vh * ${videoAspectRatio}))` : '100%') : '100%',
+        aspectRatio: videoAspectRatio ? `${videoAspectRatio}` : (effectiveFit === 'contain' ? 'auto' : '16/9'),
         height: '100%',
+        maxHeight: '100%',
         minHeight: 0,
         minWidth: 0,
         background: '#0d0f15',
@@ -168,6 +193,29 @@ function ParticipantTile({
       {/* Remote Audio Playback Element */}
       {!isLocal && <audio ref={audioRef} autoPlay />}
 
+      {/* Ambient Video Glow to eliminate harsh empty letterboxing */}
+      {hasVideo && (
+        <video
+          ref={bgVideoRef}
+          autoPlay
+          playsInline
+          muted
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: -16,
+            width: 'calc(100% + 32px)',
+            height: 'calc(100% + 32px)',
+            objectFit: 'cover',
+            filter: 'blur(36px) brightness(0.38) saturate(1.4)',
+            opacity: 0.7,
+            pointerEvents: 'none',
+            zIndex: 0,
+            transform: isLocal ? 'scaleX(-1)' : 'none',
+          }}
+        />
+      )}
+
       {/* Video Stream Element */}
       <video
         ref={videoRef}
@@ -180,6 +228,8 @@ function ParticipantTile({
           objectFit: effectiveFit,
           display: hasVideo ? 'block' : 'none',
           transform: isLocal ? 'scaleX(-1)' : 'none', // Mirror selfie camera
+          position: 'relative',
+          zIndex: 1,
         }}
       />
 
@@ -187,6 +237,8 @@ function ParticipantTile({
       {!hasVideo && (
         <div
           style={{
+            position: 'relative',
+            zIndex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -211,10 +263,11 @@ function ParticipantTile({
               overflow: 'hidden',
             }}
           >
-            {avatar ? (
+            {avatar && !imgError ? (
               <img
                 src={avatar}
                 alt={name}
+                onError={() => setImgError(true)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 referrerPolicy="no-referrer"
               />
@@ -338,15 +391,45 @@ function ParticipantTile({
           style={{
             background: 'rgba(15, 17, 23, 0.82)',
             backdropFilter: 'blur(6px)',
-            borderRadius: 6,
-            padding: '3px 6px',
+            borderRadius: 8,
+            padding: '3px 8px 3px 4px',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 5,
+            gap: 6,
             maxWidth: '85%',
             overflow: 'hidden',
           }}
         >
+          {/* Avatar Thumbnail */}
+          <div
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0,
+              fontSize: 9,
+              fontWeight: 700,
+              color: '#fff',
+            }}
+          >
+            {avatar && !imgError ? (
+              <img
+                src={avatar}
+                alt={name}
+                onError={() => setImgError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span>{initials.slice(0, 1)}</span>
+            )}
+          </div>
+
           {/* Speaking Audio Wave Icon or Mic Badge */}
           {isAudioMuted ? (
             <span
@@ -354,13 +437,13 @@ function ParticipantTile({
               style={{
                 background: '#ef4444',
                 color: '#fff',
-                width: 16,
-                height: 16,
+                width: 14,
+                height: 14,
                 borderRadius: '50%',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 9,
+                fontSize: 8,
                 flexShrink: 0,
               }}
             >
@@ -371,7 +454,7 @@ function ParticipantTile({
               title="Speaking"
               style={{
                 color: '#22c55e',
-                fontSize: 11,
+                fontSize: 10,
                 flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -384,7 +467,7 @@ function ParticipantTile({
               title="Microphone active"
               style={{
                 color: '#9ca3af',
-                fontSize: 11,
+                fontSize: 10,
                 flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',

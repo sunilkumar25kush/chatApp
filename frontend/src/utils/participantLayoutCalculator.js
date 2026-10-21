@@ -88,7 +88,7 @@ export function calculateParticipantLayout({ count, width, height }) {
       };
     }
 
-    // Landscape: 2 side-by-side full-width responsive grid columns
+    // Landscape: 2 side-by-side adaptive centered cards with natural proportions
     return {
       type: 'two-landscape',
       columns: 2,
@@ -100,23 +100,26 @@ export function calculateParticipantLayout({ count, width, height }) {
       isMobile,
       isLandscapeMobile,
       gridStyle: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        gridTemplateRows: '1fr',
-        gap: isLandscapeMobile ? 8 : 12,
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isLandscapeMobile ? 8 : 16,
         width: '100%',
         height: '100%',
-        padding: isLandscapeMobile ? '4px 6px' : '8px 12px',
+        padding: isLandscapeMobile ? '4px 6px' : '10px 16px',
         boxSizing: 'border-box',
+        overflow: 'hidden',
       },
       tileStyle: () => ({
-        width: '100%',
         height: '100%',
+        maxHeight: '100%',
         minWidth: 0,
-        minHeight: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        flex: '1 1 0',
+        maxWidth: '100%',
       }),
     };
   }

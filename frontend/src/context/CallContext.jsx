@@ -16,6 +16,9 @@ export const useCall = () => {
   return context;
 };
 
+// ── Participant Profile Cache (Survives P2P reconnects and race conditions) ───
+const callParticipantProfileCache = new Map();
+
 // ── Web Audio Tone Generator (Zero-latency sound synthesis) ────────────────
 const playSoundEffect = (type) => {
   try {
@@ -235,10 +238,11 @@ export function CallProvider({ children }) {
         return next;
       }
 
+      const cached = callParticipantProfileCache.get(String(identity));
       const existing = next.get(identity) || {
         identity,
-        name: participant.name || 'Participant',
-        avatar: '',
+        name: participant.name || cached?.name || 'Participant',
+        avatar: participant.avatar || cached?.avatar || '',
         audioTrack: null,
         videoTrack: null,
         isAudioMuted: false,
@@ -246,13 +250,30 @@ export function CallProvider({ children }) {
         isSpeaking: participant.isSpeaking || false,
       };
 
+      if (participant.name && participant.name !== 'Participant') {
+        existing.name = participant.name;
+      }
+      if (participant.avatar) {
+        existing.avatar = participant.avatar;
+      }
+
       try {
         if (participant.metadata) {
-          const meta = JSON.parse(participant.metadata);
+          const meta = typeof participant.metadata === 'string' ? JSON.parse(participant.metadata) : participant.metadata;
           if (meta.avatar) existing.avatar = meta.avatar;
+          if (meta.username && (!existing.name || existing.name === 'Participant')) {
+            existing.name = meta.username;
+          }
         }
       } catch {
         /* noop */
+      }
+
+      if (cached?.avatar && !existing.avatar) existing.avatar = cached.avatar;
+      if (cached?.name && (!existing.name || existing.name === 'Participant')) existing.name = cached.name;
+
+      if (existing.name && existing.name !== 'Participant') {
+        callParticipantProfileCache.set(String(identity), { name: existing.name, avatar: existing.avatar || '' });
       }
 
       if (track) {
@@ -551,14 +572,17 @@ export function CallProvider({ children }) {
 
       setRemoteParticipants((prev) => {
         const next = new Map(prev);
+        const cached = callParticipantProfileCache.get(String(peerId));
         const existing = next.get(peerId) || {
           identity: peerId,
-          name: 'Participant',
-          avatar: '',
+          name: cached?.name || 'Participant',
+          avatar: cached?.avatar || '',
           isAudioMuted: false,
           isVideoMuted: false,
           isSpeaking: false,
         };
+        if (!existing.avatar && cached?.avatar) existing.avatar = cached.avatar;
+        if ((!existing.name || existing.name === 'Participant') && cached?.name) existing.name = cached.name;
         if (streamTrack.kind === 'video') existing.videoTrack = wrapped;
         if (streamTrack.kind === 'audio') existing.audioTrack = wrapped;
         next.set(peerId, { ...existing });
@@ -957,20 +981,36 @@ export function CallProvider({ children }) {
         }
 
         const identity = String(participantId);
+        const pName = participant.username || participant.name || 'Participant';
+        const pAvatar = participant.avatar || '';
+
+        if (pName !== 'Participant' || pAvatar) {
+          callParticipantProfileCache.set(identity, { name: pName, avatar: pAvatar });
+        }
 
         setRemoteParticipants((prev) => {
           const next = new Map(prev);
-          const existing = next.get(identity) || {
-            identity,
-            name: participant.username || 'Participant',
-            avatar: participant.avatar || '',
-            audioTrack: null,
-            videoTrack: null,
-            isAudioMuted: Boolean(participant.audioMuted),
-            isVideoMuted: Boolean(participant.videoDisabled),
-            isSpeaking: false,
-          };
-          next.set(identity, existing);
+          const existing = next.get(identity);
+          if (existing) {
+            next.set(identity, {
+              ...existing,
+              name: pName !== 'Participant' ? pName : existing.name,
+              avatar: pAvatar || existing.avatar,
+              isAudioMuted: Boolean(participant.audioMuted),
+              isVideoMuted: Boolean(participant.videoDisabled),
+            });
+          } else {
+            next.set(identity, {
+              identity,
+              name: pName,
+              avatar: pAvatar,
+              audioTrack: null,
+              videoTrack: null,
+              isAudioMuted: Boolean(participant.audioMuted),
+              isVideoMuted: Boolean(participant.videoDisabled),
+              isSpeaking: false,
+            });
+          }
           return next;
         });
 
@@ -988,11 +1028,25 @@ export function CallProvider({ children }) {
         participants.forEach((p) => {
           const pId = String(p.user?._id || p.user?.id || p.user || '');
           if (pId && pId !== myId) {
-            if (!next.has(pId)) {
+            const pName = p.username || p.name || 'Participant';
+            const pAvatar = p.avatar || '';
+            if (pName !== 'Participant' || pAvatar) {
+              callParticipantProfileCache.set(pId, { name: pName, avatar: pAvatar });
+            }
+            const existing = next.get(pId);
+            if (existing) {
+              next.set(pId, {
+                ...existing,
+                name: pName !== 'Participant' ? pName : existing.name,
+                avatar: pAvatar || existing.avatar,
+                isAudioMuted: Boolean(p.audioMuted),
+                isVideoMuted: Boolean(p.videoDisabled),
+              });
+            } else {
               next.set(pId, {
                 identity: pId,
-                name: p.username || 'Participant',
-                avatar: p.avatar || '',
+                name: pName,
+                avatar: pAvatar,
                 audioTrack: null,
                 videoTrack: null,
                 isAudioMuted: Boolean(p.audioMuted),

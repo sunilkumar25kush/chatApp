@@ -190,6 +190,8 @@ const getCallToken = async (req, res, next) => {
         } else {
           session.participants[existingPartIndex].leftAt = null;
           session.participants[existingPartIndex].connectionStatus = 'connected';
+          if (user.username) session.participants[existingPartIndex].username = user.username;
+          if (user.avatar) session.participants[existingPartIndex].avatar = user.avatar;
           await session.save();
         }
       }

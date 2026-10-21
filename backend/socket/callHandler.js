@@ -194,6 +194,8 @@ module.exports = (io, socket) => {
           session.participants[pIndex].socketId = socket.id;
           session.participants[pIndex].leftAt = null;
           session.participants[pIndex].connectionStatus = 'connected';
+          if (user.username) session.participants[pIndex].username = user.username;
+          if (user.avatar) session.participants[pIndex].avatar = user.avatar;
           await session.save();
           participantObj = session.participants[pIndex];
         }
