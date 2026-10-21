@@ -76,7 +76,7 @@ export function calculateParticipantLayout({ count, width, height }) {
       };
     }
 
-    // Landscape: 2 side-by-side columns (50% width each)
+    // Landscape: 2 side-by-side balanced tiles centered in call room
     return {
       type: 'two-landscape',
       columns: 2,
@@ -88,14 +88,26 @@ export function calculateParticipantLayout({ count, width, height }) {
       isMobile,
       isLandscapeMobile,
       gridStyle: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        gridTemplateRows: '1fr',
-        gap: isLandscapeMobile ? 8 : 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isLandscapeMobile ? 8 : 16,
         width: '100%',
         height: '100%',
+        padding: isLandscapeMobile ? '0 8px' : '0 16px',
+        boxSizing: 'border-box',
       },
-      tileStyle: () => ({ width: '100%', height: '100%' }),
+      tileStyle: () => ({
+        flex: '1 1 0',
+        width: '100%',
+        maxWidth: isLandscapeMobile ? 'calc(50% - 6px)' : 'min(calc(50% - 10px), 760px)',
+        height: '100%',
+        maxHeight: isLandscapeMobile ? 'min(82dvh, 360px)' : 'min(80dvh, 520px)',
+        aspectRatio: '16 / 9',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }),
     };
   }
 

@@ -48,10 +48,10 @@ function ParticipantTile({
     };
   }, [hasVideo, videoAttached]);
 
-  // If remote participant is streaming from a portrait device (aspect < 0.9, e.g. mobile phone),
-  // auto-default to 'contain' so their face and head are NEVER cropped out.
-  const isPortraitStream = videoAspectRatio && videoAspectRatio < 0.9;
-  const effectiveFit = fitMode || (isPortraitStream && !isLocal ? 'contain' : 'cover');
+  // Default to 'contain' so that NO video feed (neither local camera nor remote caller)
+  // is ever cropped, zoomed in, or has heads/chins cut off!
+  // Users can click the Fit/Fill toggle button in the top right or double-click to switch to 'cover'.
+  const effectiveFit = fitMode || 'contain';
 
   // ── Attach/Detach Video Track ───────────────────────────────────────────
   useEffect(() => {

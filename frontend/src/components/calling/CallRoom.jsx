@@ -596,10 +596,10 @@ export default function CallRoom({ onClose = null }) {
             {participantCount === 1 ? (
               <div
                 style={{
-                  width: '100%',
-                  maxWidth: layout.isPortrait ? '100%' : 880,
-                  height: '100%',
-                  maxHeight: layout.isPortrait ? '82dvh' : '75dvh',
+                  ...(layout.tileStyle ? layout.tileStyle(0) : {}),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 <ParticipantTile

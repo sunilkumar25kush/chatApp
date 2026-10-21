@@ -215,7 +215,22 @@ export function CallProvider({ children }) {
       const next = new Map(prev);
 
       if (isRemoved) {
-        next.delete(identity);
+        const id1 = String(participant.identity || '');
+        const id2 = String(participant.sid || '');
+        const id3 = String(participant.user?._id || participant.user?.id || participant.userId || '');
+        for (const [key, val] of prev.entries()) {
+          const strKey = String(key);
+          const valIdentity = String(val?.identity || '');
+          const valSid = String(val?.sid || '');
+          const valUser = String(val?.user?._id || val?.user?.id || val?.user || '');
+          if (
+            (id1 && (strKey === id1 || valIdentity === id1)) ||
+            (id2 && (strKey === id2 || valSid === id2)) ||
+            (id3 && (strKey === id3 || valIdentity === id3 || valUser === id3))
+          ) {
+            next.delete(key);
+          }
+        }
         return next;
       }
 
@@ -789,12 +804,29 @@ export function CallProvider({ children }) {
     // Participant left
     const handleCallParticipantLeft = ({ userId, username }) => {
       if (userId) {
+        const strUserId = String(userId);
         setRemoteParticipants((prev) => {
-          const next = new Map(prev);
-          next.delete(userId);
+          const next = new Map();
+          for (const [key, val] of prev.entries()) {
+            const strKey = String(key);
+            const valIdentity = String(val?.identity || '');
+            const valSid = String(val?.sid || '');
+            const valUserId = String(val?.user?._id || val?.user?.id || val?.user || '');
+            const isMatch =
+              strKey === strUserId ||
+              valIdentity === strUserId ||
+              valSid === strUserId ||
+              valUserId === strUserId;
+            if (!isMatch) {
+              next.set(key, val);
+            }
+          }
           return next;
         });
-        setActiveScreenShare((prev) => (prev?.participant?.identity === userId ? null : prev));
+        setActiveScreenShare((prev) => {
+          const prevId = String(prev?.participant?.identity || '');
+          return prevId === strUserId ? null : prev;
+        });
       }
     };
 
