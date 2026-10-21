@@ -4,54 +4,54 @@
    ========================================================================== */
 :root {
   /* ── Spacing aliases (--space-N where N = multiples of 4px) ── */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
 
   /* ── Background surface bridge ─────────────────────────────── */
-  --bg-window:        var(--color-bg-window);
-  --bg-panel:         var(--color-bg-card);
-  --bg-panel-hover:   var(--color-bg-hover);
-  --bg-panel-active:  var(--color-primary-light);
-  --bg-sidebar:       var(--theme-sidebar-bg);
-  --bg-input:         var(--color-bg-input);
-  --bg-badge:         var(--color-bg-deep);
-  --bg-popover:       var(--color-bg-card);
-  --bg-elevated:      var(--color-bg-elevated);
+  --bg-window: var(--color-bg-window);
+  --bg-panel: var(--color-bg-card);
+  --bg-panel-hover: var(--color-bg-hover);
+  --bg-panel-active: var(--color-primary-light);
+  --bg-sidebar: var(--theme-sidebar-bg);
+  --bg-input: var(--color-bg-input);
+  --bg-badge: var(--color-bg-deep);
+  --bg-popover: var(--color-bg-card);
+  --bg-elevated: var(--color-bg-elevated);
 
   /* ── Text bridge ───────────────────────────────────────────── */
-  --text-main:        var(--color-text);
-  --text-muted:       var(--color-text-muted);
-  --text-dim:         var(--color-text-dim);
+  --text-main: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --text-dim: var(--color-text-dim);
 
   /* ── Border bridge ─────────────────────────────────────────── */
-  --border-color:     var(--color-border);
-  --border-subtle:    var(--color-border-subtle);
-  --border-focus:     var(--color-primary);
+  --border-color: var(--color-border);
+  --border-subtle: var(--color-border-subtle);
+  --border-focus: var(--color-primary);
 
   /* ── Color bridge ──────────────────────────────────────────── */
-  --color-primary:       var(--color-orange-500, #F0882C);
+  --color-primary: var(--color-orange-500, #F0882C);
   --color-primary-hover: var(--color-orange-600, #D9721A);
   --color-primary-alpha: rgba(240, 136, 44, 0.16);
-  --color-success:       var(--color-green-500-alt, #6DC04B);
+  --color-success: var(--color-green-500-alt, #6DC04B);
   --color-success-alpha: rgba(109, 192, 75, 0.16);
-  --color-error:         #e11d48;
+  --color-error: #e11d48;
 
   /* ── Font size bridge (gajim uses --font-size-*) ───────────── */
-  --font-size-xs:   12px;
-  --font-size-sm:   14px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
   --font-size-base: 16px;
-  --font-size-lg:   18px;
-  --font-size-xl:   22px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
 
   /* ── Radius bridge ─────────────────────────────────────────── */
-  --radius-sm:   16px;
-  --radius-md:   32px;
-  --radius-lg:   42px;
+  --radius-sm: 16px;
+  --radius-md: 32px;
+  --radius-lg: 42px;
   --radius-full: 50%;
   --radius-pill: 999px;
 
@@ -61,43 +61,43 @@
   --shadow-lg: rgba(28, 28, 28, 0.35) 0px 32px 64px -20px, rgba(28, 28, 28, 0.12) 0px 8px 24px 0px;
 
   /* ── Transition bridge ─────────────────────────────────────── */
-  --duration-fast:      transform 0.15s, background 0.15s, box-shadow 0.15s;
-  --duration-slow:      5s ease-in-out infinite hoppy-bob;
+  --duration-fast: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  --duration-slow: 5s ease-in-out infinite hoppy-bob;
   --transition-default: all 0.15s ease;
-  --transition-speed:   0.15s;
-  --transition-ease:    ease;
+  --transition-speed: 0.15s;
+  --transition-ease: ease;
 
   /* ── Layout dimensions ─────────────────────────────────────── */
-  --header-height:         54px;
-  --chatlist-width:        290px;
-  --chatlist-min-width:    220px;
-  --chatlist-max-width:    340px;
-  --composer-min-height:   64px;
-  --ws-sidebar-width:      56px;
+  --header-height: 54px;
+  --chatlist-width: 290px;
+  --chatlist-min-width: 220px;
+  --chatlist-max-width: 340px;
+  --composer-min-height: 64px;
+  --ws-sidebar-width: 56px;
 
   /* ── Left sidebar (icon rail) ──────────────────────────────── */
-  --left-sidebar-width:    56px;
+  --left-sidebar-width: 56px;
 }
 
 /* ── Gajim Light Theme Token Bridge ─────────────────────────── */
 :root.theme-light,
 body.theme-light {
-  --bg-window:        var(--color-bg-window, #f2f4f8);
-  --bg-panel:         var(--color-bg-card, #ffffff);
-  --bg-panel-hover:   var(--color-bg-hover, rgba(0, 0, 0, 0.05));
-  --bg-panel-active:  var(--color-primary-light, rgba(124, 58, 237, 0.12));
-  --bg-sidebar:       var(--theme-sidebar-bg, #f7f9fc);
-  --bg-input:         var(--theme-input-bg, var(--color-bg-input, #ffffff));
-  --bg-badge:         var(--color-bg-deep, #e9edf3);
-  --bg-popover:       var(--color-bg-card, #ffffff);
-  --bg-elevated:      var(--color-bg-elevated, #ffffff);
+  --bg-window: var(--color-bg-window, #f2f4f8);
+  --bg-panel: var(--color-bg-card, #ffffff);
+  --bg-panel-hover: var(--color-bg-hover, rgba(0, 0, 0, 0.05));
+  --bg-panel-active: var(--color-primary-light, rgba(124, 58, 237, 0.12));
+  --bg-sidebar: var(--theme-sidebar-bg, #f7f9fc);
+  --bg-input: var(--theme-input-bg, var(--color-bg-input, #ffffff));
+  --bg-badge: var(--color-bg-deep, #e9edf3);
+  --bg-popover: var(--color-bg-card, #ffffff);
+  --bg-elevated: var(--color-bg-elevated, #ffffff);
 
-  --text-main:        var(--color-text, #16181d);
-  --text-muted:       var(--color-text-muted, #4b5563);
-  --text-dim:         var(--color-text-dim, #5c6a84);
+  --text-main: var(--color-text, #16181d);
+  --text-muted: var(--color-text-muted, #4b5563);
+  --text-dim: var(--color-text-dim, #5c6a84);
 
-  --border-color:     var(--color-border, #d9dee8);
-  --border-subtle:    var(--color-border-subtle, #e4e8f0);
+  --border-color: var(--color-border, #d9dee8);
+  --border-subtle: var(--color-border-subtle, #e4e8f0);
 }
 
 /* ==========================================================================
@@ -236,7 +236,7 @@ body.theme-light {
 .btn-primary-soft {
   background: var(--color-primary-alpha);
   color: var(--color-primary);
-  border: 1px solid rgba(124,58,237,0.3);
+  border: 1px solid rgba(124, 58, 237, 0.3);
   border-radius: var(--radius-sm);
   padding: 0;
   width: 30px;
@@ -291,10 +291,22 @@ body.theme-light {
   border: 2px solid var(--bg-sidebar);
 }
 
-.status-online  { background: var(--color-success); animation: status-pulse 2.5s infinite; }
-.status-away    { background: #f59e0b; }
-.status-busy    { background: var(--color-error); }
-.status-offline { background: var(--text-dim); }
+.status-online {
+  background: var(--color-success);
+  animation: status-pulse 2.5s infinite;
+}
+
+.status-away {
+  background: #f59e0b;
+}
+
+.status-busy {
+  background: var(--color-error);
+}
+
+.status-offline {
+  background: var(--text-dim);
+}
 
 /* ── Avatar sizes ────────────────────────────────────────────────────────── */
 .avatar {
@@ -311,9 +323,23 @@ body.theme-light {
   transition: var(--transition-default);
 }
 
-.avatar-sm  { width: 28px; height: 28px; font-size: 11px; }
-.avatar-md  { width: 34px; height: 34px; font-size: 13px; }
-.avatar-lg  { width: 44px; height: 44px; font-size: 16px; }
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.avatar-md {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
+.avatar-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+}
 
 /* ── Nav item (left rail icon button) ───────────────────────────────────── */
 .nav-item {
@@ -417,7 +443,7 @@ body.theme-light {
   background: var(--bg-popover);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   z-index: 1000;
   overflow: hidden;
   animation: scale-up 120ms ease-out;
@@ -474,7 +500,7 @@ body.theme-light {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.72);
+  background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -520,7 +546,7 @@ body.theme-light {
 }
 
 .modal-close-btn:hover {
-  background: var(--color-error-bg, rgba(239,68,68,0.1));
+  background: var(--color-error-bg, rgba(239, 68, 68, 0.1));
   color: var(--color-error);
 }
 
@@ -583,12 +609,20 @@ body.theme-light {
   scrollbar-color: var(--border-color) transparent;
 }
 
-.scrollzone::-webkit-scrollbar { width: 4px; height: 4px; }
-.scrollzone::-webkit-scrollbar-track { background: transparent; }
+.scrollzone::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollzone::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .scrollzone::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 4px;
 }
+
 .scrollzone::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
 }
@@ -623,17 +657,20 @@ body.theme-light {
 
 /* ── Loading / skeleton state ───────────────────────────────────────────── */
 @keyframes skeleton-shimmer {
-  0%   { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
+  0% {
+    background-position: -200px 0;
+  }
+
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-panel-hover) 25%,
-    var(--bg-elevated)    50%,
-    var(--bg-panel-hover) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--bg-panel-hover) 25%,
+      var(--bg-elevated) 50%,
+      var(--bg-panel-hover) 75%);
   background-size: 400px 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
   border-radius: var(--radius-sm);
@@ -641,7 +678,9 @@ body.theme-light {
 
 /* ── Spinner ────────────────────────────────────────────────────────────── */
 @keyframes spinner-rotate {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner {
@@ -667,7 +706,8 @@ body.theme-light {
 }
 
 /* ── Disabled state ─────────────────────────────────────────────────────── */
-[disabled], :disabled {
+[disabled],
+:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -691,12 +731,23 @@ body.theme-light {
 
 /* ── Touch-friendly minimum tap target ──────────────────────────────────── */
 @media (pointer: coarse) {
-  .btn-icon, .nav-item, .tab-item { min-height: 44px; min-width: 44px; }
-  .btn { min-height: 44px; padding: 10px 20px; }
+
+  .btn-icon,
+  .nav-item,
+  .tab-item {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
 }
 
 /* ── Responsive: Mobile drawer for chat list panel ────────────────────────── */
 @media (max-width: 640px) {
+
   /* Instagram-style mobile nav: the sidebar container IS the full-screen
      rooms list (handled in index.css). The chat-list-panel inside it must be
      a static flex child that fills the width — not a drawer. */
@@ -712,28 +763,33 @@ body.theme-light {
     transition: none;
     box-shadow: none;
   }
+
   .chat-list-panel.open {
     transform: none;
   }
+
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 99;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
   }
+
   .sidebar-backdrop.visible {
     opacity: 1;
     visibility: visible;
   }
+
   /* Hamburger button is obsolete in the Instagram-style nav — the back
      arrow in the chat header is the navigation control. */
   .back-to-list-btn.hamburger {
     display: none !important;
   }
 }
+
 @media (min-width: 641px) {
   .back-to-list-btn.hamburger {
     display: none !important;
@@ -742,7 +798,10 @@ body.theme-light {
 
 /* ── Responsive: compact chat list ─────────────────────────────────────── */
 @media (max-width: 900px) {
-  :root { --chatlist-width: 240px; --chatlist-min-width: 200px; }
+  :root {
+    --chatlist-width: 240px;
+    --chatlist-min-width: 200px;
+  }
 }
 
 /* ── btn-secondary auth context (cancel / reset) ────────────────────────── */
@@ -784,6 +843,7 @@ body.theme-light {
     opacity: 0;
     transform: translate(-50%, -14px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
@@ -944,7 +1004,9 @@ body.theme-light {
 .auth-card::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--color-primary), #a855f7);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -953,7 +1015,7 @@ body.theme-light {
 .auth-logo-icon {
   background: linear-gradient(135deg, var(--color-primary), #a855f7);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 14px rgba(124,58,237,0.4);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
 }
 
 /* form-input focus glow matches primary */
@@ -981,6 +1043,7 @@ body.theme-light {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -992,6 +1055,7 @@ body.theme-light {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -1004,6 +1068,7 @@ body.theme-light {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1016,6 +1081,7 @@ body.theme-light {
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1028,6 +1094,7 @@ body.theme-light {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1040,6 +1107,7 @@ body.theme-light {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1048,10 +1116,14 @@ body.theme-light {
 
 /* Typing Indicator Bounce Animation */
 @keyframes typing-dot-bounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0.6);
     opacity: 0.4;
   }
+
   40% {
     transform: scale(1.2);
     opacity: 1;
@@ -1063,9 +1135,11 @@ body.theme-light {
   0% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
   }
+
   70% {
     box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
   }
@@ -1076,9 +1150,11 @@ body.theme-light {
   0% {
     background-color: var(--bg-panel-hover);
   }
+
   50% {
     background-color: var(--bg-panel-active);
   }
+
   100% {
     background-color: var(--bg-panel-hover);
   }
@@ -1411,8 +1487,13 @@ body.theme-light {
   animation: typing-dot-bounce 1.4s infinite ease-in-out fill-mode;
 }
 
-.dots-pulse .dot:nth-child(2) { animation-delay: 0.2s; }
-.dots-pulse .dot:nth-child(3) { animation-delay: 0.4s; }
+.dots-pulse .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots-pulse .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 /* ==========================================================================
    CHAT WINDOW MAIN PANEL & MESSAGES CONTAINER STYLES
@@ -1846,11 +1927,18 @@ body.theme-light {
 }
 
 /* Desktop: three-dot icon hidden, search icon shown */
-.icon-more-dots { display: none; }
-.icon-more-search { display: block; }
+.icon-more-dots {
+  display: none;
+}
+
+.icon-more-search {
+  display: block;
+}
 
 /* Desktop: composer ⋮ button hidden (all actions inline) */
-.composer-action-more { display: none; }
+.composer-action-more {
+  display: none;
+}
 
 /* Mobile composer ⋮ attachment menu (positioned above the toolbar) */
 .composer-more-menu {

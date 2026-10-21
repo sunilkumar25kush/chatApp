@@ -102,7 +102,7 @@ export const ThemeProvider = ({ children }) => {
       if (['cream-citrus', 'sakura', 'pastel', 'snow'].includes(parsed?.activeThemeId)) {
         isAppearanceLight = true;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     if (!hasCustomAppearanceTheme) {
       if (resolvedMode === 'light') {
@@ -182,7 +182,7 @@ export const ThemeProvider = ({ children }) => {
         activeThemeId: nextThemeId,
         activeEffectId: nextMode === 'light' ? 'none' : 'stars',
       }));
-    } catch (e) {}
+    } catch (e) { }
     window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { themeId: nextThemeId, mode: nextMode } }));
   }, [resolvedMode]);
 
