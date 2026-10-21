@@ -50,8 +50,8 @@ const defaultSoundControls = {
 };
 
 const defaultAppearanceState = {
-  activeThemeId: 'galaxy',
-  activeEffectId: 'stars',
+  activeThemeId: 'cream-citrus',
+  activeEffectId: 'none',
   globalWallpaperUrl: '',
   customWallpapers: [],
   perChatWallpapers: {},
@@ -69,9 +69,11 @@ export const AppearanceProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const activeThemeId = parsed.activeThemeId === 'galaxy' ? 'cream-citrus' : (parsed.activeThemeId || 'cream-citrus');
         return {
           ...defaultAppearanceState,
           ...parsed,
+          activeThemeId,
           controls: { ...defaultControls, ...(parsed.controls || {}) },
           animationControls: { ...defaultAnimationControls, ...(parsed.animationControls || {}) },
           soundControls: { ...defaultSoundControls, ...(parsed.soundControls || {}) },

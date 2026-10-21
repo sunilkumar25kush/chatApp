@@ -7,14 +7,14 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 const defaultTheme = {
-  preset: 'default',
-  primaryColor: '#7c3aed',
-  msgIncomingBg: '#222530',
-  msgOutgoingBg: '#7c3aed',
-  chatBg: '#181a20',
-  sidebarBg: '#1a1c23',
-  borderRadius: '12px',
-  fontFamily: 'Inter',
+  preset: 'cream-citrus',
+  primaryColor: '#F0882C',
+  msgIncomingBg: '#ECEAC9',
+  msgOutgoingBg: 'linear-gradient(135deg, #F0882C 0%, #D9721A 100%)',
+  chatBg: '#F7F1E3',
+  sidebarBg: '#ECEAC9',
+  borderRadius: '16px',
+  fontFamily: "'Poppins', 'Times New Roman', 'Inter', sans-serif",
 };
 
 // Surface tokens that must flip with the color mode (dark ↔ light).
@@ -32,7 +32,11 @@ export const ThemeProvider = ({ children }) => {
     const saved = localStorage.getItem('gajim_theme');
     if (saved) {
       try {
-        return { ...defaultTheme, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        if (parsed.preset === 'default' || parsed.primaryColor === '#7c3aed') {
+          return defaultTheme;
+        }
+        return { ...defaultTheme, ...parsed };
       } catch (e) {
         return defaultTheme;
       }
@@ -43,7 +47,7 @@ export const ThemeProvider = ({ children }) => {
   // Color mode: 'dark' | 'light' | 'system' (persisted separately)
   const [mode, setModeState] = useState(() => {
     const saved = localStorage.getItem('gajim_theme_mode');
-    return saved === 'light' || saved === 'system' ? saved : 'dark';
+    return saved === 'dark' || saved === 'system' ? saved : 'light';
   });
 
   const [systemMode, setSystemMode] = useState(resolveSystemMode);
@@ -84,7 +88,7 @@ export const ThemeProvider = ({ children }) => {
       if (parsed && parsed.activeThemeId && parsed.activeThemeId !== 'default') {
         hasCustomAppearanceTheme = true;
       }
-      if (['sakura', 'pastel', 'snow'].includes(parsed?.activeThemeId)) {
+      if (['cream-citrus', 'sakura', 'pastel', 'snow'].includes(parsed?.activeThemeId)) {
         isAppearanceLight = true;
       }
     } catch (e) {}
