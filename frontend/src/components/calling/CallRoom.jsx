@@ -661,30 +661,27 @@ export default function CallRoom({ onClose = null }) {
         <button
           type="button"
           onClick={toggleMicrophone}
-          title={isMuted ? 'Turn on microphone' : 'Turn off microphone'}
+          title={isMuted ? 'Turn on microphone (Unmute)' : 'Turn off microphone (Mute)'}
           style={{
             background: isMuted ? '#ef4444' : '#282d3b',
             border: isMuted ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
             color: '#fff',
-            borderRadius: isMobile ? '50%' : 12,
-            width: isMobile ? (isLandscapeMobile ? 40 : 48) : 'auto',
+            borderRadius: '50%',
+            width: isLandscapeMobile ? 40 : 48,
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
-            padding: isMobile ? 0 : '0 16px',
+            padding: 0,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 6,
             cursor: 'pointer',
-            fontSize: isLandscapeMobile ? 15 : 18,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
+            fontSize: isLandscapeMobile ? 16 : 19,
+            boxShadow: isMuted ? '0 2px 12px rgba(239, 68, 68, 0.4)' : 'none',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
         >
           <span>{isMuted ? '🔇' : '🎤'}</span>
-          {!isMobile && <span style={{ fontSize: 13 }}>{isMuted ? 'Unmute' : 'Mute'}</span>}
         </button>
 
         {/* Camera Toggle */}
@@ -696,25 +693,22 @@ export default function CallRoom({ onClose = null }) {
             background: isCameraOff ? '#ef4444' : '#282d3b',
             border: isCameraOff ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
             color: '#fff',
-            borderRadius: isMobile ? '50%' : 12,
-            width: isMobile ? (isLandscapeMobile ? 40 : 48) : 'auto',
+            borderRadius: '50%',
+            width: isLandscapeMobile ? 40 : 48,
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
-            padding: isMobile ? 0 : '0 16px',
+            padding: 0,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 6,
             cursor: 'pointer',
-            fontSize: isLandscapeMobile ? 15 : 18,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
+            fontSize: isLandscapeMobile ? 16 : 19,
+            boxShadow: isCameraOff ? '0 2px 12px rgba(239, 68, 68, 0.4)' : 'none',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
         >
           <span>{isCameraOff ? '🚫' : '📷'}</span>
-          {!isMobile && <span style={{ fontSize: 13 }}>{isCameraOff ? 'Start Video' : 'Stop Video'}</span>}
         </button>
 
         {/* Camera Flip */}
@@ -727,10 +721,11 @@ export default function CallRoom({ onClose = null }) {
               background: '#282d3b',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               color: '#fff',
-              borderRadius: isMobile ? '50%' : 12,
+              borderRadius: '50%',
               width: isLandscapeMobile ? 40 : 48,
               height: isLandscapeMobile ? 40 : 48,
               minWidth: isLandscapeMobile ? 40 : 48,
+              padding: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -751,26 +746,25 @@ export default function CallRoom({ onClose = null }) {
             onClick={toggleScreenShare}
             title={isScreenSharing ? 'Stop sharing screen' : 'Share your screen'}
             style={{
-              background: isScreenSharing ? 'var(--color-primary, #7c3aed)' : '#282d3b',
+              background: isScreenSharing ? 'var(--color-primary, #6366f1)' : '#282d3b',
               border: isScreenSharing ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
               color: '#fff',
-              borderRadius: 12,
+              borderRadius: '50%',
+              width: 48,
               height: 48,
-              padding: '0 16px',
+              minWidth: 48,
+              padding: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
               cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
+              fontSize: 18,
+              boxShadow: isScreenSharing ? '0 2px 12px rgba(99, 102, 241, 0.45)' : 'none',
               transition: 'all 0.15s ease',
               flexShrink: 0,
             }}
           >
             <span>🖥️</span>
-            <span style={{ fontSize: 13 }}>{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
           </button>
         )}
 
@@ -778,25 +772,51 @@ export default function CallRoom({ onClose = null }) {
         <button
           type="button"
           onClick={() => setIsRosterOpen(!isRosterOpen)}
-          title="Toggle participant list"
+          title={`Participants (${participantCount})`}
           style={{
-            background: isRosterOpen ? 'var(--color-primary, #7c3aed)' : '#282d3b',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: isRosterOpen ? 'var(--color-primary, #6366f1)' : '#282d3b',
+            border: isRosterOpen ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
             color: '#fff',
-            borderRadius: isMobile ? '50%' : 12,
+            borderRadius: '50%',
             width: isLandscapeMobile ? 40 : 48,
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
+            padding: 0,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             fontSize: isLandscapeMobile ? 15 : 17,
+            position: 'relative',
+            boxShadow: isRosterOpen ? '0 2px 12px rgba(99, 102, 241, 0.4)' : 'none',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
         >
-          👥
+          <span>👥</span>
+          {participantCount > 1 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: -2,
+                right: -2,
+                background: 'var(--color-primary, #6366f1)',
+                color: '#fff',
+                fontSize: 10,
+                fontWeight: 700,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                padding: '0 4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #12151e',
+              }}
+            >
+              {participantCount}
+            </span>
+          )}
         </button>
 
         {/* Mobile ⋮ More Actions Button */}
@@ -943,23 +963,26 @@ export default function CallRoom({ onClose = null }) {
               background: '#282d3b',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               color: '#fff',
-              borderRadius: 12,
+              borderRadius: '50%',
               width: 48,
               height: 48,
+              minWidth: 48,
+              padding: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               fontSize: 16,
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
           >
-            {isFullscreen ? '⤦' : '⛶'}
+            <span>{isFullscreen ? '⤦' : '⛶'}</span>
           </button>
         )}
 
         {!isMobile && (
-          <div style={{ width: 1, height: 32, background: 'rgba(255, 255, 255, 0.15)', margin: '0 4px' }} />
+          <div style={{ width: 1, height: 28, background: 'rgba(255, 255, 255, 0.15)', margin: '0 4px' }} />
         )}
 
         {/* Leave Call (Red Button) */}
@@ -974,7 +997,7 @@ export default function CallRoom({ onClose = null }) {
             background: '#dc2626',
             border: 'none',
             color: '#fff',
-            borderRadius: isMobile ? '50%' : 12,
+            borderRadius: isMobile ? '50%' : 24,
             width: isMobile ? (isLandscapeMobile ? 40 : 48) : 'auto',
             height: isLandscapeMobile ? 40 : 48,
             minWidth: isLandscapeMobile ? 40 : 48,
@@ -986,13 +1009,14 @@ export default function CallRoom({ onClose = null }) {
             cursor: 'pointer',
             fontSize: isLandscapeMobile ? 15 : 18,
             fontWeight: 700,
-            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.45)',
             transition: 'all 0.15s ease',
             flexShrink: 0,
           }}
         >
           <span>📞</span>
-          {!isMobile && <span>Leave Call</span>}
+          {!isMobile && <span style={{ fontSize: 14 }}>Leave Call</span>}
         </button>
 
         {/* Desktop End for All (Host only) */}
@@ -1010,20 +1034,23 @@ export default function CallRoom({ onClose = null }) {
               background: 'rgba(239, 68, 68, 0.15)',
               border: '1px solid rgba(239, 68, 68, 0.35)',
               color: '#f87171',
-              borderRadius: 12,
+              borderRadius: 24,
               height: 48,
-              padding: '0 14px',
+              padding: '0 16px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 6,
               cursor: 'pointer',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
               flexShrink: 0,
             }}
           >
-            End for All
+            <span>🔴</span>
+            <span>End for All</span>
           </button>
         )}
       </footer>
