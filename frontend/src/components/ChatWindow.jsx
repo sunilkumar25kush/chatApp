@@ -776,8 +776,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         </span>
                       ) : (
                         <span className="header-status-badge badge-published" title="Published Public Channel">
-                          <span className="badge-pulse" aria-hidden="true" />
-                          <span>🌐 Public</span>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                          <span>Public</span>
                         </span>
                       )}
                   </div>
@@ -966,7 +966,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 </div>
 
                 {/* Message Content */}
-                <div className="msg-content-wrap" style={{ flex: 1, minWidth: 0 }}>
+                <div className="msg-content-wrap" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                   {/* Sender row */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--theme-sender-color, #60a5fa)' }}>{senderName}</span>
@@ -1008,6 +1008,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                   {msg.content && msg.fileType !== 'call' && (
                     <div
                       className={isMe ? 'msg-bubble msg-bubble-out' : 'msg-bubble msg-bubble-in'}
+                      style={{ width: 'fit-content', maxWidth: 'min(85%, 680px)' }}
                     >
                       {msg.content}
                     </div>

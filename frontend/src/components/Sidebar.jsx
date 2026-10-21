@@ -304,7 +304,8 @@ export default function Sidebar({
                   role="tab" 
                   aria-selected={activeTab === 'public'}
                 >
-                  🌐 Public
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ marginRight: 4, flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                  <span>Public</span>
                 </button>
                 <button 
                   className={`tab-item ui-tab-chip tab-chip-private ${activeTab === 'private' ? 'active' : ''}`} 
@@ -312,7 +313,8 @@ export default function Sidebar({
                   role="tab" 
                   aria-selected={activeTab === 'private'}
                 >
-                  🔒 Private
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" style={{ marginRight: 4, flexShrink: 0 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span>Private</span>
                 </button>
                 <button 
                   className={`tab-item ui-tab-chip ${activeTab === 'joined' ? 'active' : ''}`} 
@@ -397,8 +399,8 @@ export default function Sidebar({
                                       </span>
                                     ) : (
                                       <span className="roster-badge roster-badge-public" title="Published Public Channel">
-                                        <span className="badge-pulse" aria-hidden="true" />
-                                        <span>🌐 Public</span>
+                                        <svg width="9.5" height="9.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                        <span>Public</span>
                                       </span>
                                     )}
                                 </div>
