@@ -203,9 +203,16 @@ export function CallProvider({ children }) {
 
   // ── Remote Participants Helper ──────────────────────────────────────────
   const updateRemoteParticipant = useCallback((participant, track = null, isRemoved = false) => {
+    const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+    const identity = participant.identity || participant.sid;
+
+    // Never add local user to remote participants list
+    if (myId && identity && String(identity) === String(myId)) {
+      return;
+    }
+
     setRemoteParticipants((prev) => {
       const next = new Map(prev);
-      const identity = participant.identity || participant.sid;
 
       if (isRemoved) {
         next.delete(identity);
@@ -243,7 +250,7 @@ export function CallProvider({ children }) {
       next.set(identity, existing);
       return next;
     });
-  }, []);
+  }, [user]);
 
   // ── Leave Call & Cleanup ────────────────────────────────────────────────
   const leaveCall = useCallback(
@@ -752,9 +759,17 @@ export function CallProvider({ children }) {
       setConnectionStatus('connected');
 
       if (participant && participant.user) {
+        const myId = user?._id ? user._id.toString() : user?.id ? String(user.id) : null;
+        const participantId = participant.user._id || participant.user.id || participant.user;
+
+        // Never add local user to remote participants
+        if (myId && participantId && String(participantId) === String(myId)) {
+          return;
+        }
+
         setRemoteParticipants((prev) => {
           const next = new Map(prev);
-          const identity = participant.user._id || participant.user.id || participant.user;
+          const identity = String(participantId);
           const existing = next.get(identity) || {
             identity,
             name: participant.username || 'Participant',

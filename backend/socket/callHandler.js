@@ -236,8 +236,8 @@ module.exports = (io, socket) => {
 
       logger.socket(`User ${user.username} (${userIdStr}) joined call ${callId}`);
 
-      // Broadcast participant joined
-      io.to(callId).emit('call:participant_joined', {
+      // Broadcast participant joined to all other participants
+      socket.to(callId).emit('call:participant_joined', {
         callId,
         roomId,
         participant: {

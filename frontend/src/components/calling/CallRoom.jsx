@@ -109,9 +109,13 @@ export default function CallRoom({ onClose = null }) {
     };
   }, [user, localTracks, isMuted, isCameraOff]);
 
-  // Combine all participants: local + remotes
+  // Combine all participants: local + remotes (strictly deduplicate against local user)
   const allParticipants = useMemo(() => {
-    return [localParticipant, ...remoteParticipants];
+    const localId = String(localParticipant.identity);
+    const uniqueRemotes = remoteParticipants.filter(
+      (p) => String(p.identity) !== localId && String(p.user?._id || '') !== localId
+    );
+    return [localParticipant, ...uniqueRemotes];
   }, [localParticipant, remoteParticipants]);
 
   const participantCount = allParticipants.length;

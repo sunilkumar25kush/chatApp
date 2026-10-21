@@ -11,6 +11,8 @@ function ParticipantTile({
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   const [videoAttached, setVideoAttached] = useState(false);
+  const [videoAspectRatio, setVideoAspectRatio] = useState(null);
+  const [fitMode, setFitMode] = useState(null); // null = auto, 'contain', 'cover'
 
   const {
     name = 'Participant',
@@ -22,6 +24,34 @@ function ParticipantTile({
   } = participant || {};
 
   const hasVideo = Boolean(videoTrack) && !isVideoMuted;
+
+  // ── Track Video Stream Aspect Ratio (Portrait vs Landscape) ─────────────
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const updateRatio = () => {
+      if (el.videoWidth && el.videoHeight) {
+        setVideoAspectRatio(el.videoWidth / el.videoHeight);
+      }
+    };
+
+    el.addEventListener('loadedmetadata', updateRatio);
+    el.addEventListener('resize', updateRatio);
+    if (el.videoWidth && el.videoHeight) {
+      updateRatio();
+    }
+
+    return () => {
+      el.removeEventListener('loadedmetadata', updateRatio);
+      el.removeEventListener('resize', updateRatio);
+    };
+  }, [hasVideo, videoAttached]);
+
+  // If remote participant is streaming from a portrait device (aspect < 0.9, e.g. mobile phone),
+  // auto-default to 'contain' so their face and head are NEVER cropped out.
+  const isPortraitStream = videoAspectRatio && videoAspectRatio < 0.9;
+  const effectiveFit = fitMode || (isPortraitStream && !isLocal ? 'contain' : 'cover');
 
   // ── Attach/Detach Video Track ───────────────────────────────────────────
   useEffect(() => {
@@ -84,13 +114,14 @@ function ParticipantTile({
       className={`call-participant-tile ${isActiveSpeaker ? 'call-participant-tile--speaking' : ''} ${
         isPinned ? 'call-participant-tile--pinned' : ''
       }`}
+      onDoubleClick={() => hasVideo && setFitMode(effectiveFit === 'contain' ? 'cover' : 'contain')}
       style={{
         position: 'relative',
         width: '100%',
         height: '100%',
         minHeight: 0,
         minWidth: 0,
-        background: '#13151b',
+        background: '#0d0f15',
         borderRadius: 14,
         overflow: 'hidden',
         display: 'flex',
@@ -113,7 +144,7 @@ function ParticipantTile({
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: effectiveFit,
           display: hasVideo ? 'block' : 'none',
           transform: isLocal ? 'scaleX(-1)' : 'none', // Mirror selfie camera
         }}
@@ -198,6 +229,38 @@ function ParticipantTile({
           zIndex: 2,
         }}
       >
+        {/* Fit / Fill Toggle Button */}
+        {hasVideo && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFitMode((prev) => {
+                const current = prev || (isPortraitStream && !isLocal ? 'contain' : 'cover');
+                return current === 'contain' ? 'cover' : 'contain';
+              });
+            }}
+            title={effectiveFit === 'contain' ? 'Fill screen (cover mode)' : 'Fit full uncropped view (contain mode)'}
+            style={{
+              background: effectiveFit === 'contain' ? 'var(--color-primary, #6366f1)' : 'rgba(0, 0, 0, 0.55)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#fff',
+              borderRadius: 6,
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: 12,
+              backdropFilter: 'blur(4px)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {effectiveFit === 'contain' ? '↔️' : '🔍'}
+          </button>
+        )}
+
         {onTogglePin && (
           <button
             type="button"
