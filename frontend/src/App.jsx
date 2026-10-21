@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { WallpaperProvider } from './context/WallpaperContext';
 import { AppearanceProvider } from './context/AppearanceContext';
 import { CallProvider } from './context/CallContext';
+import { SmoothScrollProvider } from './context/SmoothScroll';
 import CallContainer from './components/calling/CallContainer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -23,8 +24,9 @@ export default function App() {
           <ThemeProvider>
             <WallpaperProvider>
               <AppearanceProvider>
-                <CallContainer />
-                <Routes>
+                <SmoothScrollProvider>
+                  <CallContainer />
+                  <Routes>
                 {/* Full-screen Gajim Desktop Messenger route */}
                 <Route
                   path="/chat"
@@ -52,6 +54,7 @@ export default function App() {
                   }
                 />
               </Routes>
+                </SmoothScrollProvider>
             </AppearanceProvider>
           </WallpaperProvider>
         </ThemeProvider>

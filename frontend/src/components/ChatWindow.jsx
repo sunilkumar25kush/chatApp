@@ -748,6 +748,22 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <div className="contact-details">
                   <div className="contact-name-row">
                       <h2 className="contact-name" id="header-contact-name">{room.name || 'Note to myself'}</h2>
+                      {room.isPrivate ? (
+                        <span className="header-status-badge badge-private" title="Private Space (Code Required)">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          <span>Private</span>
+                        </span>
+                      ) : (
+                        <span className="header-status-badge badge-published" title="Published Public Channel">
+                          <span className="badge-pulse" aria-hidden="true" />
+                          <span>🌐 Public</span>
+                        </span>
+                      )}
+                      {room.category && (
+                        <span className={`roster-cat-pill cat-${room.category.toLowerCase()}`}>
+                          {room.category}
+                        </span>
+                      )}
                       <span className="encryption-badge verified" id="header-encryption-badge" title="Transport Layer Security (TLS)">
                           <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                           <span>TLS</span>
@@ -824,6 +840,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         ref={chatFeedRef}
         className="messages-history-container scrollzone"
         id="messages-container"
+        data-lenis-prevent
         role="log"
         aria-live="polite"
         aria-label="Message Stream"
@@ -1457,7 +1474,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
       {/* Lightbox Modal */}
       {previewImageUrl && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setPreviewImageUrl(null)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={() => setPreviewImageUrl(null)}>
           <img src={previewImageUrl} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
         </div>
       )}

@@ -1,13 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { animateModalEnter } from '../utils/animations';
 
 export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName }) {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
+  const cardRef = useRef(null);
 
   // Auto-format: uppercase + remove spaces
   useEffect(() => {
     setRoomCode((prev) => prev.toUpperCase().replace(/\s+/g, ''));
   }, [roomCode]);
+
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      animateModalEnter(cardRef.current);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -31,7 +39,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName })
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
+      <div className="modal-card" ref={cardRef} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
 
         {/* Header */}
         <div className="modal-header">

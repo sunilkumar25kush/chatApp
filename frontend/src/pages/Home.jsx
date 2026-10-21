@@ -1,208 +1,271 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useSmoothScroll } from '../context/SmoothScroll';
+import { animateHeroReveal } from '../utils/animations';
+import gsap from 'gsap';
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
-  const [activeTab, setActiveTab] = useState('messaging');
+  const { isAuthenticated } = useAuth();
+  const { lenis } = useSmoothScroll() || {};
+  const containerRef = useRef(null);
+  const mockupRef = useRef(null);
+
+  const [activeChannel, setActiveChannel] = useState('engineering-hq');
   const [typedMessage, setTypedMessage] = useState('');
-  const fullText = "Hey team! The new LiveKit WebRTC video integration is live 🚀 Let's test the 4K call stream!";
+
+  const fullText = "SFU audio streams benchmarked at 19ms latency across all clients. Deploying to prod.";
 
   useEffect(() => {
     let index = 0;
     const interval = setInterval(() => {
       setTypedMessage(fullText.slice(0, index));
       index++;
-      if (index > fullText.length + 20) {
+      if (index > fullText.length + 24) {
         index = 0;
       }
-    }, 45);
+    }, 40);
     return () => clearInterval(interval);
   }, []);
 
-  const features = [
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          <path d="M8 10h.01M12 10h.01M16 10h.01" />
-        </svg>
-      ),
-      tag: 'Socket.io v4 Engine',
-      title: 'Ultra-Low Latency Messaging',
-      desc: 'Sub-30ms message delivery with instant read receipts, optimistic updates, and persistent state across all tabs.',
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <polygon points="23 7 16 12 23 17 23 7" />
-          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-        </svg>
-      ),
-      tag: 'LiveKit SFU',
-      title: 'Multi-Party Video & Voice',
-      desc: 'Selective Forwarding Unit (SFU) architecture capable of crystal-clear group conferences with screen share and adaptive bitrate.',
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      ),
-      tag: 'OMEMO & TLS 1.3',
-      title: 'Enterprise Encryption',
-      desc: 'Transport-layer security paired with end-to-end cryptographic safeguards ensuring your private conversations remain private.',
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <line x1="12" y1="19" x2="12" y2="23" />
-          <line x1="8" y1="23" x2="16" y2="23" />
-        </svg>
-      ),
-      tag: 'Studio Quality Audio',
-      title: 'Interactive Voice Notes',
-      desc: 'Record and stream voice notes with waveform scrubbing, real-time volume normalization, and rapid download caching.',
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-          <path d="M2 12h20" />
-        </svg>
-      ),
-      tag: 'Media Engine',
-      title: 'Instant CDN File Sharing',
-      desc: 'Seamlessly upload documents, images, and archives with automatic preview thumbnails and high-speed local/cloud delivery.',
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="home-feature-icon">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      ),
-      tag: 'Personality Studio',
-      title: 'Custom Themes & Wallpapers',
-      desc: 'Express yourself with dynamic wallpapers, obsidian dark mode, neon cyberpunk accents, and custom presence statuses.',
-    },
-  ];
+  // GSAP Orchestrated Page Entrance
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const tl = animateHeroReveal(containerRef.current);
+    return () => {
+      if (tl) tl.kill();
+    };
+  }, []);
 
-  const stats = [
-    { value: '< 25ms', label: 'Message Sync Latency' },
-    { value: '99.99%', label: 'Uptime SLA' },
-    { value: '4K 60fps', label: 'SFU Video Streams' },
-    { value: '100% PWA', label: 'Cross-Device Responsive' },
+  // Gentle 3D Mouse Parallax on central mockup
+  const handleMouseMove = (e) => {
+    if (!mockupRef.current || window.innerWidth < 1024) return;
+    const rect = mockupRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    gsap.to(mockupRef.current, {
+      rotationY: x * 3.5,
+      rotationX: -y * 3.5,
+      transformPerspective: 1200,
+      ease: 'power1.out',
+      duration: 0.35,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!mockupRef.current) return;
+    gsap.to(mockupRef.current, {
+      rotationY: 0,
+      rotationX: 0,
+      ease: 'power2.out',
+      duration: 0.5,
+    });
+  };
+
+  const handleScrollToFeatures = (e) => {
+    e.preventDefault();
+    if (lenis) {
+      lenis.scrollTo('#architecture-specs', { offset: -60, duration: 1.2 });
+    } else {
+      const el = document.getElementById('architecture-specs');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const channelConversations = {
+    'engineering-hq': [
+      {
+        id: '1',
+        sender: 'Sarah Connor',
+        avatar: 'SC',
+        avatarBg: '#2563eb',
+        time: '10:42 AM',
+        text: 'Duplex WebSocket cluster updated. SFU conference room is active for audio & 4K video.',
+        reactions: ['⚡ 4', '❤️ 2'],
+      },
+      {
+        id: '2',
+        sender: 'You',
+        isMe: true,
+        avatar: 'ME',
+        avatarBg: '#4f46e5',
+        time: '10:44 AM',
+        isDynamicTyping: true,
+        delivered: true,
+      },
+    ],
+    'product-launch': [
+      {
+        id: '1',
+        sender: 'Elena Rostova',
+        avatar: 'ER',
+        avatarBg: '#059669',
+        time: '09:15 AM',
+        text: 'The responsive mobile drawer and user profile modals have passed regression audits.',
+        reactions: ['✨ 5'],
+      },
+      {
+        id: '2',
+        sender: 'Marcus Vance',
+        avatar: 'MV',
+        avatarBg: '#d97706',
+        time: '09:18 AM',
+        text: 'Verified. Lenis inertial momentum and GSAP message transitions feel tactile and fluid.',
+      },
+    ],
+    'general-lounge': [
+      {
+        id: '1',
+        sender: 'Alex Chen',
+        avatar: 'AC',
+        avatarBg: '#7c3aed',
+        time: 'Yesterday',
+        text: 'Welcome to the team channel! Feel free to test custom status pickers and themes.',
+      },
+      {
+        id: '2',
+        sender: 'You',
+        isMe: true,
+        avatar: 'ME',
+        avatarBg: '#4f46e5',
+        time: '10:02 AM',
+        text: 'Voice note support and waveform scrubbing working seamlessly.',
+        delivered: true,
+      },
+    ],
+  };
+
+  const architecturalSpecs = [
+    {
+      title: 'Direct duplex messaging',
+      subtitle: 'Socket.io v4 real-time transport',
+      desc: 'Sub-25ms message delivery across active channels with instant delivery receipts, typing telemetry, and persistent room state.',
+      metric: '< 25ms',
+      metricLabel: 'Sync Latency',
+    },
+    {
+      title: 'Selective forwarding conference',
+      subtitle: 'LiveKit SFU WebRTC architecture',
+      desc: 'High-definition group audio and 4K video rooms with automated bitrate scaling, echo cancellation, and screen share.',
+      metric: '4K 60fps',
+      metricLabel: 'Video Streams',
+    },
+    {
+      title: 'Cryptographic privacy',
+      subtitle: 'TLS 1.3 & OMEMO multi-end encryption',
+      desc: 'All communication is protected in transit with cryptographic session authentication and strict channel access gates.',
+      metric: '256-bit',
+      metricLabel: 'Session Cipher',
+    },
+    {
+      title: 'Waveform audio engine',
+      subtitle: 'Voice note recording and playback',
+      desc: 'Integrated voice notes with real-time waveform visualization, volume normalization, and instant audio caching.',
+      metric: '48 kHz',
+      metricLabel: 'Studio Audio',
+    },
+    {
+      title: 'Instant media delivery',
+      subtitle: 'Secure object storage & CDN caching',
+      desc: 'Send images, documents, and archives with automatic thumbnail previews and secure authenticated file streaming.',
+      metric: 'Zero lag',
+      metricLabel: 'Asset Streaming',
+    },
+    {
+      title: 'Desktop and mobile harmony',
+      subtitle: 'Responsive PWA & touch ergonomics',
+      desc: 'Engineered as an installable progressive web app with swipe drawer navigation, smooth inertia scrolling, and offline caching.',
+      metric: '100% PWA',
+      metricLabel: 'Native Feel',
+    },
   ];
 
   return (
-    <div className="home-page-wrapper">
-      {/* Ambient background glow orbs */}
-      <div className="ambient-glow-orb ambient-orb-1" aria-hidden="true" />
-      <div className="ambient-glow-orb ambient-orb-2" aria-hidden="true" />
-      <div className="ambient-grid-overlay" aria-hidden="true" />
+    <div className="home-page-wrapper" ref={containerRef}>
+      {/* Background architectural depth grid */}
+      <div className="home-grid-backdrop" aria-hidden="true" />
 
       {/* ─── HERO SECTION ────────────────────────────────────────── */}
       <section className="home-hero-section">
-        <div className="home-hero-badge">
-          <span className="badge-pulse-dot" />
-          <span className="badge-text">Next-Generation Real-Time Platform</span>
-          <span className="badge-tag">v2.4 Live</span>
+        <div className="hero-telemetry-strip">
+          <span className="telemetry-beacon" aria-hidden="true" />
+          <span className="telemetry-text">Live WebRTC SFU &amp; duplex stream active</span>
         </div>
 
         <h1 className="home-hero-headline">
-          Conversations Elevated.<br />
-          <span className="gradient-text">Encrypted, Seamless & Lightning Fast.</span>
+          Real-time communication, engineered with architectural precision.
         </h1>
 
         <p className="home-hero-subhead">
-          Experience ultra-low-latency text messaging, crystal-clear WebRTC SFU voice &amp; video conferences,
-          and rich media collaboration designed for modern teams and communities.
+          Ultra-low-latency messaging, end-to-end encrypted discussion spaces, and multi-party voice and video conferencing built for modern collaboration.
         </p>
 
         <div className="home-hero-actions">
           {isAuthenticated ? (
-            <Link to="/chat" className="btn-glow-primary">
-              <span>Launch Chatroom</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-arrow-icon">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+            <Link to="/chat" className="hero-action-btn primary">
+              <span>Launch chatroom</span>
             </Link>
           ) : (
             <>
-              <Link to="/register" className="btn-glow-primary">
-                <span>Get Started Free</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-arrow-icon">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
+              <Link to="/register" className="hero-action-btn primary">
+                <span>Get started free</span>
               </Link>
-              <Link to="/login" className="btn-glass-secondary">
-                <span>Sign In to Account</span>
+              <Link to="/login" className="hero-action-btn secondary">
+                <span>Sign in</span>
               </Link>
             </>
           )}
+          <button
+            type="button"
+            onClick={handleScrollToFeatures}
+            className="hero-action-btn tertiary"
+          >
+            <span>Explore architecture</span>
+          </button>
         </div>
 
-        <div className="home-social-proof">
-          <div className="proof-avatars">
-            <span className="proof-avatar" style={{ background: '#6366f1' }}>JD</span>
-            <span className="proof-avatar" style={{ background: '#06b6d4' }}>SK</span>
-            <span className="proof-avatar" style={{ background: '#10b981' }}>AL</span>
-            <span className="proof-avatar" style={{ background: '#f59e0b' }}>MR</span>
-          </div>
-          <div className="proof-text">
-            <strong>Active Global Community</strong>
-            <span>Encrypted WebRTC &amp; WebSocket sessions streaming 24/7</span>
-          </div>
-        </div>
-
-        {/* ─── INTERACTIVE APP PREVIEW MOCKUP ─────────────────────── */}
-        <div className="home-mockup-frame">
+        {/* ─── LIVE INTERACTIVE APP DEMO MOCKUP ─────────────────────── */}
+        <div
+          className="home-mockup-frame"
+          ref={mockupRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        >
+          {/* Mockup Window Titlebar */}
           <div className="mockup-header-bar">
-            <div className="mockup-traffic-dots">
-              <span className="dot dot-red" />
-              <span className="dot dot-yellow" />
-              <span className="dot dot-green" />
+            <div className="mockup-traffic-dots" aria-hidden="true">
+              <span className="dot dot-close" />
+              <span className="dot dot-min" />
+              <span className="dot dot-expand" />
             </div>
-            <div className="mockup-search-capsule">
-              <span className="mockup-lock-icon">🔒</span>
-              <span className="mockup-url-text">chatroom.app/channel/engineering-hq</span>
+            <div className="mockup-capsule">
+              <span className="mockup-capsule-icon">🔒</span>
+              <span className="mockup-capsule-text">chatroom.app/channel/{activeChannel}</span>
             </div>
-            <div className="mockup-header-status">
-              <span className="status-pill-online">● 14 Online</span>
+            <div className="mockup-status-live">
+              <span className="live-dot" />
+              <span>14 Connected</span>
             </div>
           </div>
 
           <div className="mockup-body-split">
-            {/* Sidebar list preview */}
+            {/* Sidebar list preview with clickable channels */}
             <div className="mockup-sidebar-preview">
-              <div className="mockup-channel-item active">
-                <span className="channel-hash">#</span>
-                <div className="channel-meta">
-                  <div className="channel-name">engineering-hq</div>
-                  <div className="channel-sub">LiveKit SFU testing</div>
-                </div>
-                <span className="channel-badge">3</span>
-              </div>
-              <div className="mockup-channel-item">
-                <span className="channel-hash">#</span>
-                <div className="channel-meta">
-                  <div className="channel-name">product-launch</div>
-                  <div className="channel-sub">Design updates</div>
-                </div>
-              </div>
-              <div className="mockup-channel-item">
-                <span className="channel-hash">#</span>
-                <div className="channel-meta">
-                  <div className="channel-name">general-lounge</div>
-                  <div className="channel-sub">Social hangouts</div>
-                </div>
-              </div>
+              <div className="mockup-sidebar-label">Channels</div>
+              {['engineering-hq', 'product-launch', 'general-lounge'].map((ch) => (
+                <button
+                  key={ch}
+                  type="button"
+                  className={`mockup-channel-item ${activeChannel === ch ? 'active' : ''}`}
+                  onClick={() => setActiveChannel(ch)}
+                >
+                  <span className="channel-hash">#</span>
+                  <div className="channel-meta">
+                    <span className="channel-name">{ch}</span>
+                  </div>
+                  {ch === 'engineering-hq' && <span className="channel-badge">Live</span>}
+                </button>
+              ))}
 
               {/* Call in progress card */}
               <div className="mockup-active-call-pill">
@@ -210,61 +273,73 @@ export default function Home() {
                   <span className="call-avatar">🎙️</span>
                 </div>
                 <div className="call-info">
-                  <div className="call-title">Team Standup</div>
-                  <div className="call-time">Live · 04:12</div>
+                  <div className="call-title">SFU Voice Stream</div>
+                  <div className="call-time">Active · 04:12</div>
                 </div>
-                <button className="call-join-mini-btn" type="button">Join</button>
+                <Link to="/chat" className="call-join-mini-btn">Enter</Link>
               </div>
             </div>
 
             {/* Chat feed preview */}
             <div className="mockup-chat-feed">
-              {/* Message 1: Incoming */}
-              <div className="mockup-msg-row incoming">
-                <div className="mockup-avatar" style={{ background: '#3b82f6' }}>SK</div>
-                <div className="mockup-bubble-wrap">
-                  <div className="mockup-sender-label">Sarah Connor <span className="mockup-time">10:42 AM</span></div>
-                  <div className="mockup-bubble in">
-                    Welcome everyone! Let&apos;s review the new latency benchmarks on the WebSocket cluster.
-                  </div>
-                  <div className="mockup-reaction-pills">
-                    <span className="reaction-chip">🔥 4</span>
-                    <span className="reaction-chip">❤️ 6</span>
-                  </div>
-                </div>
+              <div className="mockup-feed-header">
+                <span className="feed-title">#{activeChannel}</span>
+                <span className="feed-security">TLS 1.3 Verified Session</span>
               </div>
 
-              {/* Message 2: Outgoing */}
-              <div className="mockup-msg-row outgoing">
-                <div className="mockup-bubble-wrap">
-                  <div className="mockup-sender-label right">You <span className="mockup-time">10:44 AM</span></div>
-                  <div className="mockup-bubble out">
-                    {typedMessage || '...'}
-                    <span className="mockup-cursor">|</span>
+              <div className="mockup-messages-list">
+                {channelConversations[activeChannel]?.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`mockup-msg-row ${msg.isMe ? 'outgoing' : 'incoming'}`}
+                  >
+                    {!msg.isMe && (
+                      <div className="mockup-avatar" style={{ background: msg.avatarBg }}>
+                        {msg.avatar}
+                      </div>
+                    )}
+                    <div className="mockup-bubble-wrap">
+                      <div className="mockup-sender-label">
+                        <span>{msg.sender}</span>
+                        <span className="mockup-time">{msg.time}</span>
+                      </div>
+                      <div className={`mockup-bubble ${msg.isMe ? 'out' : 'in'}`}>
+                        {msg.isDynamicTyping ? (
+                          <>
+                            {typedMessage || '...'}
+                            <span className="mockup-cursor" aria-hidden="true">|</span>
+                          </>
+                        ) : (
+                          msg.text
+                        )}
+                      </div>
+                      {msg.reactions && (
+                        <div className="mockup-reaction-pills">
+                          {msg.reactions.map((r, ri) => (
+                            <span key={ri} className="reaction-chip">{r}</span>
+                          ))}
+                        </div>
+                      )}
+                      {msg.delivered && (
+                        <div className="mockup-receipt">Delivered ✓✓</div>
+                      )}
+                    </div>
+                    {msg.isMe && (
+                      <div className="mockup-avatar" style={{ background: msg.avatarBg }}>
+                        {msg.avatar}
+                      </div>
+                    )}
                   </div>
-                  <div className="mockup-receipt">✓✓ Delivered</div>
-                </div>
-                <div className="mockup-avatar" style={{ background: '#6366f1' }}>ME</div>
-              </div>
-
-              {/* Call Banner */}
-              <div className="mockup-call-notification">
-                <div className="mockup-call-icon">📹</div>
-                <div className="mockup-call-text">
-                  <strong>Group Video Conference Started</strong>
-                  <span>High Definition 4K WebRTC SFU Room Active</span>
-                </div>
-                <Link to="/chat" className="mockup-call-btn">Enter Room</Link>
+                ))}
               </div>
 
               {/* Mockup Composer */}
               <div className="mockup-composer-bar">
                 <span className="composer-clip">📎</span>
-                <span className="composer-input-placeholder">Send a message to #engineering-hq...</span>
+                <span className="composer-input-placeholder">Send a message to #{activeChannel}...</span>
                 <div className="composer-actions">
-                  <span className="composer-action">😊</span>
-                  <span className="composer-action">🎤</span>
-                  <span className="composer-send-pill">➤</span>
+                  <span className="composer-action">🎙️</span>
+                  <span className="composer-send-pill">Send</span>
                 </div>
               </div>
             </div>
@@ -272,61 +347,45 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── STATS COUNTER BAR ────────────────────────────────────── */}
-      <section className="home-stats-strip">
-        <div className="home-stats-grid">
-          {stats.map((s, idx) => (
-            <div key={idx} className="stat-card">
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── FEATURES SHOWCASE ────────────────────────────────────── */}
-      <section className="home-features-section">
+      {/* ─── ARCHITECTURAL SPECIFICATIONS GRID ─────────────────────── */}
+      <section className="home-architecture-section" id="architecture-specs">
         <div className="section-head text-center">
-          <div className="section-eyebrow">Enterprise Core Engine</div>
-          <h2 className="section-title">Engineered for Seamless Communication</h2>
+          <h2 className="section-title">Engineered for speed, durability, and cryptographic privacy</h2>
           <p className="section-subtitle">
-            Every layer—from WebSocket duplex streaming to LiveKit SFU media orchestration—is built
-            to deliver lightning performance without compromise.
+            A multi-layered architecture combining persistent WebSocket duplex transport with selective forwarding WebRTC media relays.
           </p>
         </div>
 
-        <div className="features-grid">
-          {features.map((f, i) => (
-            <div key={i} className="feature-card">
-              <div className="feature-card-glow" />
-              <div className="feature-icon-wrapper">{f.icon}</div>
-              <div className="feature-tag">{f.tag}</div>
-              <h3 className="feature-title">{f.title}</h3>
-              <p className="feature-desc">{f.desc}</p>
+        <div className="architecture-grid">
+          {architecturalSpecs.map((spec, i) => (
+            <div key={i} className="spec-card">
+              <div className="spec-card-top">
+                <div className="spec-metric-wrap">
+                  <span className="spec-metric-value">{spec.metric}</span>
+                  <span className="spec-metric-label">{spec.metricLabel}</span>
+                </div>
+              </div>
+              <h3 className="spec-title">{spec.title}</h3>
+              <div className="spec-subtitle">{spec.subtitle}</div>
+              <p className="spec-desc">{spec.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── READY TO CONNECT CTA ─────────────────────────────────── */}
+      {/* ─── DIRECT ACCESS ACTION SECTION ──────────────────────────── */}
       <section className="home-cta-section">
         <div className="home-cta-card">
-          <div className="cta-glow-backdrop" />
-          <h2 className="cta-heading">Ready to Experience Modern Messaging?</h2>
+          <h2 className="cta-heading">Ready to communicate without latency?</h2>
           <p className="cta-subheading">
-            Join thousands of conversations with real-time room discovery, zero installation barriers,
-            and complete mobile, tablet, and desktop responsiveness.
+            Join verified public channels or launch an encrypted discussion space with zero installation friction.
           </p>
           <div className="cta-actions">
-            <Link to={isAuthenticated ? "/chat" : "/register"} className="btn-glow-primary btn-large">
-              <span>{isAuthenticated ? 'Open Chat Dashboard' : 'Create Free Account'}</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-arrow-icon">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+            <Link to={isAuthenticated ? "/chat" : "/register"} className="hero-action-btn primary large">
+              <span>{isAuthenticated ? 'Open chat dashboard' : 'Create free account'}</span>
             </Link>
-            <Link to="/chat" className="btn-glass-secondary btn-large">
-              <span>Explore Public Channels</span>
+            <Link to="/chat" className="hero-action-btn secondary large">
+              <span>Browse public channels</span>
             </Link>
           </div>
         </div>
@@ -339,18 +398,18 @@ export default function Home() {
             <div className="footer-logo">
               <span className="logo-spark">✦</span> ChatRoom
             </div>
-            <p className="footer-tagline">Real-Time Messaging &amp; Voice/Video Calling Platform.</p>
+            <p className="footer-tagline">Real-time messaging and voice/video calling platform.</p>
           </div>
 
           <div className="footer-status-pill">
             <span className="status-live-dot" />
-            <span>All Services Operational · WebSocket Connected</span>
+            <span>Duplex WebSocket &amp; LiveKit SFU active</span>
           </div>
 
           <div className="footer-links">
             <Link to="/">Home</Link>
             <Link to="/chat">Chat</Link>
-            <Link to="/login">Login</Link>
+            <Link to="/login">Sign in</Link>
             <Link to="/register">Register</Link>
           </div>
         </div>

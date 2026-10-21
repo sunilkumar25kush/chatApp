@@ -9,6 +9,7 @@ import api from '../services/api';
 import { socket } from '../services/socket';
 import { useAuth } from '../context/useAuth';
 import { requestNotificationPermission, showDesktopNotification } from '../utils/desktopNotifications';
+import { animateEmptyState } from '../utils/animations';
 
 export default function Chat() {
   const { user } = useAuth();
@@ -17,10 +18,17 @@ export default function Chat() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [joinedRooms, setJoinedRooms] = useState([]);
   const [recentRooms, setRecentRooms] = useState([]);
+  const emptyCardRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'joined' | 'calls'
+  useEffect(() => {
+    if (!activeRoom && emptyCardRef.current) {
+      animateEmptyState(emptyCardRef.current);
+    }
+  }, [activeRoom]);
+
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -298,13 +306,17 @@ export default function Chat() {
   };
 
   // Filtered Rooms List
-  const displayedRooms = (activeTab === 'joined' ? joinedRooms : rooms).filter((room) => {
+  const displayedRooms = (activeTab === 'joined' ? (joinedRooms.length > 0 ? joinedRooms : recentRooms) : rooms).filter((room) => {
     const matchesSearch =
       room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (room.description && room.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (room.code && room.code.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesTab =
+      activeTab === 'public' ? !room.isPrivate :
+      activeTab === 'private' ? Boolean(room.isPrivate) :
+      true;
+    return matchesSearch && matchesCategory && matchesTab;
   });
 
   return (
@@ -355,7 +367,7 @@ export default function Chat() {
               ) : (
                 /* Empty state */
                 <div className="empty-chat-state">
-                  <div className="empty-chat-card">
+                  <div className="empty-chat-card" ref={emptyCardRef}>
                     <div className="empty-chat-glow" aria-hidden="true" />
                     <div className="empty-chat-illustration">
                       <div className="empty-chat-icon-ring">

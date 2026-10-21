@@ -155,7 +155,7 @@ export default function StatusPickerModal({ onClose }) {
 }
 
 const overlayStyle = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 'clamp(8px, 3vw, 20px)'
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 'clamp(8px, 3vw, 20px)'
 };
 const modalStyle = {
   width: '100%', maxWidth: 450, background: '#1c1f28', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', position: 'relative', maxHeight: '90vh', overflowY: 'auto'

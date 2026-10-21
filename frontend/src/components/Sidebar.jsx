@@ -43,7 +43,13 @@ export default function Sidebar({
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, [showUserMenu]);
 
   // Body Scroll Lock & ESC Key Listener
@@ -94,7 +100,7 @@ export default function Sidebar({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const currentRoomsList = activeTab === 'joined' ? recentRooms : rooms;
+  const currentRoomsList = activeTab === 'joined' ? (rooms && rooms.length > 0 ? rooms : recentRooms) : rooms;
 
   return (
       <>
@@ -236,9 +242,25 @@ export default function Sidebar({
                         <span className="status-dot"></span> JoyBoy
                     </span>
                 </div>
-                <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Add Contact or Join Room" aria-label="Add Contact or Join Room">
-                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button 
+                    className="mobile-header-profile-btn" 
+                    onClick={() => setShowProfile(true)} 
+                    title="My Profile" 
+                    aria-label="Open My Profile"
+                  >
+                    <div className="avatar avatar-sm" style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--theme-primary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{getUserInitials(user?.username || 'User')}</span>
+                      )}
+                    </div>
+                  </button>
+                  <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Add Contact or Join Room" aria-label="Add Contact or Join Room">
+                      <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
             </div>
 
             {/* Search Bar */}
@@ -268,12 +290,42 @@ export default function Sidebar({
 
             {/* Filter Tabs */}
             <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter chats">
-                <button className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'explore') ? 'active' : ''}`} onClick={() => setActiveTab('chats')} role="tab" aria-selected={activeTab === 'chats' || activeTab === 'explore'}>All</button>
-                <button className={`tab-item ui-tab-chip ${activeTab === 'joined' ? 'active' : ''}`} onClick={() => setActiveTab('joined')} role="tab" aria-selected={activeTab === 'joined'}>Rooms</button>
+                <button 
+                  className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'explore') ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('chats')} 
+                  role="tab" 
+                  aria-selected={activeTab === 'chats' || activeTab === 'explore'}
+                >
+                  All
+                </button>
+                <button 
+                  className={`tab-item ui-tab-chip tab-chip-public ${activeTab === 'public' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('public')} 
+                  role="tab" 
+                  aria-selected={activeTab === 'public'}
+                >
+                  🌐 Public
+                </button>
+                <button 
+                  className={`tab-item ui-tab-chip tab-chip-private ${activeTab === 'private' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('private')} 
+                  role="tab" 
+                  aria-selected={activeTab === 'private'}
+                >
+                  🔒 Private
+                </button>
+                <button 
+                  className={`tab-item ui-tab-chip ${activeTab === 'joined' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('joined')} 
+                  role="tab" 
+                  aria-selected={activeTab === 'joined'}
+                >
+                  Joined
+                </button>
             </div>
 
             {/* Chat List Scrollable Roster */}
-            <div className="chat-list" role="listbox" aria-label="Conversations List">
+            <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
                 {roomsLoading ? (
                   /* Loading Roster State - Skeleton Loaders */
                   <div className="chat-list-skeleton" style={{ padding: 8 }}>
@@ -285,13 +337,16 @@ export default function Sidebar({
                   /* Empty Roster State */
                   <div className="empty-roster-state">
                       <svg className="icon icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      <p className="empty-title">No conversations yet</p>
-                      <p className="empty-subtitle">Click the + button to start a new chat or join a room.</p>
+                      <p className="empty-title">No conversations found</p>
+                      <p className="empty-subtitle">
+                        {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel.'}
+                      </p>
                   </div>
                 ) : (
                   currentRoomsList.map((room) => {
                     const isSelected = activeRoom && (activeRoom._id || activeRoom.id) === (room._id || room.id);
                     const avatarBg = getRoomColor(room.name);
+                    const memberCount = Array.isArray(room.members) ? room.members.length : (room.memberCount || 1);
                     return (
                       <div
                         key={room._id || room.id || room.name}
@@ -303,8 +358,8 @@ export default function Sidebar({
                           className="avatar-circle"
                           style={{
                             background: avatarBg,
-                            width: 36,
-                            height: 36,
+                            width: 38,
+                            height: 38,
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
@@ -322,19 +377,32 @@ export default function Sidebar({
                               position: 'absolute',
                               bottom: 0,
                               right: 0,
-                              width: 8,
-                              height: 8,
+                              width: 9,
+                              height: 9,
                               borderRadius: '50%',
-                              background: '#22c55e',
-                              border: '1.5px solid var(--bg-sidebar)'
+                              background: room.isPrivate ? '#f59e0b' : '#10b981',
+                              border: '1.5px solid var(--bg-sidebar, #0e1626)',
+                              boxShadow: room.isPrivate ? '0 0 6px rgba(245, 158, 11, 0.5)' : '0 0 6px rgba(16, 185, 129, 0.6)'
                             }}
                           />
                         </div>
 
                         <div className="chat-item-content">
                             <div className="chat-item-top">
-                                <span className="chat-name">{room.name}</span>
-                                {/* <span className="chat-timestamp">{room.code ? `#${room.code}` : 'Just now'}</span> */}
+                                <div className="chat-name-wrapper">
+                                    <span className="chat-name">{room.name}</span>
+                                    {room.isPrivate ? (
+                                      <span className="roster-badge roster-badge-private" title="Private Space (Code Required)">
+                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <span>Private</span>
+                                      </span>
+                                    ) : (
+                                      <span className="roster-badge roster-badge-public" title="Published Public Channel">
+                                        <span className="badge-pulse" aria-hidden="true" />
+                                        <span>🌐 Public</span>
+                                      </span>
+                                    )}
+                                </div>
                                 {unreadCounts[room._id || room.id] > 0 && (
                                   <span
                                     className="unread-badge"
@@ -346,8 +414,19 @@ export default function Sidebar({
                             </div>
                             <div className="chat-item-bottom">
                                 <div className="chat-preview">
-                                    <span>{room.description }</span>
+                                    {room.category && (
+                                      <span className={`roster-cat-pill cat-${room.category.toLowerCase()}`}>
+                                        {room.category}
+                                      </span>
+                                    )}
+                                    <span className="chat-desc-text">
+                                      {room.description || (room.isPrivate ? 'Private room • Code required' : 'Open community channel')}
+                                    </span>
                                 </div>
+                                <span className="roster-member-pill" title={`${memberCount} active members`}>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                  <span>{memberCount}</span>
+                                </span>
                             </div>
                         </div>
                       </div>

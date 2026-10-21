@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { animateModalEnter } from '../utils/animations';
 
 const CATEGORIES = [
   { value: 'General', label: '💬 General' },
@@ -14,6 +15,13 @@ export default function CreateRoomModal({ isOpen, onClose, onCreateRoom }) {
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [error, setError] = useState('');
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      animateModalEnter(cardRef.current);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -30,7 +38,7 @@ export default function CreateRoomModal({ isOpen, onClose, onCreateRoom }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+      <div className="modal-card" ref={cardRef} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
 
         {/* Header */}
         <div className="modal-header">

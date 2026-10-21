@@ -26,7 +26,7 @@ export default function ImageCropperModal({ imageSrc, onCropComplete, onCancel, 
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10100, background: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'relative', flex: 1, margin: 20 }}>
         <Cropper
           image={imageSrc}
