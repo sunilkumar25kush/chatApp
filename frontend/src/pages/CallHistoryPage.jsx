@@ -111,7 +111,9 @@ export default function CallHistoryPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {filteredCalls.map(call => {
-              const isOutgoing = call.caller?._id === user?._id || call.caller?.id === user?.id;
+              const myId = user?._id || user?.id;
+              const callerId = call.caller?._id || call.caller?.id;
+              const isOutgoing = Boolean(myId && callerId && String(myId) === String(callerId));
               const otherUser = isOutgoing ? call.receiver : call.caller;
               const otherName = otherUser ? otherUser.username : 'Unknown User';
               

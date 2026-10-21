@@ -83,6 +83,19 @@ vi.mock('../context/AppearanceContext', () => ({
   }),
 }));
 
+// Mock useCall
+vi.mock('../context/CallContext', () => ({
+  useCall: () => ({
+    startCall: vi.fn(),
+    activeCall: null,
+    callStatus: 'idle',
+    callNotifications: [],
+    addCallNotification: vi.fn(),
+    dismissCallNotification: vi.fn(),
+  }),
+  CallProvider: ({ children }) => children,
+}));
+
 // Import after ALL mocks
 import ChatWindow from '../components/ChatWindow';
 import { socket } from '../services/socket';

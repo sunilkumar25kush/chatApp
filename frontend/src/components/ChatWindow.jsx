@@ -59,6 +59,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
+  const lastSendTimeRef = useRef(0);
   // Message-feature refs: scroll container + per-message elements
   const chatFeedRef = useRef(null);
   const messageRefs = useRef({});
@@ -493,8 +495,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   // Submit text or file message
   const handleSubmitMessage = (e) => {
-    if (e) e.preventDefault();
-    if (!inputText.trim()) return;
+    if (e && e.preventDefault) e.preventDefault();
+    if (!inputText.trim()) {
+      textareaRef.current?.focus({ preventScroll: true });
+      return;
+    }
 
     if (appearanceState?.soundControls?.enableSounds && appearanceState?.soundControls?.enableSentSound) {
       themeSoundManager.playSentSound();
@@ -525,6 +530,25 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     setInputText('');
     setShowEmojiPicker(false);
     socket.emit('typing_stop', { roomId, username: user?.username });
+
+    // Retain focus so mobile virtual keyboard stays open
+    textareaRef.current?.focus({ preventScroll: true });
+    setTimeout(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    }, 10);
+  };
+
+  const sendAndKeepFocus = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const now = Date.now();
+    if (now - lastSendTimeRef.current < 250) return;
+    lastSendTimeRef.current = now;
+
+    handleSubmitMessage();
+    textareaRef.current?.focus({ preventScroll: true });
+    setTimeout(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    }, 10);
   };
 
   const handleToggleReaction = (messageId, emoji) => {
@@ -908,8 +932,13 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           </div>
         ) : (
           messages.map((msg) => {
-            const isMe = msg.sender?._id === user?._id || msg.sender?.id === user?.id || msg.sender?.username === user?.username;
-            const senderName = msg.sender?.username || 'Me';
+            const currentUserId = user?._id || user?.id;
+            const msgSenderId = msg.sender?._id || msg.sender?.id;
+            const isMe = Boolean(
+              (currentUserId && msgSenderId && String(currentUserId) === String(msgSenderId)) ||
+              (user?.username && msg.sender?.username && user.username === msg.sender.username)
+            );
+            const senderName = msg.sender?.username || (isMe ? 'Me' : 'Unknown');
             const initials = getUserInitials(senderName);
 
             return (
@@ -998,19 +1027,25 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                   {/* Call History Message */}
                   {msg.fileType === 'call' && (
                     <div
-                      className="system-message call-history-card"
+                      className={`call-history-card ${isMe ? 'call-history-card--me' : 'call-history-card--them'}`}
                       style={{
                         justifyContent: 'flex-start',
                         maxWidth: 'fit-content',
-                        marginLeft: 0,
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: 12,
+                        alignSelf: isMe ? 'flex-end' : 'flex-start',
+                        margin: isMe ? '4px 0 4px auto' : '4px auto 4px 0',
+                        background: isMe
+                          ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                        border: isMe
+                          ? '1px solid rgba(139, 92, 246, 0.35)'
+                          : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: 14,
                         padding: '10px 14px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 12,
                         marginTop: 4,
+                        boxShadow: isMe ? '0 4px 14px rgba(79, 70, 229, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
                       }}
                     >
                       {(() => {
@@ -1396,7 +1431,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         {isRecordingVoice ? (
           <VoiceRecorder onCancel={() => setIsRecordingVoice(false)} onSend={handleSendVoiceNote} />
         ) : (
-          <form className="composer-form" id="composer-form" onSubmit={handleSubmitMessage} autoComplete="off">
+          <form className="composer-form" id="composer-form" onSubmit={sendAndKeepFocus} autoComplete="off">
             <div className="composer-toolbar-left">
               <button type="button" className="btn-icon composer-action-attach" onClick={() => fileInputRef.current?.click()} title="Add Attachment" aria-label="Add Attachment">
                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -1425,11 +1460,17 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
             <div className="composer-input-wrapper">
               <textarea
+                ref={textareaRef}
                 id="composer-textarea"
                 className="composer-textarea"
                 value={inputText}
                 onChange={handleInputChange}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitMessage(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAndKeepFocus(e);
+                  }
+                }}
                 onFocus={() => {
                   setTimeout(() => {
                     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1453,7 +1494,21 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <button type="button" className="btn-icon composer-action-emoji" id="emoji-trigger-btn" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Insert Emoji" aria-label="Insert Emoji">
                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
               </button>
-              <button type="submit" className="btn-send" id="btn-send-message" title="Send Message (Enter)" aria-label="Send Message">
+              <button
+                type="submit"
+                className="btn-send"
+                id="btn-send-message"
+                title="Send Message (Enter)"
+                aria-label="Send Message"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  sendAndKeepFocus(e);
+                }}
+                onClick={sendAndKeepFocus}
+              >
                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
