@@ -346,7 +346,6 @@ export default function Sidebar({
                   currentRoomsList.map((room) => {
                     const isSelected = activeRoom && (activeRoom._id || activeRoom.id) === (room._id || room.id);
                     const avatarBg = getRoomColor(room.name);
-                    const memberCount = Array.isArray(room.members) ? room.members.length : (room.memberCount || 1);
                     return (
                       <div
                         key={room._id || room.id || room.name}
@@ -411,22 +410,6 @@ export default function Sidebar({
                                     {unreadCounts[room._id || room.id] > 99 ? '99+' : unreadCounts[room._id || room.id]}
                                   </span>
                                 )}
-                            </div>
-                            <div className="chat-item-bottom">
-                                <div className="chat-preview">
-                                    {room.category && (
-                                      <span className={`roster-cat-pill cat-${room.category.toLowerCase()}`}>
-                                        {room.category}
-                                      </span>
-                                    )}
-                                    <span className="chat-desc-text">
-                                      {room.description || (room.isPrivate ? 'Private room • Code required' : 'Open community channel')}
-                                    </span>
-                                </div>
-                                <span className="roster-member-pill" title={`${memberCount} active members`}>
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                  <span>{memberCount}</span>
-                                </span>
                             </div>
                         </div>
                       </div>

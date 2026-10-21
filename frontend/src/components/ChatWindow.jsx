@@ -780,15 +780,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           <span>🌐 Public</span>
                         </span>
                       )}
-                      {room.category && (
-                        <span className={`roster-cat-pill cat-${room.category.toLowerCase()}`}>
-                          {room.category}
-                        </span>
-                      )}
-                      <span className="encryption-badge verified" id="header-encryption-badge" title="Transport Layer Security (TLS)">
-                          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                          <span>TLS</span>
-                      </span>
                   </div>
                   <p className="contact-status-text" id="header-status-text">
                     {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) 
