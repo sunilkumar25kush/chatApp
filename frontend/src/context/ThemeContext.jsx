@@ -61,6 +61,17 @@ export const ThemeProvider = ({ children }) => {
     return () => mql.removeEventListener('change', onChange);
   }, [mode]);
 
+  // Sync when appearance theme changes in AppearanceContext
+  useEffect(() => {
+    const handleAppearanceMode = (e) => {
+      if (e.detail?.mode && (e.detail.mode === 'light' || e.detail.mode === 'dark') && e.detail.mode !== mode) {
+        setModeState(e.detail.mode);
+      }
+    };
+    window.addEventListener('appearance-mode-changed', handleAppearanceMode);
+    return () => window.removeEventListener('appearance-mode-changed', handleAppearanceMode);
+  }, [mode]);
+
   const resolvedMode = mode === 'system' ? systemMode : mode;
 
   // 2. Sync with User data from MongoDB on login
@@ -110,16 +121,18 @@ export const ThemeProvider = ({ children }) => {
 
     if (resolvedMode === 'light') {
       root.classList.add('theme-light');
-      document.body.classList.add('theme-light');
+      root.classList.remove('theme-dark', 'theme-galaxy');
+      document.body.classList.add('theme-light', 'theme-cream-citrus');
+      document.body.classList.remove('theme-dark', 'theme-galaxy');
     } else {
-      if (!isAppearanceLight) {
-        root.classList.remove('theme-light');
-        document.body.classList.remove('theme-light');
-      }
+      root.classList.remove('theme-light', 'theme-cream-citrus');
+      root.classList.add('theme-dark', 'theme-galaxy');
+      document.body.classList.remove('theme-light', 'theme-cream-citrus');
+      document.body.classList.add('theme-dark', 'theme-galaxy');
     }
 
     // Native form controls + scrollbars follow the mode
-    root.style.colorScheme = (resolvedMode === 'light' || isAppearanceLight) ? 'light' : 'dark';
+    root.style.colorScheme = resolvedMode === 'light' ? 'light' : 'dark';
   }, [theme, resolvedMode]);
 
   // Update theme locally and persist to MongoDB
@@ -156,9 +169,26 @@ export const ThemeProvider = ({ children }) => {
     localStorage.setItem('gajim_theme_mode', nextMode);
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    const nextMode = resolvedMode === 'dark' ? 'light' : 'dark';
+    setModeState(nextMode);
+    localStorage.setItem('gajim_theme_mode', nextMode);
+    const nextThemeId = nextMode === 'light' ? 'cream-citrus' : 'galaxy';
+    try {
+      const savedAppearance = localStorage.getItem('appearance_studio_v2');
+      const parsed = savedAppearance ? JSON.parse(savedAppearance) : {};
+      localStorage.setItem('appearance_studio_v2', JSON.stringify({
+        ...parsed,
+        activeThemeId: nextThemeId,
+        activeEffectId: nextMode === 'light' ? 'none' : 'stars',
+      }));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { themeId: nextThemeId, mode: nextMode } }));
+  }, [resolvedMode]);
+
   return (
     <ThemeContext.Provider
-      value={{ theme, updateTheme, resetTheme, defaultTheme, mode, setMode, resolvedMode }}
+      value={{ theme, updateTheme, resetTheme, defaultTheme, mode, setMode, resolvedMode, toggleTheme }}
     >
       {children}
     </ThemeContext.Provider>

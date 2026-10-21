@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { resolvedMode, toggleTheme } = useTheme();
+  const isDark = resolvedMode === 'dark';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,6 +83,18 @@ export default function Navbar() {
               </Link>
             </div>
           )}
+
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="navbar-theme-toggle-btn"
+            title={isDark ? "Switch to Cream & Citrus (Light)" : "Switch to Galaxy (Dark)"}
+            aria-label={isDark ? "Switch to Cream & Citrus (Light)" : "Switch to Galaxy (Dark)"}
+          >
+            <span className="theme-toggle-icon-wrap">{isDark ? '☀️' : '🌙'}</span>
+            <span className="theme-toggle-label">{isDark ? 'Light' : 'Dark'}</span>
+          </button>
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -123,6 +138,19 @@ export default function Navbar() {
             >
               <span className="mobile-nav-icon">💬</span> Chat Dashboard
             </Link>
+
+            {/* Mobile Theme Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                toggleTheme();
+                setMobileMenuOpen(false);
+              }}
+              className="mobile-nav-theme-toggle"
+            >
+              <span className="mobile-nav-icon">{isDark ? '☀️' : '🌙'}</span>
+              <span>{isDark ? 'Switch to Light (Cream & Citrus)' : 'Switch to Dark (Galaxy)'}</span>
+            </button>
 
             {isAuthenticated ? (
               <div className="mobile-user-section">

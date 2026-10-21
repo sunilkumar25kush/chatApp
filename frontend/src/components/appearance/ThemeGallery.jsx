@@ -7,7 +7,7 @@ export default function ThemeGallery() {
   const { appearanceState, setActiveTheme } = useAppearance();
   const [filterCategory, setFilterCategory] = useState('All');
 
-  const categories = ['All', 'Sci-Fi', 'Nature', 'Minimal', 'Tech', 'Cozy', 'Vibrant', 'Seasonal', 'Standard'];
+  const categories = ['All', 'Dark', 'Light'];
 
   const filteredThemes = filterCategory === 'All'
     ? BUILTIN_THEMES

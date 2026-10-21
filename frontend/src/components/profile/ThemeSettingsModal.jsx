@@ -3,11 +3,26 @@ import { useTheme } from '../../context/ThemeContext';
 import '../../styles/gajim/gajim-provided.css';
 
 const THEME_PRESETS = [
-  { id: 'default',        name: 'Gajim Default', primary: '#7c3aed', chatBg: '#181a20', sidebarBg: '#1a1c23', inBg: '#222530', outBg: '#7c3aed' },
-  { id: 'ocean',          name: 'Ocean Depth',   primary: '#0ea5e9', chatBg: '#0f172a', sidebarBg: '#020617', inBg: '#1e293b', outBg: '#0ea5e9' },
-  { id: 'sunset',         name: 'Sunset',        primary: '#f97316', chatBg: '#2a1a1f', sidebarBg: '#1a0b12', inBg: '#3f2129', outBg: '#f97316' },
-  { id: 'amoled',         name: 'AMOLED Black',  primary: '#10b981', chatBg: '#000000', sidebarBg: '#000000', inBg: '#111111', outBg: '#10b981' },
-  { id: 'glassmorphism',  name: 'Glass',         primary: '#ec4899', chatBg: 'transparent', sidebarBg: 'transparent', inBg: 'rgba(255,255,255,0.1)', outBg: 'rgba(236,72,153,0.8)' },
+  {
+    id: 'galaxy',
+    name: 'Galaxy Dark',
+    primary: '#8b5cf6',
+    chatBg: '#090a16',
+    sidebarBg: '#0f1026',
+    inBg: 'rgba(30, 27, 75, 0.85)',
+    outBg: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+    isLight: false,
+  },
+  {
+    id: 'cream-citrus',
+    name: 'Cream & Citrus',
+    primary: '#F0882C',
+    chatBg: '#F7F1E3',
+    sidebarBg: '#ECEAC9',
+    inBg: '#ECEAC9',
+    outBg: 'linear-gradient(135deg, #F0882C 0%, #D9721A 100%)',
+    isLight: true,
+  },
 ];
 
 export default function ThemeSettingsModal({ onClose }) {
@@ -15,9 +30,8 @@ export default function ThemeSettingsModal({ onClose }) {
   const [localTheme, setLocalTheme] = useState(theme);
 
   const MODES = [
-    { id: 'dark', label: '🌙', name: 'Dark' },
-    { id: 'light', label: '☀️', name: 'Light' },
-    { id: 'system', label: '🖥️', name: 'System' },
+    { id: 'dark', label: '🌙', name: 'Galaxy (Dark)' },
+    { id: 'light', label: '🍊', name: 'Cream & Citrus (Light)' },
   ];
 
   const handleApplyPreset = (preset) => {
@@ -31,6 +45,19 @@ export default function ThemeSettingsModal({ onClose }) {
     };
     setLocalTheme({ ...localTheme, ...newTheme });
     updateTheme(newTheme);
+    const nextMode = preset.isLight ? 'light' : 'dark';
+    setMode(nextMode);
+    const nextThemeId = preset.isLight ? 'cream-citrus' : 'galaxy';
+    try {
+      const savedAppearance = localStorage.getItem('appearance_studio_v2');
+      const parsed = savedAppearance ? JSON.parse(savedAppearance) : {};
+      localStorage.setItem('appearance_studio_v2', JSON.stringify({
+        ...parsed,
+        activeThemeId: nextThemeId,
+        activeEffectId: preset.isLight ? 'none' : 'stars',
+      }));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { themeId: nextThemeId, mode: nextMode } }));
   };
 
   const handleColorChange = (key, val) => {
@@ -67,17 +94,21 @@ export default function ThemeSettingsModal({ onClose }) {
             <h4 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
               Mode
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
               {MODES.map((m) => (
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setMode(m.id)}
+                  onClick={() => {
+                    setMode(m.id);
+                    const matchingPreset = THEME_PRESETS.find(p => m.id === 'light' ? p.isLight : !p.isLight);
+                    if (matchingPreset) handleApplyPreset(matchingPreset);
+                  }}
                   aria-pressed={mode === m.id}
                   style={{
-                    padding: '10px 8px',
-                    minHeight: 52,
-                    borderRadius: 10,
+                    padding: '12px 10px',
+                    minHeight: 56,
+                    borderRadius: 12,
                     border: `2px solid ${mode === m.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     background: mode === m.id ? 'var(--primary-light)' : 'var(--bg-input)',
                     cursor: 'pointer',
@@ -87,20 +118,18 @@ export default function ThemeSettingsModal({ onClose }) {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: 6,
                   }}
                 >
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>{m.label}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-main)' }}>{m.name}</span>
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>{m.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>{m.name}</span>
                 </button>
               ))}
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-              {mode === 'system'
-                ? 'Following your device setting automatically.'
-                : mode === 'light'
-                  ? 'Light surfaces with dark text (WCAG AA contrast).'
-                  : 'Dark surfaces with light text (default).'}
+              {mode === 'light'
+                ? 'Cream & Citrus light theme (WCAG AAA contrast).'
+                : 'Galaxy Dark cosmic theme.'}
             </p>
           </section>
 

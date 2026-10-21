@@ -69,7 +69,9 @@ export const AppearanceProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const activeThemeId = parsed.activeThemeId === 'galaxy' ? 'cream-citrus' : (parsed.activeThemeId || 'cream-citrus');
+        const activeThemeId = (parsed.activeThemeId === 'galaxy' || parsed.activeThemeId === 'cream-citrus')
+          ? parsed.activeThemeId
+          : 'cream-citrus';
         return {
           ...defaultAppearanceState,
           ...parsed,
@@ -278,6 +280,10 @@ export const AppearanceProvider = ({ children }) => {
   const setActiveTheme = useCallback(
     (themeId) => {
       const themeConfig = getThemeById(themeId);
+      const isLight = Boolean(themeConfig.theme.isLight);
+      const nextMode = isLight ? 'light' : 'dark';
+      localStorage.setItem('gajim_theme_mode', nextMode);
+      window.dispatchEvent(new CustomEvent('appearance-mode-changed', { detail: { mode: nextMode, themeId } }));
       updateAppearanceSettings({
         activeThemeId: themeId,
         activeEffectId: themeConfig.defaultEffect || 'none',
@@ -290,6 +296,16 @@ export const AppearanceProvider = ({ children }) => {
     },
     [appearanceState.controls, updateAppearanceSettings]
   );
+
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      if (e.detail?.themeId && e.detail.themeId !== appearanceState.activeThemeId) {
+        setActiveTheme(e.detail.themeId);
+      }
+    };
+    window.addEventListener('app-theme-changed', handleThemeChange);
+    return () => window.removeEventListener('app-theme-changed', handleThemeChange);
+  }, [appearanceState.activeThemeId, setActiveTheme]);
 
   // Set Visual Effect
   const setActiveEffect = useCallback(

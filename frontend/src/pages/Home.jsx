@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/ThemeContext';
 import { useSmoothScroll } from '../context/SmoothScroll';
 import { animateHeroReveal } from '../utils/animations';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const { resolvedMode, toggleTheme } = useTheme();
+  const isDark = resolvedMode === 'dark';
   const { lenis } = useSmoothScroll() || {};
   const containerRef = useRef(null);
 
@@ -64,9 +67,22 @@ export default function Home() {
 
       {/* ─── HERO SECTION ────────────────────────────────────────── */}
       <section className="home-hero-section">
-        <div className="hero-telemetry-strip">
-          <span className="telemetry-beacon" aria-hidden="true" />
-          <span className="telemetry-text">Next-Gen Realtime Communication</span>
+        <div className="hero-telemetry-container">
+          <div className="hero-telemetry-strip">
+            <span className="telemetry-beacon" aria-hidden="true" />
+            <span className="telemetry-text">Next-Gen Realtime Communication</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="hero-theme-pill-btn"
+            title={isDark ? "Switch to Cream & Citrus (Light)" : "Switch to Galaxy (Dark)"}
+            aria-label={isDark ? "Switch to Cream & Citrus (Light)" : "Switch to Galaxy (Dark)"}
+          >
+            <span>{isDark ? '🌙 Galaxy Dark' : '🍊 Cream & Citrus'}</span>
+            <span className="hero-theme-switch-hint">Switch Theme ⇄</span>
+          </button>
         </div>
 
         <h1 className="home-hero-headline">
