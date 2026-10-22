@@ -49,8 +49,14 @@ const initSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || (typeof origin === 'string' && origin.endsWith('.vercel.app')) ||
-            (typeof origin === 'string' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')))) {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          (typeof origin === 'string' && origin.endsWith('.vercel.app')) ||
+          (typeof origin === 'string' && origin.endsWith('.onrender.com')) ||
+          (typeof origin === 'string' && origin.endsWith('.netlify.app')) ||
+          (typeof origin === 'string' && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')))
+        ) {
           callback(null, true);
         } else {
           callback(new Error(`[Socket CORS Error] Blocked origin ${origin}`));
@@ -138,7 +144,7 @@ const initSocket = (server) => {
       const userId = getUserId(user);
       
       // Validate room access for private rooms
-      if (isDBConnected()) {
+      if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_')) {
         const room = await Room.findById(roomId).select('isPrivate members').lean();
         if (room && room.isPrivate) {
           const memberIds = (room.members || []).map(m => m.toString());
@@ -208,7 +214,7 @@ const initSocket = (server) => {
         const senderId = getUserId(sender);
         let msgObj;
 
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_') && mongoose.Types.ObjectId.isValid(senderId)) {
           const created = await Message.create({
             room: roomId,
             sender: senderId,
@@ -371,37 +377,111 @@ const initSocket = (server) => {
     });
 
     // ── Toggle Message Reaction ──────────────────────────────────────
-    socket.on('toggle_reaction', async ({ messageId, roomId, emoji }) => {
+    socket.on('toggle_reaction', async ({ messageId, roomId, emoji }, ack) => {
       try {
         const userId = getUserId(socket.user);
-        if (!isDBConnected() || !userId) return;
-        if (!emoji || typeof emoji !== 'string' || emoji.length > 8) return; // validate emoji
-
-        const message = await Message.findById(messageId);
-        if (!message) return;
-
-        const reactionIndex = message.reactions.findIndex((r) => r.emoji === emoji);
-
-        if (reactionIndex > -1) {
-          const userIndex = message.reactions[reactionIndex].users.indexOf(userId);
-          if (userIndex > -1) {
-            message.reactions[reactionIndex].users.splice(userIndex, 1);
-            if (message.reactions[reactionIndex].users.length === 0) {
-              message.reactions.splice(reactionIndex, 1);
-            }
-          } else {
-            message.reactions[reactionIndex].users.push(userId);
-          }
-        } else {
-          message.reactions.push({ emoji, users: [userId] });
+        if (!userId) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'Not authenticated' });
+          return;
+        }
+        if (!emoji || typeof emoji !== 'string' || emoji.trim().length === 0 || emoji.length > 32) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'Invalid emoji' });
+          return;
         }
 
-        const updatedMessage = await message.save();
-        const populatedMessage = await Message.findById(updatedMessage._id).populate('sender', 'username email avatar');
+        const cleanEmoji = emoji.trim();
+        const userIdStr = userId.toString();
 
-        io.to(roomId).emit('message_reaction_updated', populatedMessage);
+        if (!isDBConnected() || !mongoose.Types.ObjectId.isValid(messageId) || String(messageId).startsWith('mem_msg_')) {
+          const msg = memoryMessages.get(messageId);
+          if (!msg) {
+            if (typeof ack === 'function') ack({ ok: false, error: 'Message not found' });
+            return;
+          }
+          msg.reactions = msg.reactions || [];
+
+          const existingEmojiReaction = msg.reactions.find((r) => r.emoji === cleanEmoji);
+          const userAlreadyHasThisEmoji = existingEmojiReaction && (existingEmojiReaction.users || []).some(
+            (u) => (u?._id || u?.id || u).toString() === userIdStr
+          );
+
+          // Enforce one reaction per user on a message
+          msg.reactions.forEach((r) => {
+            r.users = (r.users || []).filter((u) => (u?._id || u?.id || u).toString() !== userIdStr);
+          });
+
+          if (!userAlreadyHasThisEmoji) {
+            const targetReaction = msg.reactions.find((r) => r.emoji === cleanEmoji);
+            const userObj = { _id: userIdStr, username: socket.user?.username || 'User', avatar: socket.user?.avatar };
+            if (targetReaction) {
+              targetReaction.users.push(userObj);
+            } else {
+              msg.reactions.push({ emoji: cleanEmoji, users: [userObj] });
+            }
+          }
+
+          msg.reactions = msg.reactions.filter((r) => r.users && r.users.length > 0);
+
+          const targetRoomId = (roomId || msg.room || socket.roomId)?.toString();
+          if (targetRoomId) {
+            io.to(targetRoomId).emit('message_reaction_updated', msg);
+          }
+          if (typeof ack === 'function') ack({ ok: true, message: msg });
+          return;
+        }
+
+        const message = await Message.findById(messageId);
+        if (!message) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'Message not found' });
+          return;
+        }
+
+        message.reactions = message.reactions || [];
+
+        const existingEmojiReaction = message.reactions.find((r) => r.emoji === cleanEmoji);
+        const userAlreadyHasThisEmoji = existingEmojiReaction && (existingEmojiReaction.users || []).some(
+          (u) => (u?._id || u?.id || u).toString() === userIdStr
+        );
+
+        // Remove user from all reactions on this message (one reaction per user)
+        message.reactions.forEach((r) => {
+          r.users = (r.users || []).filter((u) => (u?._id || u?.id || u).toString() !== userIdStr);
+        });
+
+        // Toggle: add only if user didn't have this emoji previously
+        if (!userAlreadyHasThisEmoji) {
+          const userObjectId = mongoose.Types.ObjectId.isValid(userId)
+            ? new mongoose.Types.ObjectId(userId)
+            : userId;
+          const targetReaction = message.reactions.find((r) => r.emoji === cleanEmoji);
+          if (targetReaction) {
+            targetReaction.users.push(userObjectId);
+          } else {
+            message.reactions.push({ emoji: cleanEmoji, users: [userObjectId] });
+          }
+        }
+
+        // Clean up empty reaction buckets
+        message.reactions = message.reactions.filter((r) => r.users && r.users.length > 0);
+
+        await message.save();
+
+        const populatedMessage = await Message.findById(messageId)
+          .populate('sender', 'username email avatar customStatus')
+          .populate({
+            path: 'replyTo',
+            populate: { path: 'sender', select: 'username' }
+          })
+          .populate('reactions.users', 'username avatar');
+
+        const targetRoomId = (roomId || populatedMessage.room?._id || populatedMessage.room || message.room || socket.roomId)?.toString();
+        if (targetRoomId) {
+          io.to(targetRoomId).emit('message_reaction_updated', populatedMessage);
+        }
+        if (typeof ack === 'function') ack({ ok: true, message: populatedMessage });
       } catch (err) {
         logger.error(`[Socket] Failed to toggle reaction: ${err.message}`);
+        if (typeof ack === 'function') ack({ ok: false, error: 'Failed to toggle reaction' });
       }
     });
 
@@ -666,4 +746,6 @@ const initSocket = (server) => {
   return io;
 };
 
-module.exports = { initSocket };
+const getIO = () => io;
+
+module.exports = { initSocket, getIO };
