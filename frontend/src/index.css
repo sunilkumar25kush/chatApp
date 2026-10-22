@@ -206,6 +206,12 @@
 
   /* ─── 7. MOTION SYSTEM ───────────────────────────────────── */
   --duration-fast: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  --duration-fast-all: all;
+  --duration-fast-none: none;
+  --duration-fast-transform: transform 0.15s;
+  --duration-fast-color: color 0.15s;
+  --duration-fast-transform-bg: transform 0.15s, background 0.15s;
+  --duration-fast-transform-shadow: transform 0.15s, box-shadow 0.15s;
   --duration-slow: 5s ease-in-out infinite hoppy-bob;
   --transition-instant: 0.1s ease;
   --transition-fast: all 0.15s ease;
