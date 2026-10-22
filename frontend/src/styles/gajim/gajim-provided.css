@@ -852,31 +852,33 @@ body.theme-galaxy {
   border: 1px solid var(--border-color);
 }
 
-/* ── App-level toast (Chat.jsx simple banner) ───────────────────────────── */
+/* ── App-level toast (Chat.jsx simple banner — Compact Pill) ─────────────── */
 .app-toast {
   position: fixed;
-  top: 18px;
+  top: 14px;
   left: 50%;
   transform: translate(-50%, 0);
   bottom: auto;
   right: auto;
   z-index: 9999;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 14px;
-  background: var(--bg-popover);
-  border: 1px solid var(--border-color);
-  border-left: 3px solid var(--color-primary);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  color: var(--text-main);
-  font-size: 13px;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: var(--bg-popover, #0f1026);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color, rgba(139, 92, 246, 0.3));
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 12px rgba(139, 92, 246, 0.15);
+  color: var(--text-main, #f1f5f9);
+  font-size: 12.5px;
   font-weight: 500;
   animation: toast-in-top-center 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  min-width: 200px;
-  max-width: min(90vw, 360px);
+  min-width: 0;
+  width: max-content;
+  max-width: min(90vw, 320px);
 }
 
 @keyframes toast-in-top-center {
@@ -928,13 +930,14 @@ body.theme-galaxy {
 /* Compact phone notifications */
 @media (max-width: 640px) {
   .app-toast {
-    top: 12px;
-    padding: 6px 10px;
-    min-width: 160px;
-    max-width: calc(100vw - 28px);
+    top: 10px;
+    padding: 5px 12px;
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 32px);
     font-size: 11.5px;
     gap: 8px;
-    border-radius: 10px;
+    border-radius: 999px;
   }
 
   .toast-stack {

@@ -3676,39 +3676,89 @@ body.theme-galaxy .btn-send-message {
   position: relative;
 }
 
-/* Floating message action toolbar */
-.msg-floating-actions {
+/* ── Unified Message Popover Menu (Reactions + Actions — Zero Overlap) ── */
+.msg-unified-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+  background: var(--bg-popover, rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.5), 0 0 14px rgba(139, 92, 246, 0.15);
+  animation: popover-appear 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  user-select: none;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+.msg-unified-menu--incoming {
+  left: 0;
+  right: auto;
+}
+
+.msg-unified-menu--me {
+  right: 0;
+  left: auto;
+}
+
+@keyframes popover-appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.msg-reactions-toolbar {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 3px 6px;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  position: absolute;
-  top: -14px;
-  right: 0;
-  z-index: 10;
+  justify-content: space-between;
 }
 
-.message-row:hover .msg-floating-actions,
-.message-row:focus-within .msg-floating-actions,
-.message-row.is-hovered .msg-floating-actions {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
+.msg-emoji-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+  line-height: 1;
+  padding: 0;
 }
 
-.message-row--me .msg-floating-actions {
-  right: 0;
-  left: auto;
+.msg-emoji-btn:hover,
+.msg-emoji-btn:active {
+  transform: scale(1.25);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.msg-toolbar-divider {
+  height: 1px;
+  background: var(--border-color, rgba(255, 255, 255, 0.08));
+  margin: 1px 0;
+}
+
+.msg-actions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: space-between;
 }
 
 .msg-action-btn {
@@ -3720,19 +3770,46 @@ body.theme-galaxy .btn-send-message {
   border-radius: 6px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-muted, #94a3b8);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
-.msg-action-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+.msg-action-btn:hover,
+.msg-action-btn:active {
+  background: rgba(139, 92, 246, 0.18);
   color: #ffffff;
+  transform: scale(1.08);
 }
 
-.msg-action-btn.danger:hover {
-  background: rgba(244, 63, 94, 0.15);
-  color: #f43f5e;
+.msg-action-btn.danger:hover,
+.msg-action-btn.danger:active {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
+.msg-action-btn.starred {
+  color: #f59e0b;
+}
+
+/* Light mode adjustments */
+body.theme-light .msg-unified-menu {
+  background: var(--color-bg-elevated, #ffffff);
+  border-color: var(--color-border, #e5e7eb);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .msg-action-btn {
+  color: var(--color-neutral-500, #6b7280);
+}
+
+body.theme-light .msg-action-btn:hover {
+  background: var(--color-green-100, #f3f4f6);
+  color: var(--color-neutral-900, #111827);
+}
+
+body.theme-light .msg-emoji-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .msg-action-btn.starred {

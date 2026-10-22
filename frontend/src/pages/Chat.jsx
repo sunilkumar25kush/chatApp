@@ -99,7 +99,7 @@ export default function Chat() {
 
   const showToast = useCallback((msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 4000);
+    setTimeout(() => setToastMessage(''), 2400);
   }, []);
 
   // Fetch all rooms from backend API
@@ -262,7 +262,7 @@ export default function Chat() {
       const createdRoom = response.data;
       setRooms((prev) => [createdRoom, ...prev]);
       handleSelectRoom(createdRoom);
-      showToast(`Room "${createdRoom.name}" created! Code: ${createdRoom.code}`);
+      showToast(`Room created · Code: ${createdRoom.code}`);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to create room';
       showToast(`Error: ${msg}`);
