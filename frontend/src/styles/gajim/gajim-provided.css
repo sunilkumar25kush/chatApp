@@ -100,6 +100,41 @@ body.theme-light {
   --border-subtle: var(--color-border-subtle, #e4e8f0);
 }
 
+/* ── Gajim Dark Theme Token Bridge (Galaxy Dark) ──────────────── */
+:root.theme-dark,
+:root.theme-galaxy,
+body.theme-dark,
+body.theme-galaxy {
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-alpha: rgba(139, 92, 246, 0.18);
+  --color-success: #10b981;
+  --color-success-alpha: rgba(16, 185, 129, 0.18);
+  --color-error: #ef4444;
+
+  --bg-window: #090a16;
+  --bg-panel: #0f1026;
+  --bg-panel-hover: rgba(139, 92, 246, 0.12);
+  --bg-panel-active: rgba(139, 92, 246, 0.22);
+  --bg-sidebar: #090a16;
+  --bg-input: rgba(30, 27, 75, 0.85);
+  --bg-badge: #060710;
+  --bg-popover: #13142e;
+  --bg-elevated: #13142e;
+
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-focus: #8b5cf6;
+
+  --shadow-sm: rgba(0, 0, 0, 0.4) 0px 2px 12px 0px;
+  --shadow-md: rgba(139, 92, 246, 0.35) 0px 4px 16px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.6) 0px 20px 40px -10px, rgba(139, 92, 246, 0.15) 0px 0px 30px 0px;
+}
+
 /* ==========================================================================
    VISUAL CONSISTENCY SYSTEM — Typography, Spacing, Buttons, Cards,
    Borders, Icons, Dark Mode, Hover States, Loading States

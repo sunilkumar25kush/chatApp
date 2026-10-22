@@ -2147,19 +2147,97 @@ button {
 }
 
 /* ============================================================
-   GALAXY DARK THEME — OVERRIDES FOR HOME, NAVBAR & AUTH
+   GALAXY DARK THEME — GLOBAL TOKEN REGISTRY & OVERRIDES
    ============================================================ */
+:root.theme-dark,
+:root.theme-galaxy,
 body.theme-dark,
 body.theme-galaxy,
-html.theme-dark {
+html.theme-dark,
+html.theme-galaxy {
   color-scheme: dark;
+
+  /* ── 1. Remap Citrus & Cream Tokens to Galaxy Dark in Dark Mode ── */
+  --color-orange-500: #8b5cf6;
+  --color-orange-600: #7c3aed;
+  --color-orange-700: #6d28d9;
+  --color-orange-400: #a78bfa;
+  --color-green-100: #13142e;
+  --color-green-200: #1e1b4b;
+  --color-green-400: #818cf8;
+  --color-green-500: #6366f1;
+  --color-green-600: #4f46e5;
+  --color-green-700: #3730a3;
+  --color-green-500-alt: #10b981;
+  --color-green-600-alt: #8b5cf6;
+  --color-green-700-alt: #a855f7;
+  --color-bg-cream: #090a16;
+  --color-neutral-900: #f1f5f9;
+  --color-neutral-500: #94a3b8;
+  --color-neutral-400: #64748b;
+  --color-neutral-300: rgba(255, 255, 255, 0.12);
+
+  /* ── 2. Primary & Brand Colors ── */
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-light: rgba(139, 92, 246, 0.18);
+  --color-primary-glow: rgba(168, 85, 247, 0.45);
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --color-accent: #a855f7;
+  --accent: #a855f7;
+
+  /* ── 3. Surfaces & Backgrounds ── */
+  --color-bg-window: #090a16;
+  --color-bg-card: #0f1026;
+  --color-bg-hover: rgba(139, 92, 246, 0.12);
+  --color-bg-input: rgba(30, 27, 75, 0.85);
+  --color-bg-deep: #060710;
+  --color-bg-surface: #0f1026;
+  --color-bg-elevated: #13142e;
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-dark: rgba(255, 255, 255, 0.15);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+
+  --bg-window: #090a16;
+  --bg-card: #0f1026;
+  --bg-panel: #0f1026;
+  --bg-panel-hover: rgba(139, 92, 246, 0.12);
+  --bg-panel-active: rgba(139, 92, 246, 0.22);
+  --bg-hover: rgba(139, 92, 246, 0.12);
+  --bg-input: rgba(30, 27, 75, 0.85);
+  --bg-deep: #060710;
+  --bg-surface: #0f1026;
+  --bg-elevated: #13142e;
+  --bg-modal: #0f1026;
+  --bg-popover: #13142e;
+  --bg-sidebar: #090a16;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: #8b5cf6;
+
+  /* ── 4. Text Tokens ── */
+  --text: #f1f5f9;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-text-soft: #cbd5e1;
+  --text-dim: #64748b;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-dim: #64748b;
+  --color-text-bright: #ffffff;
+  --color-text-soft: #cbd5e1;
+
+  /* ── 5. Theme Bridges ── */
+  --theme-primary: #8b5cf6;
+  --theme-chat-bg: #090a16;
+  --theme-sidebar-bg: #0f1026;
+  --theme-msg-in-bg: rgba(30, 27, 75, 0.85);
+  --theme-msg-out-bg: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
 }
 
 body.theme-dark .navbar,
@@ -2171,6 +2249,20 @@ body.theme-galaxy .navbar {
 body.theme-dark .navbar-brand .brand-text,
 body.theme-galaxy .navbar-brand .brand-text {
   color: #ffffff;
+}
+
+body.theme-dark .brand-icon-bubble,
+body.theme-galaxy .brand-icon-bubble {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.45) !important;
+}
+
+body.theme-dark .brand-accent,
+body.theme-galaxy .brand-accent {
+  background: linear-gradient(135deg, #c084fc 0%, #818cf8 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 body.theme-dark .nav-link-item,
@@ -2309,6 +2401,20 @@ body.theme-galaxy .home-hero-headline {
 body.theme-dark .home-hero-subhead,
 body.theme-galaxy .home-hero-subhead {
   color: #94a3b8;
+}
+
+body.theme-dark .hero-action-btn.primary,
+body.theme-galaxy .hero-action-btn.primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.45) !important;
+}
+
+body.theme-dark .hero-action-btn.primary:hover,
+body.theme-galaxy .hero-action-btn.primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  box-shadow: 0 8px 26px rgba(139, 92, 246, 0.6) !important;
 }
 
 body.theme-dark .hero-action-btn.secondary,
@@ -2637,6 +2743,399 @@ body.theme-galaxy .auth-divider::after {
 body.theme-dark .auth-divider span,
 body.theme-galaxy .auth-divider span {
   color: #64748b;
+}
+
+/* ============================================================
+   GALAXY DARK THEME — CHAT WORKSPACE & APP OVERRIDES
+   ============================================================ */
+
+/* ── 1. Left Sidebar Rail & Icon Buttons ── */
+body.theme-dark .left-sidebar,
+body.theme-galaxy .left-sidebar {
+  background: #060710 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .sidebar-nav .nav-item,
+body.theme-galaxy .sidebar-nav .nav-item {
+  color: #94a3b8;
+}
+
+body.theme-dark .sidebar-nav .nav-item:hover,
+body.theme-galaxy .sidebar-nav .nav-item:hover {
+  color: #ffffff;
+  background: rgba(139, 92, 246, 0.15);
+}
+
+body.theme-dark .sidebar-nav .nav-item.active,
+body.theme-galaxy .sidebar-nav .nav-item.active {
+  color: #c084fc;
+  background: rgba(139, 92, 246, 0.22);
+}
+
+body.theme-dark .sidebar-nav .nav-item.active::before,
+body.theme-galaxy .sidebar-nav .nav-item.active::before {
+  background: #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+}
+
+/* ── 2. Chat List Panel & Header ── */
+body.theme-dark .chat-list-panel,
+body.theme-galaxy .chat-list-panel {
+  background: #090a16 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .panel-header h1,
+body.theme-dark .panel-header h2,
+body.theme-galaxy .panel-header h1,
+body.theme-galaxy .panel-header h2 {
+  color: #ffffff !important;
+}
+
+body.theme-dark .btn-primary-soft,
+body.theme-galaxy .btn-primary-soft {
+  background: rgba(139, 92, 246, 0.18) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+body.theme-dark .btn-primary-soft:hover,
+body.theme-galaxy .btn-primary-soft:hover {
+  background: rgba(139, 92, 246, 0.35) !important;
+  color: #ffffff !important;
+}
+
+/* ── 3. Search Bar ── */
+body.theme-dark .search-input,
+body.theme-galaxy .search-input {
+  background: rgba(30, 27, 75, 0.55) !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .search-input::placeholder,
+body.theme-galaxy .search-input::placeholder {
+  color: #64748b !important;
+}
+
+body.theme-dark .search-input:focus,
+body.theme-galaxy .search-input:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25) !important;
+}
+
+body.theme-dark .search-icon,
+body.theme-galaxy .search-icon {
+  color: #818cf8 !important;
+}
+
+/* ── 4. Filter Tab Chips (All, Public, Private, Joined) ── */
+body.theme-dark .ui-tab-chip,
+body.theme-galaxy .ui-tab-chip {
+  background: rgba(15, 16, 38, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .ui-tab-chip:hover,
+body.theme-galaxy .ui-tab-chip:hover {
+  background: rgba(30, 27, 75, 0.75) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+body.theme-dark .ui-tab-chip.active,
+body.theme-galaxy .ui-tab-chip.active,
+body.theme-dark .tab-item.active,
+body.theme-galaxy .tab-item.active {
+  background: #8b5cf6 !important;
+  border-color: #8b5cf6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* ── 5. Roster Chat Items (Active / Hover / Normal) ── */
+body.theme-dark .chat-item,
+body.theme-galaxy .chat-item {
+  color: #cbd5e1 !important;
+  border: 1px solid transparent;
+}
+
+body.theme-dark .chat-item:hover,
+body.theme-galaxy .chat-item:hover {
+  background: rgba(139, 92, 246, 0.1) !important;
+  color: #ffffff !important;
+}
+
+body.theme-dark .chat-item.active,
+body.theme-galaxy .chat-item.active {
+  background: rgba(139, 92, 246, 0.22) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: #ffffff !important;
+}
+
+body.theme-dark .chat-item.active::before,
+body.theme-galaxy .chat-item.active::before {
+  background-color: #8b5cf6 !important;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.7) !important;
+}
+
+body.theme-dark .chat-name,
+body.theme-galaxy .chat-name {
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .chat-preview,
+body.theme-galaxy .chat-preview {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .roster-badge,
+body.theme-galaxy .roster-badge {
+  background: rgba(30, 27, 75, 0.6) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+}
+
+body.theme-dark .roster-badge-public,
+body.theme-galaxy .roster-badge-public {
+  color: #34d399 !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+body.theme-dark .roster-badge-private,
+body.theme-galaxy .roster-badge-private {
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+/* ── 6. Empty Chat State Card & Action Buttons ── */
+body.theme-dark .empty-chat-state,
+body.theme-galaxy .empty-chat-state {
+  background: #090a16 !important;
+}
+
+body.theme-dark .empty-chat-card,
+body.theme-galaxy .empty-chat-card {
+  background: rgba(15, 16, 38, 0.95) !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(139, 92, 246, 0.15) !important;
+}
+
+body.theme-dark .empty-chat-title,
+body.theme-galaxy .empty-chat-title {
+  color: #ffffff !important;
+}
+
+body.theme-dark .empty-chat-sub,
+body.theme-galaxy .empty-chat-sub {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .empty-chat-icon-ring,
+body.theme-galaxy .empty-chat-icon-ring {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: #c084fc !important;
+}
+
+body.theme-dark .btn-empty-action.primary,
+body.theme-galaxy .btn-empty-action.primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.45) !important;
+}
+
+body.theme-dark .btn-empty-action.primary:hover,
+body.theme-galaxy .btn-empty-action.primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  box-shadow: 0 8px 26px rgba(139, 92, 246, 0.6) !important;
+}
+
+body.theme-dark .btn-empty-action.secondary,
+body.theme-galaxy .btn-empty-action.secondary {
+  background: rgba(30, 27, 75, 0.65) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: #e0e7ff !important;
+}
+
+body.theme-dark .btn-empty-action.secondary:hover,
+body.theme-galaxy .btn-empty-action.secondary:hover {
+  background: rgba(49, 46, 129, 0.85) !important;
+  border-color: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+/* ── 7. Modals & Dialogs (Create, Join, Profile, Status, Theme) ── */
+body.theme-dark .modal-overlay,
+body.theme-galaxy .modal-overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+body.theme-dark .modal-card,
+body.theme-dark .modal-box,
+body.theme-galaxy .modal-card,
+body.theme-galaxy .modal-box {
+  background: #0f1026 !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 35px rgba(139, 92, 246, 0.18) !important;
+}
+
+body.theme-dark .modal-header,
+body.theme-galaxy .modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .modal-header h2,
+body.theme-dark .modal-title,
+body.theme-galaxy .modal-header h2,
+body.theme-galaxy .modal-title {
+  color: #ffffff !important;
+}
+
+body.theme-dark .modal-footer,
+body.theme-galaxy .modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .modal-select,
+body.theme-dark .form-select,
+body.theme-dark .form-textarea,
+body.theme-galaxy .modal-select,
+body.theme-galaxy .form-select,
+body.theme-galaxy .form-textarea {
+  background: rgba(30, 27, 75, 0.7) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .modal-select:focus,
+body.theme-dark .form-select:focus,
+body.theme-dark .form-textarea:focus,
+body.theme-galaxy .modal-select:focus,
+body.theme-galaxy .form-select:focus,
+body.theme-galaxy .form-textarea:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.25) !important;
+}
+
+body.theme-dark .btn-primary,
+body.theme-dark .btn-submit,
+body.theme-galaxy .btn-primary,
+body.theme-galaxy .btn-submit {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4) !important;
+}
+
+body.theme-dark .btn-primary:hover,
+body.theme-dark .btn-submit:hover,
+body.theme-galaxy .btn-primary:hover,
+body.theme-galaxy .btn-submit:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.55) !important;
+}
+
+body.theme-dark .btn-secondary,
+body.theme-dark .btn-cancel,
+body.theme-galaxy .btn-secondary,
+body.theme-galaxy .btn-cancel {
+  background: rgba(30, 27, 75, 0.6) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  color: #e0e7ff !important;
+}
+
+body.theme-dark .btn-secondary:hover,
+body.theme-dark .btn-cancel:hover,
+body.theme-galaxy .btn-secondary:hover,
+body.theme-galaxy .btn-cancel:hover {
+  background: rgba(49, 46, 129, 0.8) !important;
+  border-color: #8b5cf6 !important;
+  color: #ffffff !important;
+}
+
+/* ── 8. Presence Dropdown ── */
+body.theme-dark .presence-dropdown,
+body.theme-galaxy .presence-dropdown {
+  background: #0f1026 !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(139, 92, 246, 0.15) !important;
+}
+
+body.theme-dark .presence-header,
+body.theme-galaxy .presence-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .user-display-name,
+body.theme-galaxy .user-display-name {
+  color: #ffffff !important;
+}
+
+body.theme-dark .user-jid,
+body.theme-galaxy .user-jid {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .presence-divider,
+body.theme-galaxy .presence-divider {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .presence-option,
+body.theme-galaxy .presence-option {
+  color: #cbd5e1 !important;
+}
+
+body.theme-dark .presence-option:hover,
+body.theme-galaxy .presence-option:hover {
+  background: rgba(139, 92, 246, 0.18) !important;
+  color: #ffffff !important;
+}
+
+/* ── 9. Chat Window Header & Composer ── */
+body.theme-dark .chat-header,
+body.theme-galaxy .chat-header {
+  background: rgba(15, 16, 38, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .contact-name,
+body.theme-galaxy .contact-name {
+  color: #ffffff !important;
+}
+
+body.theme-dark .contact-status-text,
+body.theme-galaxy .contact-status-text {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .chat-composer-container,
+body.theme-galaxy .chat-composer-container {
+  background: #0f1026 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-dark .chat-composer-textarea,
+body.theme-galaxy .chat-composer-textarea {
+  background: rgba(30, 27, 75, 0.7) !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .chat-composer-textarea::placeholder,
+body.theme-galaxy .chat-composer-textarea::placeholder {
+  color: #64748b !important;
+}
+
+body.theme-dark .btn-send-message,
+body.theme-galaxy .btn-send-message {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4) !important;
 }
 
 /* ============================================================
