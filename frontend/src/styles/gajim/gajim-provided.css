@@ -1255,8 +1255,8 @@ body.theme-galaxy {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  padding: 3px 8px;
+  border-radius: 6px;
   background-color: var(--color-success-alpha);
   color: var(--color-success);
   font-size: var(--font-size-xs);

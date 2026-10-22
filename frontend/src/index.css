@@ -6737,8 +6737,9 @@ body.personality-gaming .msg-bubble {
   }
 
   .chat-list-header .connection-status-pill {
-    padding: 2px 6px;
+    padding: 2px 7px;
     font-size: 10px;
+    border-radius: 6px !important;
   }
 
   /* Navbar compact sizing */
@@ -7250,6 +7251,10 @@ body.theme-light .tab-chip-private.active {
   background: rgba(240, 136, 44, 0.18) !important;
   color: var(--color-orange-700, #B85E10) !important;
   border-color: var(--color-orange-500, #F0882C) !important;
+}
+
+.connection-status-pill {
+  border-radius: 6px !important;
 }
 
 /* ── Chat Header Badges in ChatWindow ── */
