@@ -81,7 +81,7 @@ before(async () => {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   serverProc.stdout.on('data', () => {});   // drain — prevents pipe backpressure
-  serverProc.stderr.on('data', () => {});
+  serverProc.stderr.on('data', (d) => process.stderr.write(d));
 
   await waitForServer();
 
@@ -195,8 +195,8 @@ test('socket: unauthenticated connection is rejected', async () => {
 });
 
 test('socket: authenticated send → receive → edit flow works', async () => {
-  const sockA = io(BASE, { auth: { token: tokenA }, transports: ['websocket'], reconnection: false });
-  const sockB = io(BASE, { auth: { token: tokenB }, transports: ['websocket'], reconnection: false });
+  const sockA = io(BASE, { auth: { token: tokenA }, transports: ['websocket'], reconnection: false, forceNew: true });
+  const sockB = io(BASE, { auth: { token: tokenB }, transports: ['websocket'], reconnection: false, forceNew: true });
 
   try {
     await Promise.all([
@@ -236,8 +236,8 @@ test('socket: authenticated send → receive → edit flow works', async () => {
 });
 
 test('socket: sender identity is server-derived (client cannot impersonate)', async () => {
-  const sockA = io(BASE, { auth: { token: tokenA }, transports: ['websocket'], reconnection: false });
-  const sockB = io(BASE, { auth: { token: tokenB }, transports: ['websocket'], reconnection: false });
+  const sockA = io(BASE, { auth: { token: tokenA }, transports: ['websocket'], reconnection: false, forceNew: true });
+  const sockB = io(BASE, { auth: { token: tokenB }, transports: ['websocket'], reconnection: false, forceNew: true });
   try {
     await Promise.all([
       new Promise((res) => sockA.on('connect', res)),
@@ -256,6 +256,107 @@ test('socket: sender identity is server-derived (client cannot impersonate)', as
     sockA.emit('send_message', { roomId, content: 'spoof attempt', sender: { username: 'hacker', _id: 'fake-id' } });
     const msg = await received;
     assert.equal(msg.sender._id, testUserId, 'spoofed sender must be ignored');
+  } finally {
+    sockA.close();
+    sockB.close();
+  }
+});
+
+test('socket & rest: complete emoji messages and dynamic reactions flow', async () => {
+  const sockA = io(BASE, { auth: { token: tokenA }, transports: ['websocket'], reconnection: false, forceNew: true });
+  const sockB = io(BASE, { auth: { token: tokenB }, transports: ['websocket'], reconnection: false, forceNew: true });
+  try {
+    await Promise.all([
+      new Promise((res) => sockA.on('connect', res)),
+      new Promise((res) => sockB.on('connect', res)),
+    ]);
+    sockA.emit('join_room', { roomId });
+    sockB.emit('join_room', { roomId });
+    await new Promise((r) => setTimeout(r, 200));
+
+    // 1. Send message with multiple unicode emojis & skin tone variants
+    const emojiContent = 'Hello world! 🚀🎉👨‍💻 Testing emoji picker! 👍🏽❤️';
+    const receivedMsgPromise = new Promise((resolve) => {
+      sockB.on('receive_message', (m) => {
+        if (m.content === emojiContent) resolve(m);
+      });
+    });
+    sockA.emit('send_message', { roomId, content: emojiContent });
+    const msg = await receivedMsgPromise;
+    assert.equal(msg.content, emojiContent, 'message with emojis must preserve exact unicode content');
+
+    // 2. User A reacts with skin-tone variant emoji "👍🏽"
+    const reactionUpdated1 = new Promise((resolve) => {
+      sockB.on('message_reaction_updated', (updated) => {
+        if (updated._id === msg._id && updated.reactions.some((r) => r.emoji === '👍🏽')) {
+          resolve(updated);
+        }
+      });
+    });
+    sockA.emit('toggle_reaction', { messageId: msg._id, roomId, emoji: '👍🏽' });
+    const updated1 = await reactionUpdated1;
+    const thumbsUpReaction = updated1.reactions.find((r) => r.emoji === '👍🏽');
+    assert.ok(thumbsUpReaction, 'reaction with skin-tone emoji must exist');
+    assert.equal(thumbsUpReaction.users.length, 1);
+
+    // 3. User B also reacts with "👍🏽" (two users reacting to same message)
+    const reactionUpdated2 = new Promise((resolve) => {
+      sockA.on('message_reaction_updated', (updated) => {
+        if (updated._id === msg._id) {
+          const r = updated.reactions.find((x) => x.emoji === '👍🏽');
+          if (r && r.users.length === 2) resolve(updated);
+        }
+      });
+    });
+    sockB.emit('toggle_reaction', { messageId: msg._id, roomId, emoji: '👍🏽' });
+    const updated2 = await reactionUpdated2;
+    const multiUserReaction = updated2.reactions.find((r) => r.emoji === '👍🏽');
+    assert.equal(multiUserReaction.users.length, 2, 'both users should be present on reaction');
+
+    // 4. User A switches reaction to "❤️" (prevent duplicates, remove from old emoji)
+    const reactionUpdated3 = new Promise((resolve) => {
+      sockB.on('message_reaction_updated', (updated) => {
+        if (updated._id === msg._id && updated.reactions.some((r) => r.emoji === '❤️')) {
+          resolve(updated);
+        }
+      });
+    });
+    sockA.emit('toggle_reaction', { messageId: msg._id, roomId, emoji: '❤️' });
+    const updated3 = await reactionUpdated3;
+    const heartReaction = updated3.reactions.find((r) => r.emoji === '❤️');
+    const remainingThumbs = updated3.reactions.find((r) => r.emoji === '👍🏽');
+    assert.ok(heartReaction, 'new emoji reaction should exist');
+    assert.equal(heartReaction.users.length, 1);
+    assert.equal(remainingThumbs.users.length, 1, 'user A should have been removed from old emoji');
+
+    // 5. User A removes reaction by clicking "❤️" again (toggle off)
+    const reactionUpdated4 = new Promise((resolve) => {
+      sockB.on('message_reaction_updated', (updated) => {
+        if (updated._id === msg._id && !updated.reactions.some((r) => r.emoji === '❤️')) {
+          resolve(updated);
+        }
+      });
+    });
+    sockA.emit('toggle_reaction', { messageId: msg._id, roomId, emoji: '❤️' });
+    const updated4 = await reactionUpdated4;
+    assert.ok(!updated4.reactions.some((r) => r.emoji === '❤️'), 'heart reaction should be removed completely');
+
+    // 6. Test REST API reaction endpoint
+    const restRes = await jsonFetch(`/api/messages/${msg._id}/reaction`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji: '🔥' })
+    }, tokenA);
+    assert.equal(restRes.status, 200);
+    const restData = await restRes.json();
+    assert.ok(restData.reactions.some((r) => r.emoji === '🔥'), 'REST reaction toggle should persist emoji');
+
+    // 7. Verify persistence via GET /api/messages/:roomId
+    const getRes = await jsonFetch(`/api/messages/${roomId}`, {}, tokenA);
+    assert.equal(getRes.status, 200);
+    const getData = await getRes.json();
+    const fetchedMsg = getData.messages.find((m) => m._id === msg._id);
+    assert.ok(fetchedMsg, 'message must be persisted in room');
+    assert.ok(fetchedMsg.reactions.some((r) => r.emoji === '🔥'), 'reactions must persist across requests');
   } finally {
     sockA.close();
     sockB.close();

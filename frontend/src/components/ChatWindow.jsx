@@ -14,6 +14,7 @@ import UserProfileModal from './profile/UserProfileModal';
 import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import { SkeletonMessageList } from './SkeletonLoaders';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSidebar }) {
   const { user } = useAuth();
@@ -43,6 +44,10 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   // Hover state for reactions
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  // Full emoji picker state for reactions
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState(null);
+  // Placement: 'top' or 'bottom' depending on proximity to chat feed top
+  const [popoverPlacement, setPopoverPlacement] = useState('top');
 
   // Voice Notes State
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -60,6 +65,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
+  const composerEmojiPickerRef = useRef(null);
+  const reactionPickerRef = useRef(null);
   const lastSendTimeRef = useRef(0);
   // Message-feature refs: scroll container + per-message elements
   const chatFeedRef = useRef(null);
@@ -362,25 +369,40 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     };
 
     const handleMessageEdited = (editedMsg) => {
-      if (editedMsg.room === roomId) {
+      if (!editedMsg) return;
+      const msgRoomId = editedMsg.room?._id || editedMsg.room;
+      if (!msgRoomId || String(msgRoomId) === String(roomId)) {
         setMessages((prev) =>
-          prev.map((msg) => (msg._id === editedMsg._id ? editedMsg : msg))
+          prev.map((msg) => (String(msg._id) === String(editedMsg._id) ? { ...msg, ...editedMsg } : msg))
         );
       }
     };
 
     const handleMessageDeleted = (deletedMsg) => {
-      if (deletedMsg.room === roomId) {
+      if (!deletedMsg) return;
+      const msgRoomId = deletedMsg.room?._id || deletedMsg.room;
+      if (!msgRoomId || String(msgRoomId) === String(roomId)) {
         setMessages((prev) =>
-          prev.map((msg) => (msg._id === deletedMsg._id ? deletedMsg : msg))
+          prev.map((msg) => (String(msg._id) === String(deletedMsg._id) ? { ...msg, ...deletedMsg } : msg))
         );
       }
     };
 
     const handleMessageReactionUpdated = (updatedMsg) => {
-      if (updatedMsg.room === roomId) {
+      if (!updatedMsg) return;
+      const msgRoomId = updatedMsg.room?._id || updatedMsg.room;
+      if (!msgRoomId || String(msgRoomId) === String(roomId)) {
         setMessages((prev) =>
-          prev.map((msg) => (msg._id === updatedMsg._id ? updatedMsg : msg))
+          prev.map((msg) => {
+            if (String(msg._id) === String(updatedMsg._id)) {
+              return {
+                ...msg,
+                ...updatedMsg,
+                reactions: updatedMsg.reactions || []
+              };
+            }
+            return msg;
+          })
         );
       }
     };
@@ -551,8 +573,107 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     }, 10);
   };
 
+  const isDarkMode = typeof document !== 'undefined'
+    ? !document.body.classList.contains('theme-light')
+    : true;
+
+  // Dynamically calculate whether popover should open above or below the message
+  const updatePopoverPlacement = useCallback((msgId) => {
+    const el = messageRefs.current[msgId];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const feedEl = chatFeedRef.current;
+    const feedTop = feedEl ? feedEl.getBoundingClientRect().top : 60;
+    // If message is in top 140px of visible feed, flip popover downward below the bubble
+    const isNearTop = (rect.top - feedTop) < 140;
+    setPopoverPlacement(isNearTop ? 'bottom' : 'top');
+  }, []);
+
+  // Recalculate placement if feed scrolls while menu is open
+  useEffect(() => {
+    const feed = chatFeedRef.current;
+    if (!feed) return;
+    const onScroll = () => {
+      if (hoveredMessageId) {
+        updatePopoverPlacement(hoveredMessageId);
+      }
+    };
+    feed.addEventListener('scroll', onScroll, { passive: true });
+    return () => feed.removeEventListener('scroll', onScroll);
+  }, [hoveredMessageId, updatePopoverPlacement]);
+
+  // Close emoji pickers on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (
+        showEmojiPicker &&
+        composerEmojiPickerRef.current &&
+        !composerEmojiPickerRef.current.contains(e.target) &&
+        !e.target.closest('#emoji-trigger-btn') &&
+        !e.target.closest('.composer-action-emoji')
+      ) {
+        setShowEmojiPicker(false);
+      }
+
+      if (
+        reactionPickerMessageId &&
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(e.target) &&
+        !e.target.closest('.msg-emoji-expand-btn') &&
+        !e.target.closest('.msg-emoji-search-btn')
+      ) {
+        setReactionPickerMessageId(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideClick);
+    };
+  }, [showEmojiPicker, reactionPickerMessageId]);
+
+  // Insert emoji at cursor position in composer
+  const handleComposerEmojiClick = (emojiData) => {
+    const emoji = emojiData?.emoji;
+    if (!emoji) return;
+
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart ?? inputText.length;
+      const end = textarea.selectionEnd ?? inputText.length;
+      const newText = inputText.substring(0, start) + emoji + inputText.substring(end);
+      setInputText(newText);
+
+      const newCursorPos = start + emoji.length;
+      requestAnimationFrame(() => {
+        textarea.focus({ preventScroll: true });
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      });
+    } else {
+      setInputText((prev) => prev + emoji);
+    }
+  };
+
   const handleToggleReaction = (messageId, emoji) => {
-    socket.emit('toggle_reaction', { messageId, roomId, emoji });
+    if (!messageId || !emoji) return;
+    const cleanRoomId = roomId ? String(roomId) : undefined;
+    if (isSocketConnected()) {
+      socket.emit('toggle_reaction', { messageId, roomId: cleanRoomId, emoji }, (res) => {
+        if (res?.ok && res?.message) {
+          handleMessageReactionUpdated(res.message);
+        }
+      });
+    } else {
+      api.post(`/messages/${messageId}/reaction`, { emoji, roomId: cleanRoomId })
+        .then((res) => {
+          if (res.data) {
+            handleMessageReactionUpdated(res.data);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to toggle reaction via fallback:', err);
+        });
+    }
   };
 
   // File Upload Handler (Multer + Cloudinary)
@@ -936,8 +1057,26 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 key={msg._id}
                 ref={(el) => { if (el) messageRefs.current[msg._id] = el; }}
                 className={`message-row ${isMe ? 'message-row--me' : ''} ${selectedIds.has(msg._id) ? 'message-row--selected' : ''} ${hoveredMessageId === msg._id ? 'is-hovered' : ''}`}
-                onClick={() => (selectionMode ? toggleSelect(msg._id) : setHoveredMessageId(hoveredMessageId === msg._id ? null : msg._id))}
-                onMouseLeave={() => setHoveredMessageId(null)}
+                onClick={() => {
+                  if (selectionMode) {
+                    toggleSelect(msg._id);
+                  } else {
+                    if (hoveredMessageId === msg._id) {
+                      setHoveredMessageId(null);
+                      setReactionPickerMessageId(null);
+                    } else {
+                      updatePopoverPlacement(msg._id);
+                      setHoveredMessageId(msg._id);
+                    }
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (reactionPickerMessageId !== msg._id) {
+                    updatePopoverPlacement(msg._id);
+                    setHoveredMessageId(msg._id);
+                  }
+                }}
+                onMouseLeave={() => { if (reactionPickerMessageId !== msg._id) setHoveredMessageId(null); }}
                 style={{ display: 'flex', gap: 10, alignItems: 'flex-start', position: 'relative', animation: 'message-appear 150ms ease-out' }}
               >
                 {/* Selection checkbox (multi-select mode) */}
@@ -1128,29 +1267,61 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                   {/* Unified Message Popover: Reactions + Action Toolbar (Zero Overlap) */}
                   {hoveredMessageId === msg._id && (
                     <div
-                      className={`msg-unified-menu ${isMe ? 'msg-unified-menu--me' : 'msg-unified-menu--incoming'}`}
+                      className={`msg-unified-menu ${isMe ? 'msg-unified-menu--me' : 'msg-unified-menu--incoming'} ${popoverPlacement === 'bottom' ? 'msg-unified-menu--bottom' : 'msg-unified-menu--top'}`}
                       role="toolbar"
                       aria-label="Message options"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* 1. Emoji Reactions Row */}
                       <div className="msg-reactions-toolbar">
-                        {['👍', '❤️', '😂', '🔥', '😮', '😢', '👏'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleReaction(msg._id, emoji);
-                              setHoveredMessageId(null);
-                            }}
-                            className="msg-emoji-btn"
-                            title={`React with ${emoji}`}
-                            aria-label={`React with ${emoji}`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
+                        {['👍', '❤️', '😂', '🔥', '😮', '😢'].map((emoji) => {
+                          const hasReactedWithThis = (msg.reactions || []).some(
+                            (r) => r.emoji === emoji && (r.users || []).some(
+                              (u) => (u?._id || u?.id || u).toString() === String(currentUserId)
+                            )
+                          );
+                          return (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleReaction(msg._id, emoji);
+                                setHoveredMessageId(null);
+                                setReactionPickerMessageId(null);
+                              }}
+                              className={`msg-emoji-btn ${hasReactedWithThis ? 'msg-emoji-btn--active' : ''}`}
+                              title={`React with ${emoji}`}
+                              aria-label={`React with ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          className="msg-emoji-btn msg-emoji-search-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReactionPickerMessageId(reactionPickerMessageId === msg._id ? null : msg._id);
+                          }}
+                          title="Search emojis"
+                          aria-label="Search emojis"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="msg-emoji-btn msg-emoji-expand-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReactionPickerMessageId(reactionPickerMessageId === msg._id ? null : msg._id);
+                          }}
+                          title="More reactions"
+                          aria-label="More reactions"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        </button>
                       </div>
 
                       {/* 2. Sleek Divider */}
@@ -1244,6 +1415,35 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                     </div>
                   )}
 
+                  {/* Full Emoji Picker Popover for Reactions */}
+                  {reactionPickerMessageId === msg._id && (
+                    <div
+                      ref={reactionPickerRef}
+                      className={`msg-reaction-picker-popover ${isMe ? 'msg-reaction-picker-popover--me' : 'msg-reaction-picker-popover--incoming'} ${popoverPlacement === 'bottom' ? 'msg-reaction-picker-popover--bottom' : 'msg-reaction-picker-popover--top'}`}
+                      role="dialog"
+                      aria-label="Search and choose reaction emoji"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) => {
+                          if (emojiData?.emoji) {
+                            handleToggleReaction(msg._id, emojiData.emoji);
+                          }
+                          setReactionPickerMessageId(null);
+                          setHoveredMessageId(null);
+                        }}
+                        theme={isDarkMode ? Theme.DARK : Theme.LIGHT}
+                        lazyLoadEmojis
+                        searchPlaceHolder="Search reaction emoji..."
+                        width={310}
+                        height={370}
+                        previewConfig={{ showPreview: false }}
+                        skinTonesDisabled={false}
+                        autoFocusSearch={true}
+                      />
+                    </div>
+                  )}
+
                   {/* Message Info popover */}
                   {infoMessageId === msg._id && (
                     <div
@@ -1272,28 +1472,34 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
                   {/* Reactions Display Pills */}
                   {msg.reactions && msg.reactions.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                    <div className="msg-reactions-container">
                       {msg.reactions.map((reaction, i) => {
-                        const hasReacted = reaction.users.includes(user?._id || user?.id);
+                        const reactedUsers = (reaction.users || []).map((u) => {
+                          if (typeof u === 'object' && u !== null) {
+                            const uId = (u._id || u.id || '').toString();
+                            return { id: uId, name: u.username || 'User' };
+                          }
+                          return { id: String(u), name: 'User' };
+                        });
+                        const hasReacted = reactedUsers.some((u) => u.id === String(currentUserId));
+                        const namesList = reactedUsers
+                          .map((u) => (u.id === String(currentUserId) ? 'You' : u.name))
+                          .join(', ');
+
                         return (
                           <button
-                            key={i}
-                            onClick={() => handleToggleReaction(msg._id, reaction.emoji)}
-                            style={{
-                              background: hasReacted ? 'rgba(88,101,242,0.2)' : 'var(--bg-input)',
-                              border: `1px solid ${hasReacted ? '#5865F2' : 'var(--border-color)'}`,
-                              borderRadius: 8,
-                              padding: '2px 8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              cursor: 'pointer',
-                              color: hasReacted ? '#a5b4fc' : 'var(--text-muted)',
-                              fontSize: 12
+                            key={`${reaction.emoji}-${i}`}
+                            type="button"
+                            className={`msg-reaction-pill ${hasReacted ? 'msg-reaction-pill--active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleReaction(msg._id, reaction.emoji);
                             }}
+                            title={`${reaction.emoji} reacted by: ${namesList}`}
+                            aria-label={`${reaction.emoji} reacted by ${namesList}`}
                           >
-                            <span>{reaction.emoji}</span>
-                            <span>{reaction.users.length}</span>
+                            <span className="msg-reaction-pill-emoji">{reaction.emoji}</span>
+                            <span className="msg-reaction-pill-count">{reaction.users.length}</span>
                           </button>
                         );
                       })}
@@ -1422,15 +1628,24 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
         {/* Emoji Picker Popover */}
         {showEmojiPicker && (
-          <div className="emoji-picker-popover" id="emoji-picker" role="dialog" aria-label="Emoji Picker">
-            <div className="emoji-picker-header">
-              <input type="text" placeholder="Search emojis..." aria-label="Search emojis" style={{ color: 'var(--text-main)' }} />
-            </div>
-            <div className="emoji-grid" id="emoji-grid">
-              {['👍','❤️','🔥','🚀','🎉','😊','😂','😎','💻','🔒','✅','✨','😮','😢','👏','🎨'].map(emoji => (
-                <button key={emoji} type="button" className="emoji-btn" onClick={() => { handleAddEmoji(emoji); setShowEmojiPicker(false); }}>{emoji}</button>
-              ))}
-            </div>
+          <div
+            ref={composerEmojiPickerRef}
+            className="composer-emoji-picker-container"
+            id="emoji-picker"
+            role="dialog"
+            aria-label="Emoji Picker"
+          >
+            <EmojiPicker
+              onEmojiClick={handleComposerEmojiClick}
+              theme={isDarkMode ? Theme.DARK : Theme.LIGHT}
+              lazyLoadEmojis
+              searchPlaceHolder="Search emojis..."
+              width="100%"
+              height={360}
+              previewConfig={{ showPreview: false }}
+              skinTonesDisabled={false}
+              autoFocusSearch={false}
+            />
           </div>
         )}
 
