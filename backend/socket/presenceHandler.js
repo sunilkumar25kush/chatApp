@@ -74,7 +74,8 @@ module.exports = (io, socket) => {
         updateData.lastSeen = lastSeen;
       }
 
-      if (require('mongoose').connection.readyState === 1) {
+      const mongoose = require('mongoose');
+      if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(uid) && !String(uid).startsWith('mem_')) {
         await User.findByIdAndUpdate(uid, updateData);
       }
 

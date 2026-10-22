@@ -134,7 +134,8 @@ app.use('/api', notFoundHandler);
 app.use(errorHandler);
 
 // Initialize Socket.io
-initSocket(server);
+const io = initSocket(server);
+app.set('io', io);
 
 // Start Server & Connect Database
 const PORT = process.env.PORT || 5000;
