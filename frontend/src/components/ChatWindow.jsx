@@ -331,6 +331,26 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     }
   }, [roomId]);
 
+  // Handle reaction updates in real-time or via ack/fallback
+  const handleMessageReactionUpdated = useCallback((updatedMsg) => {
+    if (!updatedMsg) return;
+    const msgRoomId = updatedMsg.room?._id || updatedMsg.room;
+    if (!msgRoomId || String(msgRoomId) === String(roomId)) {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (String(msg._id) === String(updatedMsg._id)) {
+            return {
+              ...msg,
+              ...updatedMsg,
+              reactions: updatedMsg.reactions || []
+            };
+          }
+          return msg;
+        })
+      );
+    }
+  }, [roomId]);
+
   useEffect(() => {
     if (!roomId) return;
 
@@ -384,25 +404,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       if (!msgRoomId || String(msgRoomId) === String(roomId)) {
         setMessages((prev) =>
           prev.map((msg) => (String(msg._id) === String(deletedMsg._id) ? { ...msg, ...deletedMsg } : msg))
-        );
-      }
-    };
-
-    const handleMessageReactionUpdated = (updatedMsg) => {
-      if (!updatedMsg) return;
-      const msgRoomId = updatedMsg.room?._id || updatedMsg.room;
-      if (!msgRoomId || String(msgRoomId) === String(roomId)) {
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (String(msg._id) === String(updatedMsg._id)) {
-              return {
-                ...msg,
-                ...updatedMsg,
-                reactions: updatedMsg.reactions || []
-              };
-            }
-            return msg;
-          })
         );
       }
     };
