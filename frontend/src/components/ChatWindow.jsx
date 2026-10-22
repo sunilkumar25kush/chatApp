@@ -827,22 +827,22 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
           {/* Mobile ⋮ More Dropdown Menu */}
           {isMobileMoreOpen && (
-            <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', right: 10, top: 50, background: 'var(--theme-sidebar-bg, #1c1f28)', border: '1px solid #2d3241', borderRadius: 10, padding: 6, zIndex: 100, minWidth: 170, boxShadow: 'var(--shadow-xl)' }}>
-              <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()}>
+              <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }}>
                 <span>✨</span> Appearance Studio
               </button>
-              <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }}>
                 <span>📹</span> Start Video Call
               </button>
-              <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#d1d5db', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }}>
                 <span>☑️</span> Select Messages
               </button>
               {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-                <button className="mobile-more-dropdown-item" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                <button className="mobile-more-dropdown-item" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }} style={{ color: '#ef4444' }}>
                   <span>🗑️</span> Delete Room
                 </button>
               )}
-              <button className="mobile-more-dropdown-item" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }} style={{ width: '100%', minHeight: 40, padding: '8px 12px', background: 'transparent', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <button className="mobile-more-dropdown-item" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }} style={{ color: '#ef4444' }}>
                 <span>🚪</span> Leave Room
               </button>
             </div>
