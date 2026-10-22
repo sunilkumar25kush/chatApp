@@ -6310,6 +6310,22 @@ body.personality-gaming .msg-bubble {
     color: #ffffff !important;
   }
 
+  /* Destructive action overrides */
+  .mobile-more-dropdown-item.destructive-action,
+  body.theme-light .mobile-more-dropdown-item.destructive-action,
+  body.theme-dark .mobile-more-dropdown-item.destructive-action,
+  body.theme-galaxy .mobile-more-dropdown-item.destructive-action {
+    color: #ef4444 !important;
+  }
+
+  .mobile-more-dropdown-item.destructive-action:hover,
+  body.theme-light .mobile-more-dropdown-item.destructive-action:hover,
+  body.theme-dark .mobile-more-dropdown-item.destructive-action:hover,
+  body.theme-galaxy .mobile-more-dropdown-item.destructive-action:hover {
+    color: #dc2626 !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+  }
+
   body.theme-light .composer-more-menu {
     background: #ECEAC9 !important;
     border: 1px solid #CCCCCC !important;

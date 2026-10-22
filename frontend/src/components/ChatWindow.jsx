@@ -838,11 +838,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 <span>☑️</span> Select Messages
               </button>
               {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-                <button className="mobile-more-dropdown-item" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }} style={{ color: '#ef4444' }}>
+                <button className="mobile-more-dropdown-item destructive-action" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }}>
                   <span>🗑️</span> Delete Room
                 </button>
               )}
-              <button className="mobile-more-dropdown-item" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }} style={{ color: '#ef4444' }}>
+              <button className="mobile-more-dropdown-item destructive-action" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }}>
                 <span>🚪</span> Leave Room
               </button>
             </div>
