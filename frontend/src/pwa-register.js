@@ -19,16 +19,15 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
         registration.update();
       }, 60 * 60 * 1000); // Every hour
 
-      // Handle updates
+      // Handle updates - automatically activate immediately
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available, notify user
-              console.log('[PWA] New version available, please refresh');
-              if (confirm('A new version of ChatRoom is available. Refresh to update?')) {
-                window.location.reload();
+              console.log('[PWA] New version installed, activating immediately...');
+              if (newWorker.postMessage) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
               }
             }
           });

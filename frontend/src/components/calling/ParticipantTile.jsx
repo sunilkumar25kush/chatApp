@@ -190,9 +190,10 @@ function ParticipantTile({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        border: isActiveSpeaker ? '2px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.08)',
+        boxSizing: 'border-box',
+        border: isActiveSpeaker ? '2px solid #22c55e' : '2px solid rgba(255, 255, 255, 0.08)',
         boxShadow: isActiveSpeaker ? '0 0 20px rgba(34, 197, 94, 0.35)' : '0 4px 16px rgba(0, 0, 0, 0.4)',
-        transition: 'border 0.2s ease, box-shadow 0.2s ease',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       }}
     >
       {/* Remote Audio Playback Element */}
