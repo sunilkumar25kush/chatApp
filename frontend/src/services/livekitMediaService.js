@@ -155,13 +155,17 @@ class LiveKitMediaService {
     if (this.localAudioTrack) {
       try {
         this.localAudioTrack.stop();
-      } catch {}
+      } catch {
+        /* ignore track stop error */
+      }
       this.localAudioTrack = null;
     }
     if (this.localVideoTrack) {
       try {
         this.localVideoTrack.stop();
-      } catch {}
+      } catch {
+        /* ignore track stop error */
+      }
       this.localVideoTrack = null;
     }
 

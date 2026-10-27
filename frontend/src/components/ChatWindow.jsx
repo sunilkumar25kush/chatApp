@@ -772,10 +772,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     }
   };
 
-  const handleAddEmoji = (emoji) => {
-    setInputText((prev) => prev + emoji);
-  };
-
   const handleStartEdit = (msg) => {
     setEditingMessage(msg);
     setInputText(msg.content);
@@ -878,7 +874,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       {/* Layer 4: Top Header Bar (Dedicated Multi-Header Architecture) */}
       <header className="chat-header" id="chat-header" style={{ position: 'relative', zIndex: 4, flexShrink: 0 }}>
           <div className="header-left">
-              <button className="btn-icon back-to-list-btn" onClick={onBack} title="Back to Chat List" aria-label="Back to Chat List">
+              <button className="btn-icon back-to-list-btn" onClick={onBack || onToggleMobileSidebar} title="Back to Chat List" aria-label="Back to Chat List">
                   <svg className="icon bi bi-arrow-left" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
               </button>
 

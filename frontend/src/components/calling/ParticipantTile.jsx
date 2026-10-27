@@ -101,7 +101,9 @@ function ParticipantTile({
           el.play().catch(() => {});
           if (bgEl) bgEl.play().catch(() => {});
           setVideoAttached(true);
-        } catch {}
+        } catch {
+          /* ignore fallback error */
+        }
       }
     }
 

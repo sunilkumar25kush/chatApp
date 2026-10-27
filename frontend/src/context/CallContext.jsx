@@ -308,7 +308,9 @@ export function CallProvider({ children }) {
       peerConnectionsRef.current.forEach((pc) => {
         try {
           pc.close();
-        } catch {}
+        } catch {
+          /* ignore peer close error */
+        }
       });
       peerConnectionsRef.current.clear();
 
@@ -534,12 +536,16 @@ export function CallProvider({ children }) {
     if (localAudio) {
       try {
         pc.addTrack(localAudio);
-      } catch {}
+      } catch {
+        /* ignore track error */
+      }
     }
     if (localVideo) {
       try {
         pc.addTrack(localVideo);
-      } catch {}
+      } catch {
+        /* ignore track error */
+      }
     }
 
     pc.onicecandidate = (event) => {
@@ -766,6 +772,7 @@ export function CallProvider({ children }) {
         setConnectionStatus('disconnected');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [refreshCameraDevices, leaveCall]
   );
 
@@ -1100,14 +1107,16 @@ export function CallProvider({ children }) {
     };
 
     // Participant left
-    const handleCallParticipantLeft = ({ userId, username }) => {
+    const handleCallParticipantLeft = ({ userId }) => {
       if (userId) {
         const strUserId = String(userId);
         const pc = peerConnectionsRef.current.get(strUserId);
         if (pc) {
           try {
             pc.close();
-          } catch {}
+          } catch {
+            /* ignore close error */
+          }
           peerConnectionsRef.current.delete(strUserId);
         }
 
@@ -1181,6 +1190,7 @@ export function CallProvider({ children }) {
       socket.off('call:media_changed', handleCallMediaChanged);
       socket.off('call:ended', handleCallEnded);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, leaveCall, stopAudioIntervals]);
 
   const value = {

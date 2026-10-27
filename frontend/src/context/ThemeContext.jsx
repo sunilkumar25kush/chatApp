@@ -91,7 +91,6 @@ export const ThemeProvider = ({ children }) => {
     root.style.setProperty('--theme-radius', theme.borderRadius);
     root.style.setProperty('--theme-font', theme.fontFamily);
 
-    let isAppearanceLight = false;
     let hasCustomAppearanceTheme = false;
     const appearance = localStorage.getItem('appearance_studio_v2');
     try {
@@ -99,10 +98,9 @@ export const ThemeProvider = ({ children }) => {
       if (parsed && parsed.activeThemeId && parsed.activeThemeId !== 'default') {
         hasCustomAppearanceTheme = true;
       }
-      if (['cream-citrus', 'sakura', 'pastel', 'snow'].includes(parsed?.activeThemeId)) {
-        isAppearanceLight = true;
-      }
-    } catch (e) { }
+    } catch {
+      /* ignore JSON parse error */
+    }
 
     if (!hasCustomAppearanceTheme) {
       if (resolvedMode === 'light') {
@@ -182,7 +180,9 @@ export const ThemeProvider = ({ children }) => {
         activeThemeId: nextThemeId,
         activeEffectId: nextMode === 'light' ? 'none' : 'stars',
       }));
-    } catch (e) { }
+    } catch {
+      /* ignore localStorage error */
+    }
     window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { themeId: nextThemeId, mode: nextMode } }));
   }, [resolvedMode]);
 

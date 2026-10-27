@@ -56,7 +56,9 @@ export default function ThemeSettingsModal({ onClose }) {
         activeThemeId: nextThemeId,
         activeEffectId: preset.isLight ? 'none' : 'stars',
       }));
-    } catch (e) {}
+    } catch {
+      /* ignore localStorage quota/parse error */
+    }
     window.dispatchEvent(new CustomEvent('app-theme-changed', { detail: { themeId: nextThemeId, mode: nextMode } }));
   };
 
