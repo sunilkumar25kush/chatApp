@@ -75,11 +75,20 @@ function ParticipantTile({
     }
 
     try {
+      el.muted = true;
+      el.defaultMuted = true;
+      el.playsInline = true;
+      if (bgEl) {
+        bgEl.muted = true;
+        bgEl.defaultMuted = true;
+        bgEl.playsInline = true;
+      }
+
       if (typeof videoTrack.attach === 'function') {
         videoTrack.attach(el);
         if (bgEl) videoTrack.attach(bgEl);
       } else if (videoTrack.mediaStreamTrack) {
-        const stream = new MediaStream([videoTrack.mediaStreamTrack]);
+        const stream = videoTrack.stream || new MediaStream([videoTrack.mediaStreamTrack]);
         el.srcObject = stream;
         if (bgEl) bgEl.srcObject = stream;
       } else if (videoTrack instanceof MediaStreamTrack) {
@@ -87,20 +96,20 @@ function ParticipantTile({
         el.srcObject = stream;
         if (bgEl) bgEl.srcObject = stream;
       }
-      if (el.paused) {
-        el.play().catch(() => {});
-      }
-      if (bgEl && bgEl.paused) {
-        bgEl.play().catch(() => {});
-      }
+      el.play().catch(() => {});
+      if (bgEl) bgEl.play().catch(() => {});
       setVideoAttached(true);
     } catch (err) {
       console.warn('[ParticipantTile] Error attaching video track:', err);
       if (videoTrack?.mediaStreamTrack) {
         try {
-          const stream = new MediaStream([videoTrack.mediaStreamTrack]);
+          const stream = videoTrack.stream || new MediaStream([videoTrack.mediaStreamTrack]);
+          el.muted = true;
           el.srcObject = stream;
-          if (bgEl) bgEl.srcObject = stream;
+          if (bgEl) {
+            bgEl.muted = true;
+            bgEl.srcObject = stream;
+          }
           el.play().catch(() => {});
           if (bgEl) bgEl.play().catch(() => {});
           setVideoAttached(true);
@@ -222,12 +231,12 @@ function ParticipantTile({
         />
       )}
 
-      {/* Video Stream Element */}
+      {/* Video Stream Element - Always muted because audio plays separately via audio tag */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
-        muted={isLocal}
+        muted
         style={{
           width: '100%',
           height: '100%',

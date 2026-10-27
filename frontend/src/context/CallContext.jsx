@@ -133,6 +133,7 @@ export function CallProvider({ children }) {
   const isCameraOffRef = useRef(isCameraOff);
   isCameraOffRef.current = isCameraOff;
   const peerConnectionsRef = useRef(new Map());
+  const iceCandidateQueuesRef = useRef(new Map());
 
   // ── Add Toast Notification ──────────────────────────────────────────────
   const addCallNotification = useCallback((title, message, type = 'default') => {
@@ -313,6 +314,7 @@ export function CallProvider({ children }) {
         }
       });
       peerConnectionsRef.current.clear();
+      iceCandidateQueuesRef.current.clear();
 
       setCallState('ended');
       setOutgoingState('idle');
@@ -511,6 +513,18 @@ export function CallProvider({ children }) {
     if (!peerId) return null;
     let pc = peerConnectionsRef.current.get(peerId);
     if (pc && pc.signalingState !== 'closed') {
+      const senders = pc.getSenders();
+      const localAudio = livekitMediaService.localAudioTrack?.mediaStreamTrack;
+      const localVideo = livekitMediaService.localVideoTrack?.mediaStreamTrack;
+      const localStream = new MediaStream();
+      if (localAudio && !senders.some((s) => s.track && s.track.kind === 'audio')) {
+        localStream.addTrack(localAudio);
+        try { pc.addTrack(localAudio, localStream); } catch (_) {}
+      }
+      if (localVideo && !senders.some((s) => s.track && s.track.kind === 'video')) {
+        localStream.addTrack(localVideo);
+        try { pc.addTrack(localVideo, localStream); } catch (_) {}
+      }
       return pc;
     }
 
@@ -521,6 +535,7 @@ export function CallProvider({ children }) {
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun.cloudflare.com:3478' },
         ],
       });
     } catch (e) {
@@ -530,21 +545,24 @@ export function CallProvider({ children }) {
 
     peerConnectionsRef.current.set(peerId, pc);
 
-    // Add local media tracks to peer connection
+    // Bundle local tracks into a MediaStream so remote ontrack receives a valid event.streams[0]
     const localAudio = livekitMediaService.localAudioTrack?.mediaStreamTrack;
     const localVideo = livekitMediaService.localVideoTrack?.mediaStreamTrack;
+    const localStream = new MediaStream();
     if (localAudio) {
+      localStream.addTrack(localAudio);
       try {
-        pc.addTrack(localAudio);
-      } catch {
-        /* ignore track error */
+        pc.addTrack(localAudio, localStream);
+      } catch (err) {
+        console.warn('[P2P WebRTC] Add local audio track error:', err);
       }
     }
     if (localVideo) {
+      localStream.addTrack(localVideo);
       try {
-        pc.addTrack(localVideo);
-      } catch {
-        /* ignore track error */
+        pc.addTrack(localVideo, localStream);
+      } catch (err) {
+        console.warn('[P2P WebRTC] Add local video track error:', err);
       }
     }
 
@@ -559,15 +577,33 @@ export function CallProvider({ children }) {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[P2P WebRTC] ICE state with ${peerId}:`, pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setConnectionStatus('connected');
+      }
+    };
+
     pc.ontrack = (event) => {
+      console.log(`[P2P WebRTC] ontrack received: kind=${event.track.kind}, peer=${peerId}`);
       const streamTrack = event.track;
+      const remoteStream = (event.streams && event.streams[0]) ? event.streams[0] : new MediaStream([streamTrack]);
+
       const wrapped = {
         kind: streamTrack.kind,
         mediaStreamTrack: streamTrack,
+        stream: remoteStream,
         attach: (el) => {
           if (el) {
-            el.srcObject = new MediaStream([streamTrack]);
-            if (el.paused) el.play().catch(() => {});
+            el.srcObject = remoteStream;
+            if (streamTrack.kind === 'video') {
+              el.muted = true;
+              el.defaultMuted = true;
+              el.playsInline = true;
+            } else {
+              el.muted = false;
+            }
+            el.play().catch(() => {});
           }
           return el;
         },
@@ -721,6 +757,24 @@ export function CallProvider({ children }) {
         if (mediaResult.tracks && mediaResult.tracks.length > 0) {
           await livekitMediaService.publishLocalTracks(mediaResult.tracks);
         }
+
+        // Attach local tracks to any already active P2P connections
+        const curAudio = livekitMediaService.localAudioTrack?.mediaStreamTrack;
+        const curVideo = livekitMediaService.localVideoTrack?.mediaStreamTrack;
+        const curStream = new MediaStream();
+        if (curAudio) curStream.addTrack(curAudio);
+        if (curVideo) curStream.addTrack(curVideo);
+        peerConnectionsRef.current.forEach((peerConn) => {
+          if (peerConn && peerConn.signalingState !== 'closed') {
+            const senders = peerConn.getSenders();
+            if (curAudio && !senders.some((s) => s.track && s.track.kind === 'audio')) {
+              try { peerConn.addTrack(curAudio, curStream); } catch (_) {}
+            }
+            if (curVideo && !senders.some((s) => s.track && s.track.kind === 'video')) {
+              try { peerConn.addTrack(curVideo, curStream); } catch (_) {}
+            }
+          }
+        });
 
         // 5. Refresh camera list
         await refreshCameraDevices();
@@ -1061,6 +1115,9 @@ export function CallProvider({ children }) {
                 isSpeaking: false,
               });
             }
+
+            // Pre-initialize peer connection for answering
+            getP2PConnection(pId, false);
           }
         });
         return next;
@@ -1080,6 +1137,18 @@ export function CallProvider({ children }) {
           const pc = getP2PConnection(peerId, false);
           if (!pc) return;
           await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+
+          // Drain any buffered ICE candidates received before the offer was set
+          const queued = iceCandidateQueuesRef.current.get(peerId) || [];
+          for (const cand of queued) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (err) {
+              console.warn('[P2P WebRTC] Add queued ICE candidate error:', err);
+            }
+          }
+          iceCandidateQueuesRef.current.delete(peerId);
+
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           if (currentCallRef.current) {
@@ -1094,11 +1163,32 @@ export function CallProvider({ children }) {
           const pc = peerConnectionsRef.current.get(peerId);
           if (pc && pc.signalingState !== 'closed') {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+
+            // Drain any buffered ICE candidates received before the answer was set
+            const queued = iceCandidateQueuesRef.current.get(peerId) || [];
+            for (const cand of queued) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(cand));
+              } catch (err) {
+                console.warn('[P2P WebRTC] Add queued ICE candidate error:', err);
+              }
+            }
+            iceCandidateQueuesRef.current.delete(peerId);
           }
         } else if (signal.type === 'candidate' && signal.candidate) {
           const pc = peerConnectionsRef.current.get(peerId);
-          if (pc && pc.signalingState !== 'closed') {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            } catch (err) {
+              console.warn('[P2P WebRTC] Add candidate error:', err);
+            }
+          } else {
+            // Buffer candidate until remote description is set
+            if (!iceCandidateQueuesRef.current.has(peerId)) {
+              iceCandidateQueuesRef.current.set(peerId, []);
+            }
+            iceCandidateQueuesRef.current.get(peerId).push(signal.candidate);
           }
         }
       } catch (err) {
@@ -1119,6 +1209,7 @@ export function CallProvider({ children }) {
           }
           peerConnectionsRef.current.delete(strUserId);
         }
+        iceCandidateQueuesRef.current.delete(strUserId);
 
         setRemoteParticipants((prev) => {
           const next = new Map();

@@ -100,6 +100,7 @@ module.exports = (io, socket) => {
 
       // Join socket to call room
       socket.join(session.callId);
+      if (roomId) socket.join(roomId);
       socket.currentCallId = session.callId;
       socket.currentCallRoomId = roomId;
 
@@ -233,6 +234,7 @@ module.exports = (io, socket) => {
       }
 
       socket.join(callId);
+      if (roomId) socket.join(roomId);
       socket.currentCallId = callId;
       socket.currentCallRoomId = roomId;
 
@@ -285,15 +287,21 @@ module.exports = (io, socket) => {
   socket.on('call:signal', ({ callId, roomId, toUserId, signal }) => {
     try {
       if (!signal || !userIdStr) return;
-      const target = callId || roomId;
-      if (target) {
-        socket.to(target).emit('call:signal', {
-          callId,
-          roomId,
-          fromUserId: userIdStr,
-          toUserId: toUserId ? String(toUserId) : null,
-          signal
-        });
+      const payload = {
+        callId,
+        roomId,
+        fromUserId: userIdStr,
+        toUserId: toUserId ? String(toUserId) : null,
+        signal
+      };
+
+      if (callId && roomId && callId !== roomId) {
+        socket.to(callId).to(roomId).emit('call:signal', payload);
+      } else {
+        const target = callId || roomId;
+        if (target) {
+          socket.to(target).emit('call:signal', payload);
+        }
       }
     } catch (err) {
       logger.error(`[CallHandler] call:signal error: ${err.message}`);
