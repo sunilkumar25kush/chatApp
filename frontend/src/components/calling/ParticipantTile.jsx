@@ -39,7 +39,10 @@ function ParticipantTile({
 
     const updateRatio = () => {
       if (el.videoWidth && el.videoHeight) {
-        setVideoAspectRatio(el.videoWidth / el.videoHeight);
+        const nextRatio = el.videoWidth / el.videoHeight;
+        setVideoAspectRatio((prev) =>
+          prev && Math.abs(prev - nextRatio) < 0.01 ? prev : nextRatio
+        );
       }
     };
 

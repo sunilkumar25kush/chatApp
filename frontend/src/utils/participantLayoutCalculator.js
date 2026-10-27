@@ -8,7 +8,7 @@
 export function calculateParticipantLayout({ count, width, height }) {
   const isPortrait = height > width;
   const isMobile = width < 768;
-  const isLandscapeMobile = !isPortrait && height < 500;
+  const isLandscapeMobile = !isPortrait && height < 500 && width < 1024;
   const isCompactPhone = width <= 360;
 
   // Maximum tiles visible on screen before overflowing into roster

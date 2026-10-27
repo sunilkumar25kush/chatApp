@@ -52,24 +52,58 @@ export default function CallRoom({ onClose = null }) {
   }, []);
 
   const containerRef = useRef(null);
-  const [dimensions, setDimensions] = useState({
+  const [viewport, setViewport] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 1280,
-    height: typeof window !== 'undefined' ? window.innerHeight - 136 : 720,
+    height: typeof window !== 'undefined' ? window.innerHeight : 720,
+  }));
+  const [dimensions, setDimensions] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const h = typeof window !== 'undefined' ? window.innerHeight - 136 : 720;
+    return { width: w, height: h };
   });
 
   // ── Responsive Dimensions & Orientation Observer ─────────────────────────
   useEffect(() => {
+    let rafId = null;
+
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const { clientWidth, clientHeight } = containerRef.current;
-        if (clientWidth > 0 && clientHeight > 0) {
-          setDimensions({ width: clientWidth, height: clientHeight });
-          return;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+        const vh = typeof window !== 'undefined' ? window.innerHeight : 720;
+
+        let newWidth = vw;
+        let newHeight = vh - (vw < 768 ? 116 : 136);
+
+        if (containerRef.current) {
+          const { clientWidth, clientHeight } = containerRef.current;
+          if (clientWidth > 0 && clientHeight > 0) {
+            newWidth = clientWidth;
+            newHeight = clientHeight;
+          }
         }
-      }
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight - (window.innerWidth < 768 ? 110 : 136),
+
+        // 1. Stable container dimensions (thresholded to prevent fractional/subpixel zoom jitter)
+        setDimensions((prev) => {
+          if (
+            Math.abs(prev.width - newWidth) < 2 &&
+            Math.abs(prev.height - newHeight) < 2
+          ) {
+            return prev;
+          }
+          return { width: Math.round(newWidth), height: Math.round(newHeight) };
+        });
+
+        // 2. Stable window viewport (determines header/footer heights without circular main-height feedback)
+        setViewport((prev) => {
+          if (
+            Math.abs(prev.width - vw) < 2 &&
+            Math.abs(prev.height - vh) < 2
+          ) {
+            return prev;
+          }
+          return { width: Math.round(vw), height: Math.round(vh) };
+        });
       });
     };
 
@@ -86,15 +120,20 @@ export default function CallRoom({ onClose = null }) {
     }
 
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateDimensions);
       window.removeEventListener('orientationchange', updateDimensions);
       if (ro) ro.disconnect();
     };
   }, []);
 
-  const isMobile = dimensions.width < 768;
-  const isLandscapeMobile = dimensions.height < 500 && dimensions.width >= 500;
-  const isCompactPhone = dimensions.width <= 360;
+  // Viewport breakpoints for top-level chrome (Header & Footer heights)
+  const isMobile = viewport.width < 768;
+  const isLandscapeMobile =
+    viewport.height <= 500 &&
+    viewport.width < 1024 &&
+    viewport.width > viewport.height;
+  const isCompactPhone = viewport.width <= 360;
 
   // Construct local participant object
   const localParticipant = useMemo(() => {
@@ -210,10 +249,10 @@ export default function CallRoom({ onClose = null }) {
         color: '#f9fafb',
         display: 'flex',
         flexDirection: 'column',
-        height: '100dvh',
-        maxHeight: '100dvh',
-        width: '100vw',
-        maxWidth: '100vw',
+        height: '100%',
+        maxHeight: '100%',
+        width: '100%',
+        maxWidth: '100%',
         overflow: 'hidden',
         userSelect: 'none',
         paddingLeft: 'max(0px, env(safe-area-inset-left, 0px))',
