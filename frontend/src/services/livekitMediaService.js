@@ -626,24 +626,9 @@ class LiveKitMediaService {
     this.hasSetupSystemListeners = true;
 
     // 1. Mobile Screen Locking & Backgrounding Handling
-    document.addEventListener('visibilitychange', async () => {
-      if (document.hidden) {
-        if (this.localVideoTrack && !this.localVideoTrack.isMuted) {
-          this.wasCameraActiveBeforeBackground = true;
-          await this.setCameraEnabled(false);
-        }
-      } else {
-        if (this.wasCameraActiveBeforeBackground) {
-          this.wasCameraActiveBeforeBackground = false;
-          await this.setCameraEnabled(true);
-        }
-
-        // When returning to foreground, check if room or socket needs a refresh
-        if (this.room && this.room.state === 'disconnected' && this.lastSfuUrl && this.lastToken) {
-          console.log('[LiveKitMediaService] Foreground returned: resuming disconnected room...');
-          this.connect(this.lastSfuUrl, this.lastToken).catch(() => {});
-        }
-      }
+    document.addEventListener('visibilitychange', () => {
+      // Do not kill or restart the hardware camera sensor on visibility change / notification drawer,
+      // as re-acquiring the camera hardware on mobile Android/iOS causes hardware stalls and black screen flashes.
     });
 
     // 2. Network Switching (Wi-Fi ↔ Mobile Data) & Offline Detection

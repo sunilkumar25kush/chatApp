@@ -508,6 +508,30 @@ export function CallProvider({ children }) {
     });
   }, [updateRemoteParticipant, addCallNotification]);
 
+  // ── WebRTC ICE Restart Reconnection ────────────────────────────────────
+  const attemptIceRestart = useCallback(async (peerId, pc) => {
+    if (!pc || pc.signalingState === 'closed') return;
+    try {
+      console.log(`[P2P WebRTC] Executing ICE restart for peer ${peerId}`);
+      const offer = await pc.createOffer({
+        iceRestart: true,
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      });
+      await pc.setLocalDescription(offer);
+      if (currentCallRef.current) {
+        socket.emit('call:signal', {
+          callId: currentCallRef.current.callId,
+          roomId: currentCallRef.current.roomId,
+          toUserId: peerId,
+          signal: { type: 'offer', sdp: pc.localDescription.sdp, isIceRestart: true },
+        });
+      }
+    } catch (err) {
+      console.warn('[P2P WebRTC] ICE restart offer error:', err);
+    }
+  }, []);
+
   // ── WebRTC Direct P2P Fallback Engine ──────────────────────────────────
   const getP2PConnection = useCallback((peerId, isOfferer = false) => {
     if (!peerId) return null;
@@ -536,7 +560,19 @@ export function CallProvider({ children }) {
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun3.l.google.com:19302' },
           { urls: 'stun:stun.cloudflare.com:3478' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+          // OpenRelay TURN servers for symmetric NAT / mobile networks traversal
+          {
+            urls: [
+              'turn:openrelay.metered.ca:80',
+              'turn:openrelay.metered.ca:443',
+              'turn:openrelay.metered.ca:443?transport=tcp',
+            ],
+            username: 'openrelay',
+            credential: 'openrelay',
+          },
         ],
+        iceCandidatePoolSize: 10,
       });
     } catch (e) {
       console.warn('[P2P WebRTC] Failed to create RTCPeerConnection:', e);
@@ -577,10 +613,36 @@ export function CallProvider({ children }) {
       }
     };
 
+    let iceRestartTimeout = null;
     pc.oniceconnectionstatechange = () => {
-      console.log(`[P2P WebRTC] ICE state with ${peerId}:`, pc.iceConnectionState);
-      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      const state = pc.iceConnectionState;
+      console.log(`[P2P WebRTC] ICE state with ${peerId}:`, state);
+      if (state === 'connected' || state === 'completed') {
         setConnectionStatus('connected');
+        if (iceRestartTimeout) {
+          clearTimeout(iceRestartTimeout);
+          iceRestartTimeout = null;
+        }
+      } else if (state === 'disconnected') {
+        setConnectionStatus('poor');
+        if (!iceRestartTimeout) {
+          iceRestartTimeout = setTimeout(() => {
+            if (pc.signalingState !== 'closed' && (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')) {
+              attemptIceRestart(peerId, pc);
+            }
+            iceRestartTimeout = null;
+          }, 3500);
+        }
+      } else if (state === 'failed') {
+        setConnectionStatus('poor');
+        attemptIceRestart(peerId, pc);
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log(`[P2P WebRTC] Connection state with ${peerId}:`, pc.connectionState);
+      if (pc.connectionState === 'failed') {
+        attemptIceRestart(peerId, pc);
       }
     };
 
@@ -625,8 +687,20 @@ export function CallProvider({ children }) {
         };
         if (!existing.avatar && cached?.avatar) existing.avatar = cached.avatar;
         if ((!existing.name || existing.name === 'Participant') && cached?.name) existing.name = cached.name;
-        if (streamTrack.kind === 'video') existing.videoTrack = wrapped;
-        if (streamTrack.kind === 'audio') existing.audioTrack = wrapped;
+        if (streamTrack.kind === 'video') {
+          if (existing.videoTrack?.mediaStreamTrack?.id === streamTrack.id) {
+            // Keep same wrapped reference to prevent re-render flicker
+          } else {
+            existing.videoTrack = wrapped;
+          }
+        }
+        if (streamTrack.kind === 'audio') {
+          if (existing.audioTrack?.mediaStreamTrack?.id === streamTrack.id) {
+            // Keep same wrapped reference
+          } else {
+            existing.audioTrack = wrapped;
+          }
+        }
         next.set(peerId, { ...existing });
         return next;
       });
@@ -649,7 +723,7 @@ export function CallProvider({ children }) {
     }
 
     return pc;
-  }, []);
+  }, [attemptIceRestart]);
 
   // ── Core Method: Join or Start Call ─────────────────────────────────────
   const joinOrStartCall = useCallback(
@@ -883,6 +957,10 @@ export function CallProvider({ children }) {
     setIsMuted(nextState);
     await livekitMediaService.setMicrophoneEnabled(!nextState);
 
+    if (livekitMediaService.localAudioTrack?.mediaStreamTrack) {
+      livekitMediaService.localAudioTrack.mediaStreamTrack.enabled = !nextState;
+    }
+
     const call = currentCallRef.current;
     if (call) {
       socket.emit('call:toggle_media', {
@@ -899,6 +977,10 @@ export function CallProvider({ children }) {
     const nextState = !isCameraOffRef.current;
     setIsCameraOff(nextState);
     await livekitMediaService.setCameraEnabled(!nextState);
+
+    if (livekitMediaService.localVideoTrack?.mediaStreamTrack) {
+      livekitMediaService.localVideoTrack.mediaStreamTrack.enabled = !nextState;
+    }
 
     const call = currentCallRef.current;
     if (call) {
@@ -1240,11 +1322,14 @@ export function CallProvider({ children }) {
     const handleCallMediaChanged = ({ userId, mediaType, enabled }) => {
       setRemoteParticipants((prev) => {
         const next = new Map(prev);
-        const p = next.get(userId);
-        if (p) {
-          if (mediaType === 'audio') p.isAudioMuted = !enabled;
-          if (mediaType === 'video') p.isVideoMuted = !enabled;
-          next.set(userId, { ...p });
+        const strId = String(userId);
+        for (const [key, p] of next.entries()) {
+          const pId = String(p.identity || p.sid || p.user?._id || p.user?.id || key);
+          if (pId === strId || String(key) === strId) {
+            if (mediaType === 'audio') p.isAudioMuted = !enabled;
+            if (mediaType === 'video') p.isVideoMuted = !enabled;
+            next.set(key, { ...p });
+          }
         }
         return next;
       });

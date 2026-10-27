@@ -64,12 +64,15 @@ function ParticipantTile({
   const effectiveFit = fitMode || 'contain';
 
   // ── Attach/Detach Video Track ───────────────────────────────────────────
+  // ── Attach/Detach Video Track ───────────────────────────────────────────
   useEffect(() => {
     const el = videoRef.current;
     const bgEl = bgVideoRef.current;
-    if (!el || !videoTrack || isVideoMuted) {
-      if (el) el.srcObject = null;
-      if (bgEl) bgEl.srcObject = null;
+    if (!el) return;
+
+    if (!videoTrack) {
+      if (el.srcObject) el.srcObject = null;
+      if (bgEl && bgEl.srcObject) bgEl.srcObject = null;
       setVideoAttached(false);
       return;
     }
@@ -84,55 +87,65 @@ function ParticipantTile({
         bgEl.playsInline = true;
       }
 
-      if (typeof videoTrack.attach === 'function') {
+      let stream = null;
+      if (videoTrack.stream) {
+        stream = videoTrack.stream;
+      } else if (videoTrack.mediaStreamTrack) {
+        stream = videoTrack.stream || new MediaStream([videoTrack.mediaStreamTrack]);
+      } else if (videoTrack instanceof MediaStreamTrack) {
+        stream = new MediaStream([videoTrack]);
+      } else if (videoTrack instanceof MediaStream) {
+        stream = videoTrack;
+      }
+
+      if (stream) {
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+        }
+        if (bgEl && bgEl.srcObject !== stream) {
+          bgEl.srcObject = stream;
+        }
+      } else if (typeof videoTrack.attach === 'function') {
         videoTrack.attach(el);
         if (bgEl) videoTrack.attach(bgEl);
-      } else if (videoTrack.mediaStreamTrack) {
-        const stream = videoTrack.stream || new MediaStream([videoTrack.mediaStreamTrack]);
-        el.srcObject = stream;
-        if (bgEl) bgEl.srcObject = stream;
-      } else if (videoTrack instanceof MediaStreamTrack) {
-        const stream = new MediaStream([videoTrack]);
-        el.srcObject = stream;
-        if (bgEl) bgEl.srcObject = stream;
       }
-      el.play().catch(() => {});
-      if (bgEl) bgEl.play().catch(() => {});
-      setVideoAttached(true);
+
+      if (!isVideoMuted) {
+        el.play().catch(() => {});
+        if (bgEl) bgEl.play().catch(() => {});
+        setVideoAttached(true);
+      }
     } catch (err) {
       console.warn('[ParticipantTile] Error attaching video track:', err);
-      if (videoTrack?.mediaStreamTrack) {
-        try {
-          const stream = videoTrack.stream || new MediaStream([videoTrack.mediaStreamTrack]);
-          el.muted = true;
-          el.srcObject = stream;
-          if (bgEl) {
-            bgEl.muted = true;
-            bgEl.srcObject = stream;
-          }
-          el.play().catch(() => {});
-          if (bgEl) bgEl.play().catch(() => {});
-          setVideoAttached(true);
-        } catch {
-          /* ignore fallback error */
-        }
-      }
     }
+  }, [videoTrack, isVideoMuted]);
 
+  // Clean up media sources only when unmounting
+  useEffect(() => {
+    const el = videoRef.current;
+    const bgEl = bgVideoRef.current;
     return () => {
-      try {
-        if (typeof videoTrack.detach === 'function') {
-          videoTrack.detach(el);
-          if (bgEl) videoTrack.detach(bgEl);
-        }
-      } catch {
-        /* noop */
-      }
       if (el) el.srcObject = null;
       if (bgEl) bgEl.srcObject = null;
-      setVideoAttached(false);
     };
-  }, [videoTrack, isVideoMuted]);
+  }, []);
+
+  // Auto-resume playback if browser pauses video on orientation / screen dim
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const handlePause = () => {
+      if (hasVideo && el.paused) {
+        el.play().catch(() => {});
+      }
+    };
+
+    el.addEventListener('pause', handlePause);
+    return () => {
+      el.removeEventListener('pause', handlePause);
+    };
+  }, [hasVideo]);
 
   // ── Attach/Detach Remote Audio Track ────────────────────────────────────
   // NEVER attach local audio track to local element (causes feedback echo!)
