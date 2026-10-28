@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import toast from '../utils/toast';
+
 export default function VoiceRecorder({ onCancel, onSend }) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -11,11 +13,11 @@ export default function VoiceRecorder({ onCancel, onSend }) {
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert(
-          !window.isSecureContext
+        toast.error('Microphone Error', {
+          description: !window.isSecureContext
             ? 'HTTPS is required to access Microphone on non-localhost IP.'
-            : 'Microphone API is not supported by your browser.'
-        );
+            : 'Microphone API is not supported by your browser.',
+        });
         onCancel();
         return;
       }
@@ -44,13 +46,13 @@ export default function VoiceRecorder({ onCancel, onSend }) {
       }, 1000);
     } catch (err) {
       console.error('[VoiceRecorder Error] Failed to start:', err);
+      let desc = 'Could not access microphone: ' + (err.message || 'Unknown error');
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Microphone permission was denied in browser/OS settings.');
+        desc = 'Microphone permission was denied in browser/OS settings.';
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        alert('Microphone is currently in use by another app.');
-      } else {
-        alert('Could not access microphone: ' + (err.message || 'Unknown error'));
+        desc = 'Microphone is currently in use by another app.';
       }
+      toast.error('Microphone Access', { description: desc });
       onCancel();
     }
   };

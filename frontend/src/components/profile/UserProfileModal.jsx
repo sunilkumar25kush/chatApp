@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/useAuth';
 import ImageCropperModal from './ImageCropperModal';
 import { animateModalEnter } from '../../utils/animations';
+import toast from '../../utils/toast';
 
 export default function UserProfileModal({ targetUserId, onClose }) {
   const { user: currentUser, updateLocalUser } = useAuth();
@@ -85,10 +86,11 @@ export default function UserProfileModal({ targetUserId, onClose }) {
       setProfileData(response.data);
       updateLocalUser(response.data);
       setIsEditing(false);
+      toast.success('Profile updated', { description: 'Your profile changes have been saved.' });
     } catch (err) {
       console.error('Failed to save profile', err);
       const errMsg = err.response?.data?.message || err.message || 'Failed to save profile';
-      alert(`Failed to save profile: ${errMsg}`);
+      toast.error('Failed to save profile', { description: errMsg });
     } finally {
       setSaving(false);
     }
@@ -133,10 +135,11 @@ export default function UserProfileModal({ targetUserId, onClose }) {
       setProfileData(res.data);
       updateLocalUser(res.data);
       setEditForm((prev) => ({ ...prev, [cropTarget]: fileUrl }));
+      toast.success('Image updated', { description: `${cropTarget === 'avatar' ? 'Avatar' : 'Banner'} has been updated.` });
     } catch (err) {
       console.error('Failed to upload image', err);
       const errMsg = err.response?.data?.message || err.message || 'Upload failed';
-      alert(`Upload failed: ${errMsg}`);
+      toast.error('Upload failed', { description: errMsg });
     } finally {
       setSaving(false);
       setCropTarget(null);

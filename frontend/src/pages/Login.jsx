@@ -4,6 +4,7 @@ import { useAuth } from '../context/useAuth';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../services/api';
 import { connectSocket } from '../services/socket';
+import toast from '../utils/toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -40,6 +41,7 @@ export default function Login() {
     const errorMsg = validateForm();
     if (errorMsg) {
       setValidationError(errorMsg);
+      toast.error('Validation Error', { description: errorMsg });
       return;
     }
 
@@ -48,7 +50,10 @@ export default function Login() {
     setSubmitting(false);
 
     if (result.success) {
+      toast.success('Welcome back!', { description: 'Logged in successfully.' });
       navigate(redirectPath, { replace: true });
+    } else if (result.error) {
+      toast.error('Login Failed', { description: result.error });
     }
   };
 

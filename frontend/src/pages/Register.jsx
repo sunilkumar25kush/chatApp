@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import toast from '../utils/toast';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -48,6 +49,7 @@ export default function Register() {
     const errorMsg = validateForm();
     if (errorMsg) {
       setValidationError(errorMsg);
+      toast.error('Validation Error', { description: errorMsg });
       return;
     }
 
@@ -56,7 +58,10 @@ export default function Register() {
     setSubmitting(false);
 
     if (result.success) {
+      toast.success('Account Created!', { description: 'Welcome to ChatRoom. Redirecting to chat...' });
       navigate('/chat', { replace: true });
+    } else if (result.error) {
+      toast.error('Registration Failed', { description: result.error });
     }
   };
 
