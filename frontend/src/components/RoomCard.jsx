@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 export default function RoomCard({ room, onSelectRoom }) {
+  const [showCode, setShowCode] = useState(false);
+
   const getCategoryIcon = (category) => {
     switch (category) {
       case 'Tech': return '💻';
@@ -15,10 +19,43 @@ export default function RoomCard({ room, onSelectRoom }) {
         <span className="room-category-pill">
           {getCategoryIcon(room.category)} {room.category || 'General'}
         </span>
-        {room.code && (
-          <span className="room-code-badge" title="Room Code">
-            {room.code}
+        {room.isPrivate && (
+          <span className="roster-badge roster-badge-private" style={{ marginLeft: 6 }}>
+            🔒 Private
           </span>
+        )}
+        {room.code && (
+          showCode ? (
+            <span
+              className="room-code-badge"
+              title="Click to hide"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCode(false);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              {room.code} ✕
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="room-code-badge"
+              title="Click to view Room ID"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCode(true);
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                cursor: 'pointer',
+                color: 'var(--text-muted, #94a3b8)',
+              }}
+            >
+              👁️ Show Room ID
+            </button>
+          )
         )}
       </div>
 

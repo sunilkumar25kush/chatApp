@@ -26,9 +26,11 @@ export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName })
       setError('Please enter a valid Room Code or ID');
       return;
     }
-    // Validate format: ROOM-XXXX or alphanumeric 4-12 chars
-    if (!/^ROOM-[A-Z0-9]{4}$/.test(code) && !/^[A-Z0-9]{4,12}$/.test(code)) {
-      setError('Invalid format. Use ROOM-XXXX or custom code (4-12 chars)');
+    // Validate format: ROOM-XXXX, alphanumeric 4-12 chars, or 24-hex ObjectId
+    const isRoomCode = /^ROOM-[A-Z0-9]{4}$/i.test(code) || /^[A-Z0-9]{4,12}$/i.test(code);
+    const isObjectId = /^[a-fA-F0-9]{24}$/.test(code);
+    if (!isRoomCode && !isObjectId) {
+      setError('Invalid format. Enter Room Code (e.g. ROOM-XXXX) or Room ID');
       return;
     }
     onJoinRoom(code);

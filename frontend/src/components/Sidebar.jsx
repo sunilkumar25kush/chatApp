@@ -7,6 +7,7 @@ import ThemeSettingsModal from './profile/ThemeSettingsModal';
 import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import { SkeletonChatItem } from './SkeletonLoaders';
 import '../styles/gajim/gajim-provided.css'; // Import the new Gajim styles
+import { getRoomCreatorLabel } from '../utils/roomUtils';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -412,6 +413,11 @@ export default function Sidebar({
                                     {unreadCounts[room._id || room.id] > 99 ? '99+' : unreadCounts[room._id || room.id]}
                                   </span>
                                 )}
+                            </div>
+                            <div className="chat-item-bottom">
+                                <span className="chat-preview room-creator-preview" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
+                                  Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
+                                </span>
                             </div>
                         </div>
                       </div>
