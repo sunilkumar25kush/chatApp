@@ -124,6 +124,7 @@ const createRoom = async (req, res, next) => {
         description: (description || '').slice(0, 300),
         isPrivate: !!isPrivate,
         owner: userId,
+        createdBy: userId,
         admins: [userId],
         members: [userId],
         inviteCode: generateInviteCode()
@@ -131,6 +132,7 @@ const createRoom = async (req, res, next) => {
 
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar')
         .populate('admins', 'username email avatar');
 
@@ -147,6 +149,8 @@ const createRoom = async (req, res, next) => {
       description: description || '',
       isPrivate: !!isPrivate,
       owner: userId,
+      createdBy: userId,
+      createdByName: req.user?.username,
       admins: [userId],
       members: [userId],
       inviteCode: generateInviteCode(),
@@ -184,23 +188,17 @@ const getAllRooms = async (req, res, next) => {
       const [rooms, total] = await Promise.all([
         Room.find(filter)
           .populate('owner', 'username email avatar')
+          .populate('createdBy', 'username email avatar')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit),
         Room.countDocuments(filter)
       ]);
 
-      // Filter out private rooms user is not a member of
-      const accessibleRooms = rooms.filter(r => {
-        if (!r.isPrivate) return true;
-        const memberIds = (r.members || []).map(m => m.toString());
-        return memberIds.includes(userId.toString());
-      });
-
-      // 🔒 SECURITY: room code is a join credential — only expose it to
-      // members/creator. Non-members must not be able to read codes from the
-      // list API and join private rooms without an invite.
-      const formatted = accessibleRooms.map((r) => {
+      // Format all rooms for the list.
+      // Private rooms are shown to all users with a Private badge,
+      // but their join credential (code) is only revealed to members/creator.
+      const formatted = rooms.map((r) => {
         const memberIds = (r.members || []).map((m) => m.toString());
         const isMember = memberIds.includes(userId.toString());
         const isOwner = r.owner && (r.owner._id?.toString() === userId.toString() || r.owner.toString() === userId.toString());
@@ -213,27 +211,21 @@ const getAllRooms = async (req, res, next) => {
           description: r.description,
           isPrivate: r.isPrivate,
           owner: r.owner,
+          createdBy: r.createdBy || r.owner,
           // Tells the frontend whether this user may open the room directly
-          // (members/creator) without exposing the full member list.
+          // (members/creator) without entering the room ID/code.
           isMember: isMember || isOwner,
           membersCount: r.members ? r.members.length : 0,
           createdAt: r.createdAt
         };
       });
 
-      return res.json({ rooms: formatted, total: formatted.length, page, hasMore: skip + formatted.length < total });
+      return res.json({ rooms: formatted, total: total || formatted.length, page, hasMore: skip + formatted.length < total });
     }
 
     seedDefaultMemoryRooms();
     const rooms = Array.from(memoryRooms.values())
       .filter((r) => !r.isDeleted && (category === undefined || category === 'All' || r.category === category))
-      // Filter private rooms user is not member of
-      .filter((r) => {
-        if (!r.isPrivate) return true;
-        return (r.members || []).includes(userId);
-      })
-      // 🔒 SECURITY: same as DB path — code only for members/creator, and
-      // never leak the inviteCode through the list endpoint.
       .map((r) => {
         const isMember = (r.members || []).includes(userId);
         const isOwner = r.owner === userId || r.owner?._id === userId;
@@ -242,6 +234,7 @@ const getAllRooms = async (req, res, next) => {
           ...rest,
           id: r._id,
           code: isMember || isOwner ? code : undefined,
+          isMember: isMember || isOwner,
           membersCount: r.members ? r.members.length : 0
         };
       });
@@ -264,6 +257,7 @@ const getRoomByCode = async (req, res, next) => {
     if (isDBConnected()) {
       const room = await Room.findOne({ code: searchCode, isDeleted: { $ne: true } })
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
 
       if (!room) {
@@ -312,19 +306,30 @@ const joinRoomByCode = async (req, res, next) => {
       return res.status(400).json({ message: 'Room code is required' });
     }
 
-    const searchCode = code.toUpperCase().trim();
-    // Support both ROOM-XXXX format and custom alphanumeric codes (4-12 chars)
-    if (!/^ROOM-[A-Z0-9]{4}$/.test(searchCode) && !/^[A-Z0-9]{4,12}$/.test(searchCode)) {
-      return res.status(400).json({ message: 'Invalid room code format' });
+    const inputCode = code.trim();
+    const searchCode = inputCode.toUpperCase();
+    const isValidFormat =
+      /^ROOM-[A-Z0-9]{4}$/.test(searchCode) ||
+      /^[A-Z0-9]{4,12}$/.test(searchCode) ||
+      isValidObjectId(inputCode);
+
+    if (!isValidFormat) {
+      return res.status(400).json({ message: 'Invalid room code or ID format' });
     }
 
     const userId = getUserId(req);
 
     if (isDBConnected()) {
-      const room = await Room.findOne({ code: searchCode, isDeleted: { $ne: true } });
+      let room = null;
+      if (isValidObjectId(inputCode)) {
+        room = await Room.findOne({ _id: inputCode, isDeleted: { $ne: true } });
+      }
+      if (!room) {
+        room = await Room.findOne({ code: searchCode, isDeleted: { $ne: true } });
+      }
 
       if (!room) {
-        return res.status(404).json({ message: 'Invalid room code' });
+        return res.status(404).json({ message: 'Invalid room code or ID' });
       }
 
       // Private rooms are joined via their code — the code IS the access
@@ -340,6 +345,7 @@ const joinRoomByCode = async (req, res, next) => {
 
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
 
       // 🔒 SECURITY: strip inviteCode from join responses
@@ -529,14 +535,14 @@ const updateRoom = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = getUserId(req);
-    const { name, description, category, icon } = req.body;
+    const { name, description, category, icon, isPrivate } = req.body;
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
       if (!room) return res.status(404).json({ message: 'Room not found' });
 
       const isOwner = room.owner.toString() === userId;
-      const isAdmin = room.admins.some((a) => a.toString() === userId);
+      const isAdmin = (room.admins || []).some((a) => a.toString() === userId);
       if (!isOwner && !isAdmin) {
         return res.status(403).json({ message: 'Only the room owner or admins can update this room' });
       }
@@ -550,10 +556,14 @@ const updateRoom = async (req, res, next) => {
         room.category = category;
       }
       if (icon !== undefined) room.icon = String(icon).slice(0, 500);
+      if (isPrivate !== undefined) {
+        room.isPrivate = Boolean(isPrivate);
+      }
 
       await room.save();
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
       return res.json(populated);
     }
@@ -567,6 +577,7 @@ const updateRoom = async (req, res, next) => {
     if (description !== undefined) room.description = description;
     if (category !== undefined) room.category = category;
     if (icon !== undefined) room.icon = icon;
+    if (isPrivate !== undefined) room.isPrivate = Boolean(isPrivate);
     return res.json({ ...room, id: room._id, membersCount: room.members.length });
   } catch (error) {
     next(error);
@@ -607,6 +618,7 @@ const addMember = async (req, res, next) => {
 
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
       return res.json(populated);
     }
@@ -652,6 +664,7 @@ const removeMember = async (req, res, next) => {
 
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
       return res.json(populated);
     }

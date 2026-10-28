@@ -34,6 +34,12 @@ const roomSchema = new mongoose.Schema(
       ref: 'User',
       required: true
     },
+    // Original creator of the room — never changes, even if ownership is
+    // transferred (owner leaves). Used for the "Created by" label in the UI.
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
     // Gajim-style group chat roles: owner + admins (moderators)
     admins: [
       {
