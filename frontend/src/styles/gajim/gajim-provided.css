@@ -974,6 +974,101 @@ body.theme-galaxy {
   }
 }
 
+/* ── Goey Toast (Responsive & Top-Center Architecture) ─────────────── */
+[data-sonner-toaster] {
+  z-index: 999999 !important;
+  pointer-events: none !important;
+}
+
+[data-sonner-toaster][data-y-position='top'] {
+  top: max(14px, env(safe-area-inset-top, 14px)) !important;
+}
+
+[data-sonner-toaster][data-x-position='center'] {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+[data-sonner-toast] {
+  pointer-events: auto !important;
+  user-select: none;
+}
+
+[data-sonner-toast][data-x-position='center'] {
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: fit-content !important;
+}
+
+/* Tablet & Mobile responsiveness */
+@media (max-width: 768px) {
+  [data-sonner-toaster][data-x-position='center'] {
+    width: 100% !important;
+    max-width: 100vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  [data-sonner-toast] {
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .gooey-contentExpanded {
+    min-width: unset !important;
+    max-width: calc(100vw - 40px) !important;
+  }
+
+  .gooey-wrapper {
+    max-width: calc(100vw - 32px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  [data-sonner-toaster][data-y-position='top'] {
+    top: max(10px, env(safe-area-inset-top, 10px)) !important;
+  }
+
+  [data-sonner-toaster][data-x-position='center'] {
+    padding: 0 10px !important;
+  }
+
+  [data-sonner-toast] {
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .gooey-contentCompact {
+    padding: 6px 10px !important;
+  }
+
+  .gooey-contentExpanded {
+    min-width: unset !important;
+    max-width: calc(100vw - 24px) !important;
+    padding: 6px 10px 14px 10px !important;
+  }
+
+  .gooey-wrapper {
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .gooey-title {
+    font-size: 11.5px !important;
+  }
+
+  .gooey-description {
+    font-size: 12px !important;
+    word-break: break-word !important;
+  }
+}
+
+
 /* ── Call History Card in Chat ──────────────────────────── */
 .call-history-card {
   display: inline-flex;
