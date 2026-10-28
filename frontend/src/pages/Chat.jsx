@@ -34,7 +34,6 @@ export default function Chat() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   // Room that triggered the join-code modal (private room without access)
   const [pendingJoinRoom, setPendingJoinRoom] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   // Unread counts per room (roomId -> count) for badges + document.title
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -262,7 +261,7 @@ export default function Chat() {
       const createdRoom = response.data;
       setRooms((prev) => [createdRoom, ...prev]);
       handleSelectRoom(createdRoom);
-      showToast(`Room created · Code: ${createdRoom.code}`);
+      showToast(`Room "${createdRoom.name}" created! Tap "Show code" in the header to share it.`);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to create room';
       showToast(`Error: ${msg}`);
@@ -362,6 +361,18 @@ export default function Chat() {
                       }
                     }}
                     onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+                    onRoomUpdated={(updated) => {
+                      setRooms((prev) =>
+                        prev.map((r) =>
+                          (r._id || r.id) === (updated._id || updated.id) ? { ...r, ...updated } : r
+                        )
+                      );
+                      setActiveRoom((prev) =>
+                        prev && (prev._id || prev.id) === (updated._id || updated.id)
+                          ? { ...prev, ...updated }
+                          : prev
+                      );
+                    }}
                   />
                 </ErrorBoundary>
               ) : (
@@ -401,26 +412,6 @@ export default function Chat() {
           )}
         </main>
       </div>
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="app-toast" role="status" aria-live="polite">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 15 }}>✨</span>
-            <span>{toastMessage}</span>
-          </div>
-          <button
-            className="btn-icon"
-            onClick={() => setToastMessage('')}
-            aria-label="Dismiss"
-            style={{ width: 28, height: 28 }}
-          >
-            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      )}
 
       {/* Modals */}
       <CreateRoomModal
