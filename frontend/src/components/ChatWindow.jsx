@@ -15,19 +15,41 @@ import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import { SkeletonMessageList } from './SkeletonLoaders';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import { getRoomCreatorLabel } from '../utils/roomUtils';
 
-export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSidebar }) {
+export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSidebar, onRoomUpdated }) {
   const { user } = useAuth();
   const { startCall } = useCall();
   const { getActiveWallpaperForRoom, appearanceState } = useAppearance();
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  // Room code stays hidden until the user explicitly clicks "Show code"
+  const [showRoomId, setShowRoomId] = useState(false);
+  const [roomCodeCopied, setRoomCodeCopied] = useState(false);
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+
+  // Re-hide the room code whenever the user switches rooms
+  useEffect(() => {
+    setShowRoomId(false);
+    setRoomCodeCopied(false);
+  }, [room?._id, room?.id]);
+
+  const handleCopyRoomCode = async (e) => {
+    e.stopPropagation();
+    if (!room?.code) return;
+    try {
+      await navigator.clipboard.writeText(room.code);
+      setRoomCodeCopied(true);
+      setTimeout(() => setRoomCodeCopied(false), 1600);
+    } catch {
+      /* clipboard unavailable — code is still visible to copy manually */
+    }
+  };
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -722,7 +744,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       setReplyingTo(null);
     } catch (err) {
       console.error('[Upload Error] Failed to upload file:', err);
-      alert('File upload failed. Please try again.');
+      addNotification('Upload Failed', 'File upload failed. Please try again.', 'error');
       setUploadingFile(false);
     }
   };
@@ -767,7 +789,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       setReplyingTo(null);
     } catch (err) {
       console.error('[Upload Error] Failed to upload voice note:', err);
-      alert('Voice note upload failed.');
+      addNotification('Upload Failed', 'Voice note upload failed.', 'error');
       setUploadingFile(false);
     }
   };
@@ -873,98 +895,139 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
       {/* Layer 4: Top Header Bar (Dedicated Multi-Header Architecture) */}
       <header className="chat-header" id="chat-header" style={{ position: 'relative', zIndex: 4, flexShrink: 0 }}>
-          <div className="header-left">
-              <button className="btn-icon back-to-list-btn" onClick={onBack || onToggleMobileSidebar} title="Back to Chat List" aria-label="Back to Chat List">
-                  <svg className="icon bi bi-arrow-left" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
-              </button>
+        <div className="header-left">
+          <button className="btn-icon back-to-list-btn" onClick={onBack || onToggleMobileSidebar} title="Back to Chat List" aria-label="Back to Chat List">
+            <svg className="icon bi bi-arrow-left" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8" /></svg>
+          </button>
 
-              <div className="avatar-container">
-                  <div className="avatar" style={{ background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span className="avatar-text" style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{getUserInitials(room.name)}</span>
-                  </div>
-                  <span className="status-indicator status-online" id="header-status-dot"></span>
-              </div>
-              <div className="contact-details">
-                  <div className="contact-name-row">
-                      <h2 className="contact-name" id="header-contact-name" title={room.name || 'Chat'}>{room.name || 'Chat'}</h2>
-                      {room.isPrivate ? (
-                        <span className="header-status-badge badge-private" title="Private Space (Code Required)">
-                          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
-                          <span>Private</span>
-                        </span>
-                      ) : (
-                        <span className="header-status-badge badge-published" title="Published Public Channel">
-                          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1"/></svg>
-                          <span>Public</span>
-                        </span>
-                      )}
-                  </div>
-                  <p className="contact-status-text" id="header-status-text">
-                    {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) 
-                      ? `Code: ${room.code}` 
-                      : (room.description || (room.isPrivate ? 'Private Space' : 'Active Channel'))}
-                  </p>
-              </div>
-          </div>
-
-          <div className="header-right-actions">
-              <button className="btn-icon header-action-studio" onClick={() => setIsStudioOpen(true)} title="Chat Personality Studio" aria-label="Studio">
-                  <span>✨</span>
-              </button>
-              <button className="btn-icon header-action-voice" onClick={handleStartVoiceCall} title="Start Audio Call" aria-label="Audio Call">
-                  <svg className="icon bi bi-telephone-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42 18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z"/></svg>
-              </button>
-              <button className="btn-icon header-action-video" onClick={handleStartVideoCall} title="Start Video Call" aria-label="Video Call">
-                  <svg className="icon bi bi-camera-video-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2z"/></svg>
-              </button>
-              <button className="btn-icon header-action-more" onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)} title="More options" aria-label="More options">
-                  {/* Search icon (desktop) */}
-                  <svg className="icon icon-more-search bi bi-search" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
-                  {/* Three-dot icon (mobile) */}
-                  <svg className="icon icon-more-dots bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>
-              </button>
-              <button
-                className="btn-icon header-action-select"
-                onClick={() => setSelectionMode((prev) => !prev)}
-                title={selectionMode ? 'Exit multi-select mode' : 'Select messages'}
-                aria-label="Toggle multi-select"
-                style={selectionMode ? { color: 'var(--color-primary)', background: 'var(--primary-light)' } : undefined}
-              >
-                <svg className="icon bi bi-check2-square" viewBox="0 0 16 16" fill="currentColor"><path d="M3 14.5A1.5 1.5 0 0 1 1.5 13V3A1.5 1.5 0 0 1 3 1.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5zM10 5.5a.5.5 0 0 0-.854-.354l-3 3-1.5-1.5a.5.5 0 0 0-.708.708l2 2a.5.5 0 0 0 .708 0l3.5-3.5a.5.5 0 0 0 .146-.354"/></svg>
-              </button>
-              <div className="action-divider header-action-divider"></div>
-              {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-                <button className="btn-icon header-action-delete" onClick={handleDeleteRoom} title="Delete Room" aria-label="Delete Room">
-                    <svg className="icon bi bi-trash3-fill" viewBox="0 0 16 16" fill="#ef4444"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/></svg>
-                </button>
-              )}
-              <button className="btn-icon header-action-leave" onClick={() => onLeaveRoom(roomId)} title="Leave Room" aria-label="Leave Room">
-                  <svg className="icon bi bi-box-arrow-right" viewBox="0 0 16 16" fill="#ef4444"><path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/></svg>
-              </button>
-          </div>
-
-          {/* Mobile ⋮ More Dropdown Menu */}
-          {isMobileMoreOpen && (
-            <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()}>
-              <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }}>
-                <span>✨</span> Appearance Studio
-              </button>
-              <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }}>
-                <span>📹</span> Start Video Call
-              </button>
-              <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }}>
-                <span>☑️</span> Select Messages
-              </button>
-              {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-                <button className="mobile-more-dropdown-item destructive-action" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }}>
-                  <span>🗑️</span> Delete Room
-                </button>
-              )}
-              <button className="mobile-more-dropdown-item destructive-action" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }}>
-                <span>🚪</span> Leave Room
-              </button>
+          <div className="avatar-container">
+            <div className="avatar" style={{ background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="avatar-text" style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{getUserInitials(room.name)}</span>
             </div>
+            <span className="status-indicator status-online" id="header-status-dot"></span>
+          </div>
+          <div className="contact-details">
+            <div className="contact-name-row">
+              <h2 className="contact-name" id="header-contact-name" title={room.name || 'Chat'}>{room.name || 'Chat'}</h2>
+              {room.isPrivate ? (
+                <span className="header-status-badge badge-private" title="Private Space (Code Required)">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2" /></svg>
+                  <span>Private</span>
+                </span>
+              ) : (
+                <span className="header-status-badge badge-published" title="Published Public Channel">
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1" /></svg>
+                  <span>Public</span>
+                </span>
+              )}
+            </div>
+            <div className="contact-status-text room-meta-line" id="header-status-text">
+              <span className="room-created-by" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
+                Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
+              </span>
+              {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) && (
+                <>
+                  <span className="room-meta-sep" aria-hidden="true">·</span>
+                  {showRoomId ? (
+                    <span className="room-code-revealed">
+                      <code className="room-code-chip" id="header-room-code">{room.code}</code>
+                      <button
+                        type="button"
+                        className="room-code-action"
+                        id="header-copy-room-code"
+                        onClick={handleCopyRoomCode}
+                        title="Copy room code"
+                        aria-label="Copy room code"
+                      >
+                        {roomCodeCopied ? '✓' : '⧉'}
+                      </button>
+                      <button
+                        type="button"
+                        className="room-code-action"
+                        id="header-hide-room-code"
+                        onClick={(e) => { e.stopPropagation(); setShowRoomId(false); }}
+                        title="Hide room code"
+                        aria-label="Hide room code"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="room-code-reveal"
+                      id="header-show-room-code"
+                      onClick={(e) => { e.stopPropagation(); setShowRoomId(true); }}
+                      title="Show room code"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" /><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" /></svg>
+                      <span>Show code</span>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="header-right-actions">
+          <button className="btn-icon header-action-studio" onClick={() => setIsStudioOpen(true)} title="Chat Personality Studio" aria-label="Studio">
+            <span>✨</span>
+          </button>
+          <button className="btn-icon header-action-voice" onClick={handleStartVoiceCall} title="Start Audio Call" aria-label="Audio Call">
+            <svg className="icon bi bi-telephone-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42 18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z" /></svg>
+          </button>
+          <button className="btn-icon header-action-video" onClick={handleStartVideoCall} title="Start Video Call" aria-label="Video Call">
+            <svg className="icon bi bi-camera-video-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2z" /></svg>
+          </button>
+          <button className="btn-icon header-action-more" onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)} title="More options" aria-label="More options">
+            {/* Search icon (desktop) */}
+            <svg className="icon icon-more-search bi bi-search" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" /></svg>
+            {/* Three-dot icon (mobile) */}
+            <svg className="icon icon-more-dots bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" /></svg>
+          </button>
+          <button
+            className="btn-icon header-action-select"
+            onClick={() => setSelectionMode((prev) => !prev)}
+            title={selectionMode ? 'Exit multi-select mode' : 'Select messages'}
+            aria-label="Toggle multi-select"
+            style={selectionMode ? { color: 'var(--color-primary)', background: 'var(--primary-light)' } : undefined}
+          >
+            <svg className="icon bi bi-check2-square" viewBox="0 0 16 16" fill="currentColor"><path d="M3 14.5A1.5 1.5 0 0 1 1.5 13V3A1.5 1.5 0 0 1 3 1.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5zM10 5.5a.5.5 0 0 0-.854-.354l-3 3-1.5-1.5a.5.5 0 0 0-.708.708l2 2a.5.5 0 0 0 .708 0l3.5-3.5a.5.5 0 0 0 .146-.354" /></svg>
+          </button>
+          <div className="action-divider header-action-divider"></div>
+          {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
+            <button className="btn-icon header-action-delete" onClick={handleDeleteRoom} title="Delete Room" aria-label="Delete Room">
+              <svg className="icon bi bi-trash3-fill" viewBox="0 0 16 16" fill="#ef4444"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5" /></svg>
+            </button>
           )}
+          <button className="btn-icon header-action-leave" onClick={() => onLeaveRoom(roomId)} title="Leave Room" aria-label="Leave Room">
+            <svg className="icon bi bi-box-arrow-right" viewBox="0 0 16 16" fill="#ef4444"><path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z" /><path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z" /></svg>
+          </button>
+        </div>
+
+        {/* Mobile ⋮ More Dropdown Menu */}
+        {isMobileMoreOpen && (
+          <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()}>
+            <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }}>
+              <span>✨</span> Appearance Studio
+            </button>
+            <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }}>
+              <span>📹</span> Start Video Call
+            </button>
+            <button className="mobile-more-dropdown-item" onClick={() => { setSelectionMode(true); setIsMobileMoreOpen(false); }}>
+              <span>☑️</span> Select Messages
+            </button>
+            {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
+              <button className="mobile-more-dropdown-item destructive-action" onClick={() => { handleDeleteRoom(); setIsMobileMoreOpen(false); }}>
+                <span>🗑️</span> Delete Room
+              </button>
+            )}
+            <button className="mobile-more-dropdown-item destructive-action" onClick={() => { onLeaveRoom(roomId); setIsMobileMoreOpen(false); }}>
+              <span>🚪</span> Leave Room
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ─── Messages Feed Area ──────────────────────────────────────── */}
@@ -1133,7 +1196,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                   {/* Generic File Attachment */}
                   {msg.fileUrl && msg.fileType !== 'image' && msg.fileType !== 'audio' && (
                     <div className="attachment-item" style={{ marginTop: 4, width: 'fit-content', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-input)' }}>
-                      <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                      <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="13 2 13 9 20 9" /></svg>
                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', fontSize: 13, textDecoration: 'none' }}>
                         {msg.fileName || 'Download File'}
                       </a>
@@ -1219,12 +1282,12 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                   {isMissed
                                     ? 'No answer'
                                     : isDeclined
-                                    ? 'Call was declined'
-                                    : isBusy
-                                    ? 'Recipient was busy'
-                                    : durationStr
-                                    ? `Ended · ${durationStr}`
-                                    : 'Call ended'}
+                                      ? 'Call was declined'
+                                      : isBusy
+                                        ? 'Recipient was busy'
+                                        : durationStr
+                                          ? `Ended · ${durationStr}`
+                                          : 'Call ended'}
                                   {isGroup && callData.participantsCount && ` · ${callData.participantsCount} participants`}
                                 </div>
                               </div>
@@ -1305,7 +1368,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title="Search emojis"
                           aria-label="Search emojis"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                         </button>
                         <button
                           type="button"
@@ -1317,7 +1380,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title="More reactions"
                           aria-label="More reactions"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                         </button>
                       </div>
 
@@ -1337,7 +1400,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title="Reply"
                           aria-label="Reply"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7" /><path d="M20 18v-2a4 4 0 0 0-4-4H4" /></svg>
                         </button>
                         <button
                           type="button"
@@ -1350,7 +1413,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title="Copy text"
                           aria-label="Copy text"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
                         </button>
                         <button
                           type="button"
@@ -1363,7 +1426,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title={(msg.starredBy || []).includes(currentUserId) ? 'Unstar' : 'Star message'}
                           aria-label="Star message"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill={(msg.starredBy || []).includes(currentUserId) ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={(msg.starredBy || []).includes(currentUserId) ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                         </button>
                         {user?.username === senderName && (
                           <button
@@ -1377,7 +1440,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                             title="Edit message"
                             aria-label="Edit message"
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                           </button>
                         )}
                         {user?.username === senderName && (
@@ -1392,7 +1455,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                             title="Delete message"
                             aria-label="Delete message"
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                           </button>
                         )}
                         <button
@@ -1406,7 +1469,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                           title="Message Info"
                           aria-label="Message Info"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
                         </button>
                       </div>
                     </div>
@@ -1677,14 +1740,14 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           <form className="composer-form" id="composer-form" onSubmit={sendAndKeepFocus} autoComplete="off">
             <div className="composer-toolbar-left">
               <button type="button" className="btn-icon composer-action-attach" onClick={() => fileInputRef.current?.click()} title="Add Attachment" aria-label="Add Attachment">
-                <svg className="icon bi bi-paperclip" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>
+                <svg className="icon bi bi-paperclip" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z" /></svg>
               </button>
               <button type="button" className="btn-icon encryption-toggle-btn active composer-action-encryption" title="OMEMO Encryption: Enabled" aria-label="Toggle OMEMO Encryption">
-                <svg className="icon bi bi-shield-lock-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.464 9.99a11.8 11.8 0 0 0 4.148 3.208c.188.086.376.12.547.12.171 0 .359-.034.547-.12a11.8 11.8 0 0 0 4.148-3.208c1.677-2.195 3.06-5.513 2.464-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5"/></svg>
+                <svg className="icon bi bi-shield-lock-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.464 9.99a11.8 11.8 0 0 0 4.148 3.208c.188.086.376.12.547.12.171 0 .359-.034.547-.12a11.8 11.8 0 0 0 4.148-3.208c1.677-2.195 3.06-5.513 2.464-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" /></svg>
               </button>
               {/* Mobile-only: ⋮ opens the attachment menu (doc/img, voice, emoji) */}
               <button type="button" className="btn-icon composer-action-more" onClick={() => setIsComposerMoreOpen(!isComposerMoreOpen)} title="More options" aria-label="More options">
-                <svg className="icon bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>
+                <svg className="icon bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" /></svg>
               </button>
               {isComposerMoreOpen && (
                 <div className="composer-more-menu" role="menu" aria-label="Attachment options">
@@ -1721,8 +1784,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 }}
                 placeholder={
                   editingMessage ? 'Edit message... (Enter to save)' :
-                  replyingTo ? `Replying to @${replyingTo.sender?.username}... (Enter to send)` :
-                  `Send a message... `
+                    replyingTo ? `Replying to @${replyingTo.sender?.username}... (Enter to send)` :
+                      `Send a message... `
                 }
                 rows={1}
                 maxLength={2000}
@@ -1732,10 +1795,10 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
             <div className="composer-toolbar-right">
               <button type="button" className="btn-icon composer-action-voice" title="Voice Note" aria-label="Voice Note" onMouseDown={() => setIsRecordingVoice(true)}>
-                <svg className="icon bi bi-mic-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z"/><path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5"/></svg>
+                <svg className="icon bi bi-mic-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0z" /><path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5" /></svg>
               </button>
               <button type="button" className="btn-icon composer-action-emoji" id="emoji-trigger-btn" onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Insert Emoji" aria-label="Insert Emoji">
-                <svg className="icon bi bi-emoji-smile-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5M4.285 9.567a.5.5 0 0 1 .683.183A3.5 3.5 0 0 0 8 11.5a3.5 3.5 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8"/></svg>
+                <svg className="icon bi bi-emoji-smile-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16M7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5M4.285 9.567a.5.5 0 0 1 .683.183A3.5 3.5 0 0 0 8 11.5a3.5 3.5 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683M10 8c-.552 0-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5S10.552 8 10 8" /></svg>
               </button>
               <button
                 type="submit"
@@ -1752,7 +1815,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 }}
                 onClick={sendAndKeepFocus}
               >
-                <svg className="icon bi bi-send-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.131L2.247 7.39l11.884-4.814zm-1.39 10.012L9.93 8.363l.13-.215 5.565-5.565zm-2.073-.787 2.05-2.05-3.32-2.112z"/></svg>
+                <svg className="icon bi bi-send-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.131L2.247 7.39l11.884-4.814zm-1.39 10.012L9.93 8.363l.13-.215 5.565-5.565zm-2.073-.787 2.05-2.05-3.32-2.112z" /></svg>
               </button>
             </div>
           </form>
@@ -1777,9 +1840,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
       {/* User Profile Modal */}
       {targetProfileId && (
-        <UserProfileModal 
-          targetUserId={targetProfileId} 
-          onClose={() => setTargetProfileId(null)} 
+        <UserProfileModal
+          targetUserId={targetProfileId}
+          onClose={() => setTargetProfileId(null)}
         />
       )}
 
