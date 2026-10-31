@@ -5,6 +5,7 @@ import { useAuth } from '../../context/useAuth';
 import ImageCropperModal from './ImageCropperModal';
 import { animateModalEnter } from '../../utils/animations';
 import toast from '../../utils/toast';
+import SpotlightCard from './SpotlightCard';
 
 export default function UserProfileModal({ targetUserId, onClose }) {
   const { user: currentUser, updateLocalUser } = useAuth();
@@ -15,6 +16,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Image Upload States
   const [cropTarget, setCropTarget] = useState(null); // 'avatar' or 'bannerImage'
@@ -30,8 +32,21 @@ export default function UserProfileModal({ targetUserId, onClose }) {
     const fetchProfile = async () => {
       try {
         if (isMe) {
-          setProfileData(currentUser);
-          setEditForm(currentUser);
+          let userWithId = currentUser;
+          // Ensure publicId is available even if local cache was created earlier
+          if (!currentUser?.publicId) {
+            try {
+              const idRes = await api.get('/users/my-id');
+              if (idRes.data?.publicId) {
+                userWithId = { ...currentUser, publicId: idRes.data.publicId };
+                updateLocalUser(userWithId);
+              }
+            } catch {
+              // fallback gracefully
+            }
+          }
+          setProfileData(userWithId);
+          setEditForm(userWithId);
           setLoading(false);
         } else {
           const response = await api.get(`/users/${targetUserId}`);
@@ -44,7 +59,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
       }
     };
     if (targetUserId) fetchProfile();
-  }, [targetUserId, isMe, currentUser]);
+  }, [targetUserId, isMe, currentUser, updateLocalUser]);
 
   // Lock body scroll and listen for Escape key
   useEffect(() => {
@@ -82,6 +97,9 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         ...editForm,
         birthday: editForm.birthday ? editForm.birthday : null
       };
+      // Prevent accidental publicId submission
+      delete payload.publicId;
+
       const response = await api.put('/users/profile', payload);
       setProfileData(response.data);
       updateLocalUser(response.data);
@@ -93,6 +111,54 @@ export default function UserProfileModal({ targetUserId, onClose }) {
       toast.error('Failed to save profile', { description: errMsg });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Copy Public ID to clipboard
+  const handleCopyPublicId = async () => {
+    if (!profileData?.publicId) return;
+    try {
+      await navigator.clipboard.writeText(profileData.publicId);
+      setCopied(true);
+      toast.success('ID Copied!', { description: `${profileData.publicId} copied to clipboard.` });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy ID:', err);
+      toast.error('Copy failed', { description: 'Could not copy to clipboard.' });
+    }
+  };
+
+  // Share Public ID using Web Share API with copy fallback
+  const handleSharePublicId = async () => {
+    if (!profileData?.publicId) return;
+    const name = profileData.fullName || profileData.username || 'User';
+    const shareText = `Connect with ${name} on ChatRoom! Public ID: ${profileData.publicId}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${name}'s User ID`,
+          text: shareText,
+          url: window.location.origin
+        });
+        toast.success('Shared successfully!');
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(profileData.publicId);
+            toast.info('Sharing unavailable', { description: 'Public ID copied to clipboard instead.' });
+          } catch {
+            toast.error('Share failed', { description: 'Could not share or copy ID.' });
+          }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(profileData.publicId);
+        toast.info('Sharing not supported on this browser', { description: `${profileData.publicId} copied to clipboard!` });
+      } catch {
+        toast.error('Copy failed', { description: 'Could not copy ID.' });
+      }
     }
   };
 
@@ -190,7 +256,22 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         {/* Mobile Drag Handle Indicator */}
         <div className="user-profile-drag-handle" aria-hidden="true" />
 
-        <div className="user-profile-scroll-area" data-lenis-prevent>
+        <SpotlightCard
+          className="user-profile-scroll-area"
+          data-lenis-prevent
+          theme="dark"
+          spotlightColor="#ffffff"
+          intensity={0.15}
+          spotlightSize={240}
+          softness={0.7}
+          shape="circle"
+          borderGlow={0.6}
+          proximity={80}
+          smoothing={0.3}
+          grain={0}
+          ambient={false}
+          flare
+        >
           {/* Banner Section */}
           <div className="profile-banner-container">
             <img src={bannerSrc} alt="Profile Banner" className="profile-banner-img" />
@@ -341,6 +422,59 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 <h2 className="profile-identity-title">{displayName}</h2>
                 <div className="profile-identity-handle">@{profileData.username}</div>
                 
+                {/* Clearly Displayed Permanent Public ID with Copy & Share Actions */}
+                {profileData.publicId && (
+                  <div className="profile-user-id-container">
+                    <div className="profile-user-id-badge">
+                      <span className="profile-user-id-label">PUBLIC ID</span>
+                      <span className="profile-user-id-value">{profileData.publicId}</span>
+                    </div>
+                    <div className="profile-user-id-actions">
+                      <button
+                        type="button"
+                        onClick={handleCopyPublicId}
+                        className={`btn-user-id-action ${copied ? 'copied' : ''}`}
+                        title="Copy Public ID"
+                        aria-label="Copy Public ID"
+                      >
+                        {copied ? (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSharePublicId}
+                        className="btn-user-id-action"
+                        title="Share Public ID"
+                        aria-label="Share Public ID"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                        </svg>
+                        <span>Share</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {profileData.customStatus?.text && (
                   <div className="profile-status-pill">
                     <span>{profileData.customStatus.emoji}</span>
@@ -360,7 +494,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
               </div>
             )}
           </div>
-        </div>
+        </SpotlightCard>
       </div>
 
       {/* Hidden File Input */}
