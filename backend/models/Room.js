@@ -25,6 +25,11 @@ const roomSchema = new mongoose.Schema(
       default: '',
       maxlength: [300, 'Description must be under 300 characters']
     },
+    visibility: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'public'
+    },
     isPrivate: {
       type: Boolean,
       default: false
@@ -82,7 +87,24 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
+// Bidirectional synchronization between visibility ('public'|'private') and isPrivate (boolean)
+roomSchema.pre('validate', function (next) {
+  if (this.isModified('isPrivate') && !this.isModified('visibility')) {
+    this.visibility = this.isPrivate ? 'private' : 'public';
+  } else if (this.isModified('visibility')) {
+    this.isPrivate = this.visibility === 'private';
+  } else {
+    if (this.visibility) {
+      this.isPrivate = this.visibility === 'private';
+    } else if (typeof this.isPrivate === 'boolean') {
+      this.visibility = this.isPrivate ? 'private' : 'public';
+    }
+  }
+  next();
+});
+
 // Indexes
+roomSchema.index({ visibility: 1, category: 1, createdAt: -1 });
 roomSchema.index({ isPrivate: 1, category: 1, createdAt: -1 });
 roomSchema.index({ members: 1 });
 roomSchema.index({ name: 'text', description: 'text' });
