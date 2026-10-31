@@ -665,12 +665,12 @@ export default function Sidebar({
                 items={chatItems}
                 initialSelectedIndex={selectedChatIndex}
                 onItemSelect={handleChatSelect}
-                selectOnHover={false}
+                selectOnHover={true}
                 theme="gajim"
                 width="100%"
                 maxHeight="100%"
-                gap={2}
-                radius={12}
+                gap={4}
+                radius={10}
                 frame={false}
                 showGradients={false}
                 animation="pop"

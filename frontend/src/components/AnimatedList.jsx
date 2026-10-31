@@ -164,6 +164,7 @@ const AnimatedList = ({
     items,
     onItemSelect,
     selected,
+    initialSelectedIndex,
     selectOnHover,
     enableArrowNavigation,
     loop,
@@ -345,6 +346,7 @@ const AnimatedList = ({
       reveal(restyle.length > 0);
     };
 
+    entered = true;
     sync();
 
     const gate =
@@ -431,6 +433,10 @@ const AnimatedList = ({
     };
     const onLeave = () => {
       engaged = false;
+      const initIdx = settingsRef.current.initialSelectedIndex;
+      if (initIdx !== undefined && initIdx >= 0) {
+        setSelected(initIdx);
+      }
     };
 
     viewport.addEventListener('scroll', onScroll, { passive: true });
