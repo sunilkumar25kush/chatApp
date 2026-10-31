@@ -3,6 +3,22 @@ const crypto = require('crypto');
 const Room = require('../models/Room');
 const Message = require('../models/Message');
 const CallHistory = require('../models/CallHistory');
+const {
+  normalizeId,
+  isPrivateRoom,
+  isRoomOwner,
+  isRoomAdmin,
+  isRoomMember,
+  checkRoomAccess
+} = require('../utils/roomAccess');
+const getSocketIO = () => {
+  try {
+    return require('../socket/socket').getIO();
+  } catch {
+    return null;
+  }
+};
+const logger = require('../utils/logger');
 
 // In-memory rooms fallback store
 const memoryRooms = new Map();
@@ -38,6 +54,7 @@ const seedDefaultMemoryRooms = () => {
         code: 'ROOM-REACT',
         category: 'Tech',
         description: 'Discuss React 18, Vite, Next.js, and frontend design architectures.',
+        visibility: 'public',
         isPrivate: false,
         owner: 'system',
         admins: [],
@@ -50,6 +67,7 @@ const seedDefaultMemoryRooms = () => {
         code: 'ROOM-JS99',
         category: 'Tech',
         description: 'Async JS, Node.js backend patterns, Express, and performance tips.',
+        visibility: 'public',
         isPrivate: false,
         owner: 'system',
         admins: [],
@@ -62,6 +80,7 @@ const seedDefaultMemoryRooms = () => {
         code: 'ROOM-GAME',
         category: 'Gaming',
         description: 'Find squad mates, discuss PC & console gaming, and share highlights.',
+        visibility: 'public',
         isPrivate: false,
         owner: 'system',
         admins: [],
@@ -74,6 +93,7 @@ const seedDefaultMemoryRooms = () => {
         code: 'ROOM-GEN1',
         category: 'General',
         description: 'Casual conversations, daily check-ins, and community announcements.',
+        visibility: 'public',
         isPrivate: false,
         owner: 'system',
         admins: [],
@@ -97,7 +117,7 @@ const getUserId = (req) => (req.user?._id ? req.user._id.toString() : req.user?.
  */
 const createRoom = async (req, res, next) => {
   try {
-    const { name, category, description, isPrivate } = req.body;
+    const { name, category, description, isPrivate, visibility } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ message: 'Room name is required' });
@@ -107,6 +127,8 @@ const createRoom = async (req, res, next) => {
     }
 
     const userId = getUserId(req);
+    const resolvedVisibility = visibility ? visibility : (isPrivate ? 'private' : 'public');
+    const resolvedIsPrivate = resolvedVisibility === 'private';
 
     if (isDBConnected()) {
       // Ensure unique room code (retry on collision)
@@ -122,7 +144,8 @@ const createRoom = async (req, res, next) => {
         code: roomCode,
         category: category || 'General',
         description: (description || '').slice(0, 300),
-        isPrivate: !!isPrivate,
+        visibility: resolvedVisibility,
+        isPrivate: resolvedIsPrivate,
         owner: userId,
         createdBy: userId,
         admins: [userId],
@@ -147,7 +170,8 @@ const createRoom = async (req, res, next) => {
       code: generateRoomCode(),
       category: category || 'General',
       description: description || '',
-      isPrivate: !!isPrivate,
+      visibility: resolvedVisibility,
+      isPrivate: resolvedIsPrivate,
       owner: userId,
       createdBy: userId,
       createdByName: req.user?.username,
@@ -168,7 +192,7 @@ const createRoom = async (req, res, next) => {
 };
 
 /**
- * @desc    Get all available rooms (paginated, excludes soft-deleted)
+ * @desc    Get all available rooms (paginated, excludes soft-deleted & hides private rooms from non-members)
  * @route   GET /api/rooms?page=1&limit=50&category=Tech
  * @access  Private
  */
@@ -181,8 +205,17 @@ const getAllRooms = async (req, res, next) => {
     const userId = getUserId(req);
 
     if (isDBConnected()) {
-      // Build filter: exclude deleted rooms; for private rooms, only show if user is member
-      const filter = { isDeleted: { $ne: true } };
+      // 🔒 SECURITY: Exclude soft-deleted rooms.
+      // Private rooms are strictly hidden from non-members in public listings.
+      const filter = {
+        isDeleted: { $ne: true },
+        $or: [
+          { isPrivate: false, visibility: { $ne: 'private' } },
+          { members: userId },
+          { owner: userId },
+          { admins: userId }
+        ]
+      };
       if (category && category !== 'All') filter.category = category;
 
       const [rooms, total] = await Promise.all([
@@ -195,26 +228,23 @@ const getAllRooms = async (req, res, next) => {
         Room.countDocuments(filter)
       ]);
 
-      // Format all rooms for the list.
-      // Private rooms are shown to all users with a Private badge,
-      // but their join credential (code) is only revealed to members/creator.
       const formatted = rooms.map((r) => {
-        const memberIds = (r.members || []).map((m) => m.toString());
-        const isMember = memberIds.includes(userId.toString());
-        const isOwner = r.owner && (r.owner._id?.toString() === userId.toString() || r.owner.toString() === userId.toString());
+        const isMem = isRoomMember(r, userId);
+        const isOwn = isRoomOwner(r, userId);
+        const isPriv = isPrivateRoom(r);
         return {
           _id: r._id.toString(),
           id: r._id.toString(),
           name: r.name,
-          code: isMember || isOwner ? r.code : undefined,
+          // Only show room code if user has membership rights or if public
+          code: isMem || isOwn || !isPriv ? r.code : undefined,
           category: r.category,
           description: r.description,
-          isPrivate: r.isPrivate,
+          visibility: r.visibility || (r.isPrivate ? 'private' : 'public'),
+          isPrivate: isPriv,
           owner: r.owner,
           createdBy: r.createdBy || r.owner,
-          // Tells the frontend whether this user may open the room directly
-          // (members/creator) without entering the room ID/code.
-          isMember: isMember || isOwner,
+          isMember: isMem || isOwn,
           membersCount: r.members ? r.members.length : 0,
           createdAt: r.createdAt
         };
@@ -226,19 +256,96 @@ const getAllRooms = async (req, res, next) => {
     seedDefaultMemoryRooms();
     const rooms = Array.from(memoryRooms.values())
       .filter((r) => !r.isDeleted && (category === undefined || category === 'All' || r.category === category))
+      .filter((r) => {
+        const isPriv = isPrivateRoom(r);
+        if (!isPriv) return true;
+        return isRoomMember(r, userId);
+      })
       .map((r) => {
-        const isMember = (r.members || []).includes(userId);
-        const isOwner = r.owner === userId || r.owner?._id === userId;
+        const isMem = isRoomMember(r, userId);
+        const isOwn = isRoomOwner(r, userId);
+        const isPriv = isPrivateRoom(r);
         const { code, inviteCode, ...rest } = r;
         return {
           ...rest,
           id: r._id,
-          code: isMember || isOwner ? code : undefined,
-          isMember: isMember || isOwner,
+          visibility: r.visibility || (r.isPrivate ? 'private' : 'public'),
+          isPrivate: isPriv,
+          code: isMem || isOwn || !isPriv ? code : undefined,
+          isMember: isMem || isOwn,
           membersCount: r.members ? r.members.length : 0
         };
       });
     return res.json({ rooms: rooms.slice(skip, skip + limit), total: rooms.length, page, hasMore: skip + limit < rooms.length });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get room details by ID (enforcing privacy)
+ * @route   GET /api/rooms/:id
+ * @access  Private
+ */
+const getRoomById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = getUserId(req);
+
+    if (isDBConnected()) {
+      if (!isValidObjectId(id)) {
+        return res.status(400).json({ message: 'Invalid room id' });
+      }
+
+      const room = await Room.findOne({ _id: id, isDeleted: { $ne: true } })
+        .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
+        .populate('members', 'username email avatar')
+        .populate('admins', 'username email avatar');
+
+      if (!room) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+
+      const access = checkRoomAccess(room, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
+
+      const roomObj = room.toObject();
+      const isOwnerOrAdmin = access.isOwner || access.isAdmin;
+      if (!isOwnerOrAdmin) {
+        delete roomObj.inviteCode;
+      }
+      return res.json({
+        ...roomObj,
+        visibility: roomObj.visibility || (roomObj.isPrivate ? 'private' : 'public')
+      });
+    }
+
+    const room = memoryRooms.get(id);
+    if (!room || room.isDeleted) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const access = checkRoomAccess(room, userId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({
+        message: access.reason || 'This is a private room. You are not an authorized member.',
+        code: access.code || 'ROOM_ACCESS_DENIED'
+      });
+    }
+
+    const { inviteCode, ...safeRoom } = room;
+    return res.json({
+      ...safeRoom,
+      id: room._id,
+      visibility: room.visibility || (room.isPrivate ? 'private' : 'public'),
+      membersCount: room.members ? room.members.length : 0
+    });
   } catch (error) {
     next(error);
   }
@@ -253,6 +360,7 @@ const getRoomByCode = async (req, res, next) => {
   try {
     const { code } = req.params;
     const searchCode = code.toUpperCase().trim();
+    const userId = getUserId(req);
 
     if (isDBConnected()) {
       const room = await Room.findOne({ code: searchCode, isDeleted: { $ne: true } })
@@ -264,9 +372,20 @@ const getRoomByCode = async (req, res, next) => {
         return res.status(404).json({ message: 'Room not found with that code' });
       }
 
-      // 🔒 SECURITY: never expose inviteCode (or the raw doc) via this route
+      // Check access if private room
+      const access = checkRoomAccess(room, userId);
+      if (!access.allowed) {
+        return res.status(403).json({
+          message: 'This room is private. Details cannot be viewed with code alone.',
+          code: 'ROOM_ACCESS_DENIED'
+        });
+      }
+
       const { inviteCode, ...safeRoom } = room.toObject();
-      return res.json(safeRoom);
+      return res.json({
+        ...safeRoom,
+        visibility: safeRoom.visibility || (safeRoom.isPrivate ? 'private' : 'public')
+      });
     }
 
     seedDefaultMemoryRooms();
@@ -282,12 +401,20 @@ const getRoomByCode = async (req, res, next) => {
       return res.status(404).json({ message: 'Room not found with that code' });
     }
 
-    // 🔒 SECURITY: strip inviteCode from memory-room responses too
+    const access = checkRoomAccess(found, userId);
+    if (!access.allowed) {
+      return res.status(403).json({
+        message: 'This room is private. Details cannot be viewed with code alone.',
+        code: 'ROOM_ACCESS_DENIED'
+      });
+    }
+
     const { inviteCode, ...safeFound } = found;
     return res.json({
       ...safeFound,
       id: found._id,
-      membersCount: found.members.length
+      visibility: found.visibility || (found.isPrivate ? 'private' : 'public'),
+      membersCount: found.members ? found.members.length : 0
     });
   } catch (error) {
     next(error);
@@ -295,7 +422,7 @@ const getRoomByCode = async (req, res, next) => {
 };
 
 /**
- * @desc    Join a room using room code
+ * @desc    Join a room using room code (public rooms only; private rooms require invite)
  * @route   POST /api/rooms/join
  * @access  Private
  */
@@ -332,13 +459,20 @@ const joinRoomByCode = async (req, res, next) => {
         return res.status(404).json({ message: 'Invalid room code or ID' });
       }
 
-      // Private rooms are joined via their code — the code IS the access
-      // token. Anyone with the correct code (shared by the owner) can join.
-      // (Frontend only asks for the code when the room is private & user
-      // isn't a member/creator yet, so this check never leaks public rooms.)
+      // 🔒 SECURITY: If the room is private, unauthorized non-members cannot join
+      // via room code or room ID. Joining requires direct addition or invite link.
+      if (isPrivateRoom(room)) {
+        const isMember = isRoomMember(room, userId);
+        if (!isMember) {
+          return res.status(403).json({
+            message: 'This room is private. Unauthorized joins using room code are not permitted. Please use an invitation link or ask the owner to add you.',
+            code: 'ROOM_ACCESS_DENIED'
+          });
+        }
+      }
 
       // Duplicate join prevention
-      if (!room.members.includes(userId)) {
+      if (!room.members.some((m) => m.toString() === userId.toString())) {
         room.members.push(userId);
         await room.save();
       }
@@ -348,9 +482,11 @@ const joinRoomByCode = async (req, res, next) => {
         .populate('createdBy', 'username email avatar')
         .populate('members', 'username email avatar');
 
-      // 🔒 SECURITY: strip inviteCode from join responses
       const { inviteCode, ...safePopulated } = populated.toObject();
-      return res.json(safePopulated);
+      return res.json({
+        ...safePopulated,
+        visibility: safePopulated.visibility || (safePopulated.isPrivate ? 'private' : 'public')
+      });
     }
 
     seedDefaultMemoryRooms();
@@ -363,13 +499,13 @@ const joinRoomByCode = async (req, res, next) => {
     }
 
     if (!found) {
-      // Create custom room if code doesn't exist yet in fallback mode
       found = {
         _id: 'mem_room_' + Date.now(),
         name: code,
         code: searchCode,
         category: 'Custom',
         description: `Custom channel ${searchCode}`,
+        visibility: 'public',
         isPrivate: false,
         owner: userId,
         admins: [userId],
@@ -378,14 +514,189 @@ const joinRoomByCode = async (req, res, next) => {
         createdAt: new Date().toISOString()
       };
       memoryRooms.set(found._id, found);
-    } else if (!found.members.includes(userId)) {
-      found.members.push(userId);
+    } else {
+      if (isPrivateRoom(found) && !isRoomMember(found, userId)) {
+        return res.status(403).json({
+          message: 'This room is private. Unauthorized joins using room code are not permitted.',
+          code: 'ROOM_ACCESS_DENIED'
+        });
+      }
+      if (!found.members.includes(userId)) {
+        found.members.push(userId);
+      }
     }
 
     return res.json({
       ...found,
       id: found._id,
+      visibility: found.visibility || (found.isPrivate ? 'private' : 'public'),
       membersCount: found.members.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Helper to evict non-members from a room's socket channel when made private
+ */
+const evictUnauthorizedSocketsFromRoom = async (room) => {
+  const io = getSocketIO();
+  if (!io) return;
+  const roomIdStr = room._id ? room._id.toString() : room.id;
+  try {
+    const authorizedIds = new Set((room.members || []).map(normalizeId));
+    if (room.owner) authorizedIds.add(normalizeId(room.owner));
+    (room.admins || []).forEach((a) => authorizedIds.add(normalizeId(a)));
+
+    const socketsInRoom = await io.in(roomIdStr).fetchSockets();
+    for (const s of socketsInRoom) {
+      const sockUserId = s.user ? normalizeId(s.user._id || s.user.id) : null;
+      if (!sockUserId || !authorizedIds.has(sockUserId)) {
+        logger.info(`[Room Visibility] Revoking access for socket ${s.id} (user: ${sockUserId}) from private room ${roomIdStr}`);
+        s.leave(roomIdStr);
+        s.roomId = null;
+        s.emit('room_access_revoked', {
+          roomId: roomIdStr,
+          message: 'This room has been made private. You are no longer a member.'
+        });
+      }
+    }
+  } catch (socketErr) {
+    logger.error(`[Room Visibility] Error evicting sockets: ${socketErr.message}`);
+  }
+};
+
+/**
+ * @desc    Convert room visibility between public and private (owner/admins only)
+ * @route   PUT /api/rooms/:id/visibility (or PUT /api/rooms/:id/privacy)
+ * @access  Private (owner/admins)
+ */
+const updateRoomVisibility = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = getUserId(req);
+    const { visibility, isPrivate } = req.body;
+
+    let targetVisibility;
+    if (visibility !== undefined) {
+      if (!['public', 'private'].includes(visibility)) {
+        return res.status(400).json({ message: 'Visibility must be either "public" or "private"' });
+      }
+      targetVisibility = visibility;
+    } else if (isPrivate !== undefined) {
+      targetVisibility = Boolean(isPrivate) ? 'private' : 'public';
+    } else {
+      return res.status(400).json({ message: 'Must provide "visibility" or "isPrivate"' });
+    }
+
+    const targetIsPrivate = targetVisibility === 'private';
+
+    if (isDBConnected()) {
+      if (!isValidObjectId(id)) {
+        return res.status(400).json({ message: 'Invalid room id' });
+      }
+
+      const room = await Room.findById(id);
+      if (!room || room.isDeleted) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+
+      // Authorization: owner or admins only
+      if (!isRoomAdmin(room, userId)) {
+        return res.status(403).json({
+          message: 'Only the room owner or admins can change room visibility',
+          code: 'FORBIDDEN'
+        });
+      }
+
+      room.visibility = targetVisibility;
+      room.isPrivate = targetIsPrivate;
+      await room.save();
+
+      const populated = await Room.findById(room._id)
+        .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
+        .populate('members', 'username email avatar')
+        .populate('admins', 'username email avatar');
+
+      // ── Socket.IO Real-Time Privacy Enforcement ──────────────────────
+      const io = getSocketIO();
+      if (io) {
+        const roomIdStr = room._id.toString();
+
+        if (targetIsPrivate) {
+          await evictUnauthorizedSocketsFromRoom(room);
+        }
+
+        // Notify room members
+        io.to(roomIdStr).emit('room_visibility_changed', {
+          roomId: roomIdStr,
+          visibility: targetVisibility,
+          isPrivate: targetIsPrivate,
+          name: room.name
+        });
+
+        // Broadcast to all clients so public room listings and tabs update in real time
+        io.emit('room_updated', {
+          _id: roomIdStr,
+          id: roomIdStr,
+          name: room.name,
+          category: room.category,
+          visibility: targetVisibility,
+          isPrivate: targetIsPrivate
+        });
+      }
+
+      const { inviteCode, ...safePopulated } = populated.toObject();
+      return res.json({
+        ...safePopulated,
+        visibility: targetVisibility,
+        isPrivate: targetIsPrivate
+      });
+    }
+
+    // Memory fallback
+    const room = memoryRooms.get(id);
+    if (!room || room.isDeleted) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    if (!isRoomAdmin(room, userId)) {
+      return res.status(403).json({
+        message: 'Only the room owner or admins can change room visibility',
+        code: 'FORBIDDEN'
+      });
+    }
+
+    room.visibility = targetVisibility;
+    room.isPrivate = targetIsPrivate;
+
+    const io = getSocketIO();
+    if (io) {
+      io.to(id).emit('room_visibility_changed', {
+        roomId: id,
+        visibility: targetVisibility,
+        isPrivate: targetIsPrivate,
+        name: room.name
+      });
+      io.emit('room_updated', {
+        _id: id,
+        id: id,
+        name: room.name,
+        category: room.category,
+        visibility: targetVisibility,
+        isPrivate: targetIsPrivate
+      });
+    }
+
+    const { inviteCode, ...safeRoom } = room;
+    return res.json({
+      ...safeRoom,
+      id: room._id,
+      visibility: targetVisibility,
+      isPrivate: targetIsPrivate,
+      membersCount: room.members ? room.members.length : 0
     });
   } catch (error) {
     next(error);
@@ -406,7 +717,12 @@ const joinRoomByInvite = async (req, res, next) => {
       for (const r of memoryRooms.values()) {
         if (r.inviteCode === inviteCode) {
           if (!r.members.includes(userId)) r.members.push(userId);
-          return res.json({ ...r, id: r._id, membersCount: r.members.length });
+          return res.json({
+            ...r,
+            id: r._id,
+            visibility: r.visibility || (r.isPrivate ? 'private' : 'public'),
+            membersCount: r.members.length
+          });
         }
       }
       return res.status(404).json({ message: 'Invalid invite link' });
@@ -415,7 +731,7 @@ const joinRoomByInvite = async (req, res, next) => {
     const room = await Room.findOne({ inviteCode, isDeleted: { $ne: true } });
     if (!room) return res.status(404).json({ message: 'Invalid invite link' });
 
-    if (!room.members.includes(userId)) {
+    if (!room.members.some((m) => m.toString() === userId.toString())) {
       room.members.push(userId);
       await room.save();
     }
@@ -424,9 +740,11 @@ const joinRoomByInvite = async (req, res, next) => {
       .populate('owner', 'username email avatar')
       .populate('members', 'username email avatar');
 
-    // 🔒 SECURITY: strip inviteCode from invite-link join responses too
     const { inviteCode: _inviteCode, ...safePopulated } = populated.toObject();
-    return res.json(safePopulated);
+    return res.json({
+      ...safePopulated,
+      visibility: safePopulated.visibility || (safePopulated.isPrivate ? 'private' : 'public')
+    });
   } catch (error) {
     next(error);
   }
@@ -444,7 +762,7 @@ const leaveRoom = async (req, res, next) => {
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) {
+      if (!room || room.isDeleted) {
         return res.status(404).json({ message: 'Room not found' });
       }
 
@@ -461,6 +779,29 @@ const leaveRoom = async (req, res, next) => {
       }
 
       await room.save();
+
+      // Evict user socket from room and broadcast member update
+      const io = getSocketIO();
+      if (io) {
+        try {
+          const socketsInRoom = await io.in(id.toString()).fetchSockets();
+          for (const s of socketsInRoom) {
+            const sockUserId = s.user ? normalizeId(s.user._id || s.user.id) : null;
+            if (sockUserId === normalizeId(userId)) {
+              s.leave(id.toString());
+              s.roomId = null;
+              s.emit('room_access_revoked', {
+                roomId: id.toString(),
+                message: 'You have left the room.'
+              });
+            }
+          }
+          io.to(id.toString()).emit('user_left', { roomId: id, userId });
+        } catch (e) {
+          logger.error(`[leaveRoom] Socket eviction error: ${e.message}`);
+        }
+      }
+
       return res.json({ message: 'Successfully left room', roomId: id });
     }
 
@@ -471,6 +812,20 @@ const leaveRoom = async (req, res, next) => {
       if (room.owner === userId && room.members[0]) {
         room.owner = room.members[0];
         if (!room.admins.includes(room.owner)) room.admins.push(room.owner);
+      }
+      const io = getSocketIO();
+      if (io) {
+        try {
+          const socketsInRoom = await io.in(id.toString()).fetchSockets();
+          for (const s of socketsInRoom) {
+            const sockUserId = s.user ? normalizeId(s.user._id || s.user.id) : null;
+            if (sockUserId === normalizeId(userId)) {
+              s.leave(id.toString());
+              s.roomId = null;
+            }
+          }
+          io.to(id.toString()).emit('user_left', { roomId: id, userId });
+        } catch (e) {}
       }
     }
     return res.json({ message: 'Successfully left room', roomId: id });
@@ -491,11 +846,9 @@ const deleteRoom = async (req, res, next) => {
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) return res.status(404).json({ message: 'Room not found' });
+      if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
 
-      const isOwner = room.owner.toString() === userId;
-      const isAdmin = room.admins.some((a) => a.toString() === userId);
-      if (!isOwner && !isAdmin) {
+      if (!isRoomAdmin(room, userId)) {
         return res.status(403).json({ message: 'Only the room owner or admins can delete this room' });
       }
 
@@ -510,15 +863,44 @@ const deleteRoom = async (req, res, next) => {
         CallHistory.deleteMany({ room: id })
       ]);
 
+      const io = getSocketIO();
+      if (io) {
+        try {
+          const socketsInRoom = await io.in(id.toString()).fetchSockets();
+          for (const s of socketsInRoom) {
+            s.leave(id.toString());
+            s.roomId = null;
+            s.emit('room_access_revoked', {
+              roomId: id.toString(),
+              message: 'This room has been deleted.'
+            });
+          }
+          io.emit('room_deleted', { roomId: id });
+        } catch (e) {
+          logger.error(`[deleteRoom] Socket eviction error: ${e.message}`);
+        }
+      }
+
       return res.json({ message: 'Room deleted', roomId: id });
     }
 
     const room = memoryRooms.get(id);
     if (room) {
-      if (room.owner !== userId && !(room.admins || []).includes(userId)) {
+      if (!isRoomAdmin(room, userId)) {
         return res.status(403).json({ message: 'Only the room owner or admins can delete this room' });
       }
       room.isDeleted = true;
+      const io = getSocketIO();
+      if (io) {
+        try {
+          const socketsInRoom = await io.in(id.toString()).fetchSockets();
+          for (const s of socketsInRoom) {
+            s.leave(id.toString());
+            s.roomId = null;
+          }
+          io.emit('room_deleted', { roomId: id });
+        } catch (e) {}
+      }
     }
     return res.json({ message: 'Room deleted', roomId: id });
   } catch (error) {
@@ -527,7 +909,7 @@ const deleteRoom = async (req, res, next) => {
 };
 
 /**
- * @desc    Update room (name / icon / description / category) — owner/admins only
+ * @desc    Update room (name / icon / description / category / privacy) — owner/admins only
  * @route   PUT /api/rooms/:id
  * @access  Private (owner/admins)
  */
@@ -535,15 +917,13 @@ const updateRoom = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = getUserId(req);
-    const { name, description, category, icon, isPrivate } = req.body;
+    const { name, description, category, icon, isPrivate, visibility } = req.body;
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) return res.status(404).json({ message: 'Room not found' });
+      if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
 
-      const isOwner = room.owner.toString() === userId;
-      const isAdmin = (room.admins || []).some((a) => a.toString() === userId);
-      if (!isOwner && !isAdmin) {
+      if (!isRoomAdmin(room, userId)) {
         return res.status(403).json({ message: 'Only the room owner or admins can update this room' });
       }
 
@@ -556,11 +936,40 @@ const updateRoom = async (req, res, next) => {
         room.category = category;
       }
       if (icon !== undefined) room.icon = String(icon).slice(0, 500);
-      if (isPrivate !== undefined) {
+      if (visibility !== undefined) {
+        room.visibility = visibility;
+        room.isPrivate = visibility === 'private';
+      } else if (isPrivate !== undefined) {
         room.isPrivate = Boolean(isPrivate);
+        room.visibility = room.isPrivate ? 'private' : 'public';
       }
 
       await room.save();
+
+      if (visibility !== undefined || isPrivate !== undefined) {
+        if (room.isPrivate) {
+          await evictUnauthorizedSocketsFromRoom(room);
+        }
+        const io = getSocketIO();
+        if (io) {
+          const roomIdStr = room._id.toString();
+          io.to(roomIdStr).emit('room_visibility_changed', {
+            roomId: roomIdStr,
+            visibility: room.visibility,
+            isPrivate: room.isPrivate,
+            name: room.name
+          });
+          io.emit('room_updated', {
+            _id: roomIdStr,
+            id: roomIdStr,
+            name: room.name,
+            category: room.category,
+            visibility: room.visibility,
+            isPrivate: room.isPrivate
+          });
+        }
+      }
+
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
         .populate('createdBy', 'username email avatar')
@@ -569,15 +978,21 @@ const updateRoom = async (req, res, next) => {
     }
 
     const room = memoryRooms.get(id);
-    if (!room) return res.status(404).json({ message: 'Room not found' });
-    if (room.owner !== userId && !(room.admins || []).includes(userId)) {
+    if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
+    if (!isRoomAdmin(room, userId)) {
       return res.status(403).json({ message: 'Only the room owner or admins can update this room' });
     }
     if (name !== undefined) room.name = name.trim();
     if (description !== undefined) room.description = description;
     if (category !== undefined) room.category = category;
     if (icon !== undefined) room.icon = icon;
-    if (isPrivate !== undefined) room.isPrivate = Boolean(isPrivate);
+    if (visibility !== undefined) {
+      room.visibility = visibility;
+      room.isPrivate = visibility === 'private';
+    } else if (isPrivate !== undefined) {
+      room.isPrivate = Boolean(isPrivate);
+      room.visibility = room.isPrivate ? 'private' : 'public';
+    }
     return res.json({ ...room, id: room._id, membersCount: room.members.length });
   } catch (error) {
     next(error);
@@ -601,11 +1016,9 @@ const addMember = async (req, res, next) => {
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) return res.status(404).json({ message: 'Room not found' });
+      if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
 
-      const isOwner = room.owner.toString() === requesterId;
-      const isAdmin = room.admins.some((a) => a.toString() === requesterId);
-      if (!isOwner && !isAdmin) {
+      if (!isRoomAdmin(room, requesterId)) {
         return res.status(403).json({ message: 'Only the room owner or admins can add members' });
       }
 
@@ -613,7 +1026,9 @@ const addMember = async (req, res, next) => {
         return res.status(400).json({ message: 'Room has reached its member limit' });
       }
 
-      if (!room.members.includes(targetId)) room.members.push(targetId);
+      if (!room.members.some((m) => m.toString() === targetId.toString())) {
+        room.members.push(targetId);
+      }
       await room.save();
 
       const populated = await Room.findById(room._id)
@@ -624,8 +1039,8 @@ const addMember = async (req, res, next) => {
     }
 
     const room = memoryRooms.get(id);
-    if (!room) return res.status(404).json({ message: 'Room not found' });
-    if (room.owner !== requesterId && !(room.admins || []).includes(requesterId)) {
+    if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
+    if (!isRoomAdmin(room, requesterId)) {
       return res.status(403).json({ message: 'Only the room owner or admins can add members' });
     }
     if (!room.members.includes(targetId)) room.members.push(targetId);
@@ -647,11 +1062,9 @@ const removeMember = async (req, res, next) => {
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) return res.status(404).json({ message: 'Room not found' });
+      if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
 
-      const isOwner = room.owner.toString() === requesterId;
-      const isAdmin = room.admins.some((a) => a.toString() === requesterId);
-      if (!isOwner && !isAdmin) {
+      if (!isRoomAdmin(room, requesterId)) {
         return res.status(403).json({ message: 'Only the room owner or admins can remove members' });
       }
       if (room.owner.toString() === targetId) {
@@ -662,6 +1075,26 @@ const removeMember = async (req, res, next) => {
       room.admins = room.admins.filter((m) => m.toString() !== targetId);
       await room.save();
 
+      // If room is private, evict socket if currently connected
+      if (isPrivateRoom(room)) {
+        const io = getSocketIO();
+        if (io) {
+          io.in(id.toString()).fetchSockets().then((sockets) => {
+            sockets.forEach((s) => {
+              const sockUserId = s.user ? normalizeId(s.user._id || s.user.id) : null;
+              if (sockUserId === targetId) {
+                s.leave(id.toString());
+                s.roomId = null;
+                s.emit('room_access_revoked', {
+                  roomId: id.toString(),
+                  message: 'You have been removed from this private room.'
+                });
+              }
+            });
+          }).catch((e) => logger.error(`[RemoveMember Eviction] ${e.message}`));
+        }
+      }
+
       const populated = await Room.findById(room._id)
         .populate('owner', 'username email avatar')
         .populate('createdBy', 'username email avatar')
@@ -670,8 +1103,8 @@ const removeMember = async (req, res, next) => {
     }
 
     const room = memoryRooms.get(id);
-    if (!room) return res.status(404).json({ message: 'Room not found' });
-    if (room.owner !== requesterId && !(room.admins || []).includes(requesterId)) {
+    if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
+    if (!isRoomAdmin(room, requesterId)) {
       return res.status(403).json({ message: 'Only the room owner or admins can remove members' });
     }
     if (room.owner === targetId) return res.status(400).json({ message: 'Cannot remove the room owner' });
@@ -696,8 +1129,8 @@ const promoteMember = async (req, res, next) => {
 
     if (isDBConnected()) {
       const room = await Room.findById(id);
-      if (!room) return res.status(404).json({ message: 'Room not found' });
-      if (room.owner.toString() !== requesterId) {
+      if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
+      if (!isRoomOwner(room, requesterId)) {
         return res.status(403).json({ message: 'Only the room owner can promote members' });
       }
       if (!room.members.some((m) => m.toString() === targetId)) {
@@ -709,8 +1142,8 @@ const promoteMember = async (req, res, next) => {
     }
 
     const room = memoryRooms.get(id);
-    if (!room) return res.status(404).json({ message: 'Room not found' });
-    if (room.owner !== requesterId) return res.status(403).json({ message: 'Only the room owner can promote members' });
+    if (!room || room.isDeleted) return res.status(404).json({ message: 'Room not found' });
+    if (!isRoomOwner(room, requesterId)) return res.status(403).json({ message: 'Only the room owner can promote members' });
     room.admins = room.admins || [];
     if (!room.admins.includes(targetId)) room.admins.push(targetId);
     return res.json({ message: 'Member promoted to admin' });
@@ -720,25 +1153,46 @@ const promoteMember = async (req, res, next) => {
 };
 
 /**
- * @desc    Get room members list
+ * @desc    Get room members list (enforcing privacy)
  * @route   GET /api/rooms/:id/members
  * @access  Private
  */
 const getRoomMembers = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userId = getUserId(req);
 
     if (isDBConnected()) {
+      if (!isValidObjectId(id)) {
+        return res.status(400).json({ message: 'Invalid room id' });
+      }
       const room = await Room.findById(id).populate('members', 'username email avatar createdAt status');
-      if (!room) {
+      if (!room || room.isDeleted) {
         return res.status(404).json({ message: 'Room not found' });
       }
+
+      const access = checkRoomAccess(room, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
+
       return res.json({ members: room.members, owner: room.owner, admins: room.admins });
     }
 
     const room = memoryRooms.get(id);
-    if (!room) {
+    if (!room || room.isDeleted) {
       return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const access = checkRoomAccess(room, userId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({
+        message: access.reason || 'This is a private room. You are not an authorized member.',
+        code: access.code || 'ROOM_ACCESS_DENIED'
+      });
     }
 
     const membersList = room.members.map((mId) => ({
@@ -755,7 +1209,7 @@ const getRoomMembers = async (req, res, next) => {
 };
 
 /**
- * @desc    Search rooms by name/code/description
+ * @desc    Search rooms by name/code/description (hides private rooms from non-members)
  * @route   GET /api/rooms/search?q=term
  * @access  Private
  */
@@ -766,10 +1220,12 @@ const searchRooms = async (req, res, next) => {
 
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const userId = getUserId(req);
 
     if (!isDBConnected()) {
       const results = Array.from(memoryRooms.values())
         .filter((r) => !r.isDeleted && (r.name.toLowerCase().includes(q.toLowerCase()) || (r.code || '').toLowerCase().includes(q.toLowerCase())))
+        .filter((r) => !isPrivateRoom(r) || isRoomMember(r, userId))
         .slice(0, limit);
       return res.json({ rooms: results, total: results.length });
     }
@@ -777,18 +1233,33 @@ const searchRooms = async (req, res, next) => {
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const filter = {
       isDeleted: { $ne: true },
-      $or: [
-        { name: { $regex: escaped, $options: 'i' } },
-        { code: { $regex: escaped, $options: 'i' } },
-        { description: { $regex: escaped, $options: 'i' } }
+      $and: [
+        {
+          $or: [
+            { isPrivate: false, visibility: { $ne: 'private' } },
+            { members: userId },
+            { owner: userId },
+            { admins: userId }
+          ]
+        },
+        {
+          $or: [
+            { name: { $regex: escaped, $options: 'i' } },
+            { code: { $regex: escaped, $options: 'i' } },
+            { description: { $regex: escaped, $options: 'i' } }
+          ]
+        }
       ]
     };
-    const rooms = await Room.find(filter)
-      .populate('owner', 'username email avatar')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-    return res.json({ rooms, total: rooms.length });
+    const [rooms, total] = await Promise.all([
+      Room.find(filter)
+        .populate('owner', 'username email avatar')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Room.countDocuments(filter)
+    ]);
+    return res.json({ rooms, total });
   } catch (error) {
     next(error);
   }
@@ -797,9 +1268,11 @@ const searchRooms = async (req, res, next) => {
 module.exports = {
   createRoom,
   getAllRooms,
+  getRoomById,
   getRoomByCode,
   joinRoomByCode,
   joinRoomByInvite,
+  updateRoomVisibility,
   leaveRoom,
   deleteRoom,
   updateRoom,

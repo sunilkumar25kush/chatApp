@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { generatePublicId } = require('../utils/publicId');
 const oauth2Client = require('../config/google');
 const { memoryUsers } = require('./authController');
 
@@ -49,13 +50,23 @@ const googleLogin = async (req, res, next) => {
       }
 
       if (user) {
+        let changed = false;
         // If user exists but has no googleId, link it
         if (!user.googleId) {
           user.googleId = googleId;
           user.provider = 'google';
           user.emailVerified = emailVerified;
-          // Update avatar if none or prefer Google's picture
           if (picture) user.avatar = picture;
+          changed = true;
+        }
+
+        // Backfill publicId if missing on legacy user
+        if (!user.publicId) {
+          user.publicId = generatePublicId();
+          changed = true;
+        }
+
+        if (changed) {
           await user.save();
         }
 
@@ -71,6 +82,7 @@ const googleLogin = async (req, res, next) => {
           username: user.username,
           email: user.email,
           avatar: user.avatar,
+          publicId: user.publicId,
           token
         });
       }
@@ -85,14 +97,31 @@ const googleLogin = async (req, res, next) => {
         username = `${baseUsername}${suffix}`;
       }
 
-      const newUser = await User.create({
-        username,
-        email,
-        avatar: picture,
-        provider: 'google',
-        googleId,
-        emailVerified
-      });
+      let newUser = null;
+      let attempts = 0;
+      while (attempts < 5) {
+        try {
+          newUser = await User.create({
+            username,
+            email,
+            avatar: picture,
+            provider: 'google',
+            googleId,
+            emailVerified,
+            publicId: generatePublicId()
+          });
+          break;
+        } catch (createErr) {
+          if (createErr.code === 11000 && createErr.keyPattern && createErr.keyPattern.publicId) {
+            attempts++;
+            if (attempts >= 5) {
+              throw new Error('Failed to generate unique public ID. Please try again.');
+            }
+            continue;
+          }
+          throw createErr;
+        }
+      }
 
       const token = generateToken(newUser._id.toString());
       res.cookie('token', token, {
@@ -106,11 +135,11 @@ const googleLogin = async (req, res, next) => {
         username: newUser.username,
         email: newUser.email,
         avatar: newUser.avatar,
+        publicId: newUser.publicId,
         token
       });
     } else {
       // In-memory fallback
-      // Try find by googleId
       let found = null;
       for (const u of memoryUsers.values()) {
         if (u.googleId && u.googleId === googleId) {
@@ -137,6 +166,10 @@ const googleLogin = async (req, res, next) => {
           found.avatar = picture;
         }
 
+        if (!found.publicId) {
+          found.publicId = generatePublicId();
+        }
+
         const token = generateToken(found._id);
         res.cookie('token', token, {
           httpOnly: true,
@@ -149,6 +182,7 @@ const googleLogin = async (req, res, next) => {
           username: found.username,
           email: found.email,
           avatar: found.avatar,
+          publicId: found.publicId,
           token
         });
       }
@@ -156,6 +190,13 @@ const googleLogin = async (req, res, next) => {
       // Create in-memory user
       const id = 'mem_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
       const username = deriveUsername(name || email);
+
+      let memPublicId = generatePublicId();
+      const existingIds = new Set(Array.from(memoryUsers.values()).map((u) => u.publicId));
+      while (existingIds.has(memPublicId)) {
+        memPublicId = generatePublicId();
+      }
+
       const memUser = {
         _id: id,
         username,
@@ -164,6 +205,7 @@ const googleLogin = async (req, res, next) => {
         provider: 'google',
         emailVerified,
         avatar: picture,
+        publicId: memPublicId,
         createdAt: new Date().toISOString()
       };
 
@@ -181,6 +223,7 @@ const googleLogin = async (req, res, next) => {
         username: memUser.username,
         email: memUser.email,
         avatar: memUser.avatar,
+        publicId: memUser.publicId,
         token
       });
     }

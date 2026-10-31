@@ -3,6 +3,7 @@ const Message = require('../models/Message');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const { memoryUsers } = require('./authController');
+const { generatePublicId, isValidPublicId, normalizePublicId } = require('../utils/publicId');
 
 const isDBConnected = () => mongoose.connection.readyState === 1;
 
@@ -37,6 +38,111 @@ const getUserById = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get current authenticated user's permanent Public ID
+ * @route   GET /api/users/my-id
+ * @access  Private
+ */
+const getMyPublicId = async (req, res, next) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User authorization failed' });
+    }
+
+    let publicId = req.user?.publicId;
+
+    if (!publicId && isDBConnected() && mongoose.Types.ObjectId.isValid(userId)) {
+      const user = await User.findById(userId);
+      if (user) {
+        if (!user.publicId) {
+          user.publicId = generatePublicId();
+          await user.save();
+        }
+        publicId = user.publicId;
+      }
+    }
+
+    if (!publicId && memoryUsers) {
+      const memUser = memoryUsers.get(String(userId));
+      if (memUser) {
+        if (!memUser.publicId) {
+          memUser.publicId = generatePublicId();
+        }
+        publicId = memUser.publicId;
+      }
+    }
+
+    if (!publicId) {
+      publicId = generatePublicId();
+    }
+
+    return res.json({
+      success: true,
+      publicId
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Look up another user by exact Public ID
+ * @route   GET /api/users/lookup/:publicId
+ * @access  Private
+ */
+const lookupByPublicId = async (req, res, next) => {
+  try {
+    const rawId = req.params.publicId;
+    if (!isValidPublicId(rawId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid public ID format. Expected format: SKY-XXXXXX or CHAT-XXXXXX'
+      });
+    }
+
+    const normalized = normalizePublicId(rawId);
+    let targetUser = null;
+
+    if (isDBConnected()) {
+      targetUser = await User.findOne({ publicId: normalized });
+    }
+    if (!targetUser && memoryUsers) {
+      for (const u of memoryUsers.values()) {
+        if (u.publicId === normalized) {
+          targetUser = u;
+          break;
+        }
+      }
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found with that public ID'
+      });
+    }
+
+    // Strict security sanitization: return ONLY approved public profile fields
+    // Never expose internal _id, email, password, googleId, phone, or private settings
+    return res.json({
+      success: true,
+      user: {
+        publicId: targetUser.publicId,
+        username: targetUser.username,
+        fullName: targetUser.fullName || '',
+        avatar: targetUser.avatar,
+        bio: targetUser.bio || '',
+        status: targetUser.status || 'offline',
+        customStatus: targetUser.customStatus || { text: '', emoji: '' },
+        createdAt: targetUser.createdAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Update user profile
  * @route   PUT /api/users/profile
  * @access  Private
@@ -46,6 +152,11 @@ const updateProfile = async (req, res, next) => {
     const userId = req.user?._id || req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'User authorization failed' });
+    }
+
+    // Security: publicId is permanent and immutable. Never allow updates via payload
+    if (req.body.publicId !== undefined) {
+      delete req.body.publicId;
     }
 
     let user = null;
@@ -61,6 +172,11 @@ const updateProfile = async (req, res, next) => {
           return res.status(400).json({ message: 'Username is already taken' });
         }
         user.username = req.body.username.trim();
+      }
+
+      // Ensure publicId is backfilled if missing
+      if (!user.publicId) {
+        user.publicId = generatePublicId();
       }
 
       user.fullName = req.body.fullName !== undefined ? req.body.fullName : user.fullName;
@@ -119,6 +235,11 @@ const updateProfile = async (req, res, next) => {
         }
         memUser.username = req.body.username.trim();
       }
+
+      if (!memUser.publicId) {
+        memUser.publicId = generatePublicId();
+      }
+
       if (req.body.fullName !== undefined) memUser.fullName = req.body.fullName;
       if (req.body.bio !== undefined) memUser.bio = req.body.bio;
       if (req.body.phone !== undefined) memUser.phone = req.body.phone;
@@ -259,7 +380,7 @@ const searchUsers = async (req, res, next) => {
           { email: { $regex: escaped, $options: 'i' } }
         ]
       })
-        .select('username email avatar fullName bio status lastSeen')
+        .select('username email avatar fullName bio status lastSeen publicId')
         .limit(limit);
       return res.json({ users });
     }
@@ -299,6 +420,8 @@ const getStarredMessages = async (req, res, next) => {
 
 module.exports = {
   getUserById,
+  getMyPublicId,
+  lookupByPublicId,
   updateProfile,
   updateTheme,
   updatePersonality,

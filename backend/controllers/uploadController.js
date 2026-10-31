@@ -1,8 +1,11 @@
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const logger = require('../utils/logger');
 const { verifyMagicBytes } = require('../middleware/uploadMiddleware');
+const Room = require('../models/Room');
+const { checkRoomAccess } = require('../utils/roomAccess');
 
 // Configure Cloudinary if credentials present
 if (process.env.CLOUDINARY_CLOUD_NAME) {
@@ -71,6 +74,23 @@ const uploadFile = async (req, res, next) => {
       return res.status(400).json({ message: 'File content does not match its extension. Upload rejected.' });
     }
 
+    // 🔒 SECURITY: If uploading for a specific room, check room privacy & access
+    const roomId = req.body?.roomId || req.query?.roomId;
+    const userId = req.user?._id ? req.user._id.toString() : req.user?.id?.toString();
+    if (roomId && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(roomId)) {
+      const room = await Room.findById(roomId);
+      if (room) {
+        const access = checkRoomAccess(room, userId);
+        if (!access.allowed) {
+          cleanupTempFile(localPath);
+          return res.status(access.status || 403).json({
+            message: access.reason || 'This is a private room. You are not an authorized member.',
+            code: access.code || 'ROOM_ACCESS_DENIED'
+          });
+        }
+      }
+    }
+
     const fileType = getFileType(req.file.mimetype, req.file.originalname);
     let fileUrl;
 
@@ -101,6 +121,4 @@ const uploadFile = async (req, res, next) => {
   }
 };
 
-module.exports = {
-  uploadFile
-};
+module.exports = { uploadFile };

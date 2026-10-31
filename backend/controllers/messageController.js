@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
+const Room = require('../models/Room');
+const { checkRoomAccess } = require('../utils/roomAccess');
+const { memoryRooms } = require('./roomController');
 
 // In-memory fallback message store
 const memoryMessages = new Map();
@@ -10,6 +13,8 @@ const memoryMessages = new Map();
 const isDBConnected = () => mongoose.connection.readyState === 1;
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const getUserId = (req) => (req.user?._id ? req.user._id.toString() : req.user?.id?.toString());
 
 /**
  * Seed initial sample messages for fallback mode
@@ -38,13 +43,15 @@ const seedMemoryMessages = (roomId) => {
 };
 
 /**
- * @desc    Get historical messages for a room (paginated)
+ * @desc    Get historical messages for a room (paginated, enforcing privacy)
  * @route   GET /api/messages/:roomId?page=1&limit=50
  * @access  Private
  */
 const getRoomMessages = async (req, res, next) => {
   try {
     const { roomId } = req.params;
+    const userId = getUserId(req);
+
     if (!isValidObjectId(roomId) && !roomId.startsWith('mem_room_')) {
       return res.status(400).json({ message: 'Invalid room id' });
     }
@@ -55,6 +62,19 @@ const getRoomMessages = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     if (isDBConnected() && isValidObjectId(roomId) && !roomId.startsWith('mem_room_')) {
+      const room = await Room.findById(roomId);
+      if (!room || room.isDeleted) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+
+      const access = checkRoomAccess(room, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
+
       const [messages, total] = await Promise.all([
         Message.find({ room: roomId })
           .populate('sender', 'username email avatar customStatus')
@@ -78,6 +98,17 @@ const getRoomMessages = async (req, res, next) => {
       });
     }
 
+    const memRoom = memoryRooms.get(roomId);
+    if (memRoom) {
+      const access = checkRoomAccess(memRoom, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
+    }
+
     seedMemoryMessages(roomId);
     const allMsgs = Array.from(memoryMessages.values())
       .filter((m) => m.room === roomId)
@@ -97,13 +128,14 @@ const getRoomMessages = async (req, res, next) => {
 };
 
 /**
- * @desc    Search messages inside a room (Gajim-style conversation search)
+ * @desc    Search messages inside a room (enforcing privacy)
  * @route   GET /api/messages/:roomId/search?q=term&page=1&limit=30
  * @access  Private
  */
 const searchRoomMessages = async (req, res, next) => {
   try {
     const { roomId } = req.params;
+    const userId = getUserId(req);
     const q = (req.query.q || '').trim();
     if (!q) return res.status(400).json({ message: 'Search query is required' });
     if (q.length < 2) return res.status(400).json({ message: 'Search query must be at least 2 characters' });
@@ -113,6 +145,17 @@ const searchRoomMessages = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     if (!isDBConnected() || !isValidObjectId(roomId) || roomId.startsWith('mem_room_')) {
+      const memRoom = memoryRooms.get(roomId);
+      if (memRoom) {
+        const access = checkRoomAccess(memRoom, userId);
+        if (!access.allowed) {
+          return res.status(access.status || 403).json({
+            message: access.reason || 'This is a private room. You are not an authorized member.',
+            code: access.code || 'ROOM_ACCESS_DENIED'
+          });
+        }
+      }
+
       const results = Array.from(memoryMessages.values())
         .filter((m) => m.room === roomId && !m.isDeleted && m.content && m.content.toLowerCase().includes(q.toLowerCase()))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -121,6 +164,19 @@ const searchRoomMessages = async (req, res, next) => {
         total: results.length,
         page,
         hasMore: skip + limit < results.length
+      });
+    }
+
+    const room = await Room.findById(roomId);
+    if (!room || room.isDeleted) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const access = checkRoomAccess(room, userId);
+    if (!access.allowed) {
+      return res.status(access.status || 403).json({
+        message: access.reason || 'This is a private room. You are not an authorized member.',
+        code: access.code || 'ROOM_ACCESS_DENIED'
       });
     }
 
@@ -143,25 +199,49 @@ const searchRoomMessages = async (req, res, next) => {
 };
 
 /**
- * @desc    Mark messages in a room as read
+ * @desc    Mark messages in a room as read (enforcing privacy)
  * @route   POST /api/messages/:roomId/read
  * @access  Private
  */
 const markMessagesAsRead = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const userId = getUserId(req);
 
     if (!isValidObjectId(roomId) && !roomId.startsWith('mem_room_')) {
       return res.status(400).json({ message: 'Invalid room id' });
     }
 
     if (isDBConnected() && isValidObjectId(roomId) && !roomId.startsWith('mem_room_')) {
+      const room = await Room.findById(roomId);
+      if (!room || room.isDeleted) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+
+      const access = checkRoomAccess(room, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
+
       await Message.updateMany(
         { room: roomId, readBy: { $ne: userId } },
         { $addToSet: { readBy: userId } }
       );
       return res.json({ message: 'Messages marked as read' });
+    }
+
+    const memRoom = memoryRooms.get(roomId);
+    if (memRoom) {
+      const access = checkRoomAccess(memRoom, userId);
+      if (!access.allowed) {
+        return res.status(access.status || 403).json({
+          message: access.reason || 'This is a private room. You are not an authorized member.',
+          code: access.code || 'ROOM_ACCESS_DENIED'
+        });
+      }
     }
 
     for (const msg of memoryMessages.values()) {
@@ -183,7 +263,7 @@ const markMessagesAsRead = async (req, res, next) => {
 const toggleStarMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const userId = getUserId(req);
 
     if (!isValidObjectId(messageId) && !messageId.startsWith('mem_msg_')) {
       return res.status(400).json({ message: 'Invalid message id' });
@@ -221,7 +301,7 @@ const toggleStarMessage = async (req, res, next) => {
 const deleteForMe = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const userId = getUserId(req);
 
     if (!isValidObjectId(messageId) && !messageId.startsWith('mem_msg_')) {
       return res.status(400).json({ message: 'Invalid message id' });
@@ -249,52 +329,46 @@ const deleteForMe = async (req, res, next) => {
 };
 
 /**
- * @desc    Toggle emoji reaction on a message
- * @route   POST /api/messages/:messageId/reaction
+ * @desc    Add or remove an emoji reaction to a message (toggle)
+ * @route   POST /api/messages/:messageId/react
  * @access  Private
  */
 const toggleReaction = async (req, res, next) => {
   try {
     const { messageId } = req.params;
     const { emoji, roomId } = req.body;
-    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    const userId = getUserId(req);
 
-    if (!isValidObjectId(messageId) && !messageId.startsWith('mem_msg_')) {
-      return res.status(400).json({ message: 'Invalid message id' });
-    }
-    if (!emoji || typeof emoji !== 'string' || emoji.trim().length === 0 || emoji.length > 32) {
-      return res.status(400).json({ message: 'Invalid emoji string' });
+    if (!emoji || !emoji.trim()) {
+      return res.status(400).json({ message: 'Emoji is required' });
     }
 
-    const cleanEmoji = emoji.trim();
-    const userIdStr = userId.toString();
-
-    if (!isDBConnected() || !isValidObjectId(messageId) || String(messageId).startsWith('mem_msg_')) {
+    if (!isDBConnected() || !isValidObjectId(messageId)) {
       const msg = memoryMessages.get(messageId);
       if (!msg) return res.status(404).json({ message: 'Message not found' });
+
       msg.reactions = msg.reactions || [];
+      const reactionGroup = msg.reactions.find((r) => r.emoji === emoji);
 
-      const existingEmojiReaction = msg.reactions.find((r) => r.emoji === cleanEmoji);
-      const userAlreadyHasThisEmoji = existingEmojiReaction && (existingEmojiReaction.users || []).some(
-        (u) => (u?._id || u?.id || u).toString() === userIdStr
-      );
-
-      // Remove user from all reactions on this message (single reaction per user)
-      msg.reactions.forEach((r) => {
-        r.users = (r.users || []).filter((u) => (u?._id || u?.id || u).toString() !== userIdStr);
-      });
-
-      if (!userAlreadyHasThisEmoji) {
-        const targetReaction = msg.reactions.find((r) => r.emoji === cleanEmoji);
-        const userObj = { _id: userIdStr, username: req.user.username || 'User', avatar: req.user.avatar };
-        if (targetReaction) {
-          targetReaction.users.push(userObj);
+      if (reactionGroup) {
+        const uIdx = reactionGroup.users.findIndex((u) => (u._id || u.id || u).toString() === userId.toString());
+        if (uIdx > -1) {
+          reactionGroup.users.splice(uIdx, 1);
+          reactionGroup.count = reactionGroup.users.length;
+          if (reactionGroup.count === 0) {
+            msg.reactions = msg.reactions.filter((r) => r.emoji !== emoji);
+          }
         } else {
-          msg.reactions.push({ emoji: cleanEmoji, users: [userObj] });
+          reactionGroup.users.push(req.user);
+          reactionGroup.count = reactionGroup.users.length;
         }
+      } else {
+        msg.reactions.push({
+          emoji,
+          count: 1,
+          users: [req.user]
+        });
       }
-
-      msg.reactions = msg.reactions.filter((r) => r.users && r.users.length > 0);
 
       const io = req.app?.get('io');
       const targetRoomId = (roomId || msg.room)?.toString();
@@ -308,35 +382,31 @@ const toggleReaction = async (req, res, next) => {
     const message = await Message.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
-    message.reactions = message.reactions || [];
+    let reactionGroup = message.reactions.find((r) => r.emoji === emoji);
 
-    const existingEmojiReaction = message.reactions.find((r) => r.emoji === cleanEmoji);
-    const userAlreadyHasThisEmoji = existingEmojiReaction && (existingEmojiReaction.users || []).some(
-      (u) => (u?._id || u?.id || u).toString() === userIdStr
-    );
-
-    // Remove user from all reactions on this message
-    message.reactions.forEach((r) => {
-      r.users = (r.users || []).filter((u) => (u?._id || u?.id || u).toString() !== userIdStr);
-    });
-
-    if (!userAlreadyHasThisEmoji) {
-      const userObjectId = mongoose.Types.ObjectId.isValid(userId)
-        ? new mongoose.Types.ObjectId(userId)
-        : userId;
-      const targetReaction = message.reactions.find((r) => r.emoji === cleanEmoji);
-      if (targetReaction) {
-        targetReaction.users.push(userObjectId);
+    if (reactionGroup) {
+      const userIndex = reactionGroup.users.indexOf(userId);
+      if (userIndex > -1) {
+        reactionGroup.users.splice(userIndex, 1);
+        reactionGroup.count = reactionGroup.users.length;
+        if (reactionGroup.count === 0) {
+          message.reactions = message.reactions.filter((r) => r.emoji !== emoji);
+        }
       } else {
-        message.reactions.push({ emoji: cleanEmoji, users: [userObjectId] });
+        reactionGroup.users.push(userId);
+        reactionGroup.count = reactionGroup.users.length;
       }
+    } else {
+      message.reactions.push({
+        emoji,
+        count: 1,
+        users: [userId]
+      });
     }
-
-    message.reactions = message.reactions.filter((r) => r.users && r.users.length > 0);
 
     await message.save();
 
-    const populatedMessage = await Message.findById(messageId)
+    const populatedMessage = await Message.findById(message._id)
       .populate('sender', 'username email avatar customStatus')
       .populate({
         path: 'replyTo',

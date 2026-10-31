@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { generatePublicId } = require('../utils/publicId');
 
 // In-memory fallback store when MongoDB is not connected yet
 const memoryUsers = new Map();
@@ -45,12 +46,30 @@ const registerUser = async (req, res, next) => {
         return res.status(400).json({ message: 'Username is already taken' });
       }
 
-      const user = await User.create({
-        username,
-        email: normalizedEmail,
-        password,
-        avatar
-      });
+      // Safe creation with retry for unique publicId under concurrent registrations
+      let user = null;
+      let attempts = 0;
+      while (attempts < 5) {
+        try {
+          user = await User.create({
+            username,
+            email: normalizedEmail,
+            password,
+            avatar,
+            publicId: generatePublicId()
+          });
+          break;
+        } catch (createErr) {
+          if (createErr.code === 11000 && createErr.keyPattern && createErr.keyPattern.publicId) {
+            attempts++;
+            if (attempts >= 5) {
+              throw new Error('Failed to generate unique public ID. Please try again.');
+            }
+            continue;
+          }
+          throw createErr;
+        }
+      }
 
       const token = generateToken(user._id.toString());
       // Set HTTP-only cookie
@@ -65,6 +84,7 @@ const registerUser = async (req, res, next) => {
         username: user.username,
         email: user.email,
         avatar: user.avatar,
+        publicId: user.publicId,
         token
       });
     } else {
@@ -82,12 +102,19 @@ const registerUser = async (req, res, next) => {
       const hashedPassword = await bcrypt.hash(password, salt);
       const id = 'mem_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
+      let memPublicId = generatePublicId();
+      const existingIds = new Set(Array.from(memoryUsers.values()).map((u) => u.publicId));
+      while (existingIds.has(memPublicId)) {
+        memPublicId = generatePublicId();
+      }
+
       const memUser = {
         _id: id,
         username,
         email: normalizedEmail,
         password: hashedPassword,
         avatar,
+        publicId: memPublicId,
         createdAt: new Date().toISOString()
       };
 
@@ -105,6 +132,7 @@ const registerUser = async (req, res, next) => {
         username: memUser.username,
         email: memUser.email,
         avatar: memUser.avatar,
+        publicId: memUser.publicId,
         token
       });
     }
@@ -130,7 +158,13 @@ const loginUser = async (req, res, next) => {
 
     if (isDBConnected()) {
       const user = await User.findOne({ email: normalizedEmail });
-        if (user && (await user.matchPassword(password))) {
+      if (user && (await user.matchPassword(password))) {
+        // Backfill publicId if missing on legacy user
+        if (!user.publicId) {
+          user.publicId = generatePublicId();
+          await user.save();
+        }
+
         const token = generateToken(user._id.toString());
         res.cookie('token', token, {
           httpOnly: true,
@@ -143,6 +177,7 @@ const loginUser = async (req, res, next) => {
           username: user.username,
           email: user.email,
           avatar: user.avatar,
+          publicId: user.publicId,
           token
         });
       }
@@ -157,6 +192,10 @@ const loginUser = async (req, res, next) => {
       }
 
       if (foundUser && (await bcrypt.compare(password, foundUser.password))) {
+        if (!foundUser.publicId) {
+          foundUser.publicId = generatePublicId();
+        }
+
         const token = generateToken(foundUser._id);
         res.cookie('token', token, {
           httpOnly: true,
@@ -169,6 +208,7 @@ const loginUser = async (req, res, next) => {
           username: foundUser.username,
           email: foundUser.email,
           avatar: foundUser.avatar,
+          publicId: foundUser.publicId,
           token
         });
       }
@@ -192,6 +232,7 @@ const getUserProfile = async (req, res) => {
       username: req.user.username,
       email: req.user.email,
       avatar: req.user.avatar,
+      publicId: req.user.publicId,
       createdAt: req.user.createdAt
     });
   } else {

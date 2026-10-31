@@ -9,6 +9,8 @@ const { memoryMessages } = require('../controllers/messageController');
 const { memoryRooms } = require('../controllers/roomController');
 const presenceHandler = require('./presenceHandler');
 const callHandler = require('./callHandler');
+const directMessageHandler = require('./directMessageHandler');
+const { checkRoomAccess } = require('../utils/roomAccess');
 const logger = require('../utils/logger');
 
 let io;
@@ -128,11 +130,21 @@ const initSocket = (server) => {
   io.on('connection', (socket) => {
     logger.socket(`Client connected: ${socket.id}`);
 
+    // Automatically join authenticated user room (multi-tab & direct events safe)
+    const authedUserId = getUserId(socket.user);
+    if (authedUserId) {
+      socket.join(`user:${authedUserId}`);
+      socket.join(authedUserId);
+    }
+
     // Initialize Presence System for this socket
     presenceHandler(io, socket);
 
     // Initialize Multi-User SFU Call System for this socket
     callHandler(io, socket);
+
+    // Initialize Direct Messaging for this socket
+    directMessageHandler(io, socket);
 
     const rateLimitSend = sendRateLimiter();
 
@@ -143,29 +155,27 @@ const initSocket = (server) => {
       const user = socket.user;
       const userId = getUserId(user);
       
-      // Validate room access for private rooms
+      // Validate room access (public vs private)
       if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_')) {
-        const room = await Room.findById(roomId).select('isPrivate members').lean();
-        if (room && room.isPrivate) {
-          const memberIds = (room.members || []).map(m => m.toString());
-          if (!memberIds.includes(userId.toString())) {
-            logger.socket(`Private room access denied: ${user.username} (${userId}) not member of ${roomId}`);
-            socket.emit('room_access_denied', { roomId, message: 'This is a private room. You are not a member.' });
-            return;
-          }
+        const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted').lean();
+        const access = checkRoomAccess(room, userId);
+        if (!access.allowed) {
+          logger.socket(`Room access denied: ${user?.username} (${userId}) denied for ${roomId}: ${access.reason}`);
+          socket.emit('room_access_denied', { roomId, message: access.reason || 'This is a private room. You are not an authorized member.' });
+          return;
         }
       } else {
         const room = memoryRooms.get(roomId);
-        if (room && room.isPrivate) {
-          const memberIds = room.members || [];
-          if (!memberIds.includes(userId)) {
-            logger.socket(`Private room access denied: ${user.username} (${userId}) not member of ${roomId}`);
-            socket.emit('room_access_denied', { roomId, message: 'This is a private room. You are not a member.' });
+        if (room) {
+          const access = checkRoomAccess(room, userId);
+          if (!access.allowed) {
+            logger.socket(`Room access denied: ${user?.username} (${userId}) denied for ${roomId}: ${access.reason}`);
+            socket.emit('room_access_denied', { roomId, message: access.reason || 'This is a private room. You are not an authorized member.' });
             return;
           }
         }
       }
-      
+
       socket.roomId = roomId;
       socket.join(roomId);
       logger.socket(`User ${user.username} joined room: ${roomId}`);
@@ -212,6 +222,28 @@ const initSocket = (server) => {
         }
 
         const senderId = getUserId(sender);
+
+        // Validate sender authorization before saving & broadcasting
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_')) {
+          const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted').lean();
+          const access = checkRoomAccess(room, senderId);
+          if (!access.allowed) {
+            socket.emit('room_access_denied', { roomId, message: access.reason || 'Access denied' });
+            if (typeof ack === 'function') ack({ ok: false, error: access.reason || 'Access denied' });
+            return;
+          }
+        } else {
+          const room = memoryRooms.get(roomId);
+          if (room) {
+            const access = checkRoomAccess(room, senderId);
+            if (!access.allowed) {
+              socket.emit('room_access_denied', { roomId, message: access.reason || 'Access denied' });
+              if (typeof ack === 'function') ack({ ok: false, error: access.reason || 'Access denied' });
+              return;
+            }
+          }
+        }
+
         let msgObj;
 
         if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_') && mongoose.Types.ObjectId.isValid(senderId)) {
@@ -286,7 +318,7 @@ const initSocket = (server) => {
         const senderId = getUserId(socket.user);
         if (!senderId) return;
 
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const msg = await Message.findById(messageId);
           if (!msg || msg.sender.toString() !== senderId) return; // not owner → ignore
           const updated = await Message.findByIdAndUpdate(
@@ -315,7 +347,7 @@ const initSocket = (server) => {
         const senderId = getUserId(socket.user);
         if (!senderId) return;
 
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const msg = await Message.findById(messageId);
           if (!msg || msg.sender.toString() !== senderId) return; // not owner → ignore
           const deleted = await Message.findByIdAndUpdate(
@@ -490,7 +522,7 @@ const initSocket = (server) => {
       try {
         const userId = getUserId(socket.user);
         if (!userId) return;
-        const msg = isDBConnected()
+        const msg = (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId))
           ? await Message.findByIdAndUpdate(messageId, { $addToSet: { starredBy: userId } }, { new: true })
           : memoryMessages.get(messageId);
 
@@ -509,7 +541,7 @@ const initSocket = (server) => {
       try {
         const userId = getUserId(socket.user);
         if (!userId) return;
-        const msg = isDBConnected()
+        const msg = (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId))
           ? await Message.findByIdAndUpdate(messageId, { $pull: { starredBy: userId } }, { new: true })
           : memoryMessages.get(messageId);
 
@@ -564,7 +596,7 @@ const initSocket = (server) => {
       logger.socket(`Voice answer from ${socket.id} → ${toSocketId || toRoom}`);
 
       try {
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const call = await CallHistory.findOne({ room: toRoom, status: 'missed', type: 'voice' }).sort({ createdAt: -1 });
           if (call) {
             call.status = 'ongoing';
@@ -599,7 +631,7 @@ const initSocket = (server) => {
       logger.socket(`Call ended in room ${toRoom} by ${socket.id}`);
 
       try {
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const call = await CallHistory.findOne({ room: toRoom, type: 'voice' }).sort({ createdAt: -1 });
           if (call && (call.status === 'ongoing' || call.status === 'missed')) {
             if (call.status === 'ongoing') {
@@ -666,7 +698,7 @@ const initSocket = (server) => {
       logger.socket(`Video answer from ${socket.id} → ${toSocketId || toRoom}`);
 
       try {
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const call = await CallHistory.findOne({ room: toRoom, status: 'missed', type: 'video' }).sort({ createdAt: -1 });
           if (call) {
             call.status = 'ongoing';
@@ -703,7 +735,7 @@ const initSocket = (server) => {
       logger.socket(`Video call ended in room ${toRoom}`);
 
       try {
-        if (isDBConnected()) {
+        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
           const call = await CallHistory.findOne({ room: toRoom, type: 'video' }).sort({ createdAt: -1 });
           if (call && (call.status === 'ongoing' || call.status === 'missed')) {
             if (call.status === 'ongoing') {
