@@ -8,6 +8,10 @@ import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import { SkeletonChatItem } from './SkeletonLoaders';
 import '../styles/gajim/gajim-provided.css'; // Import the new Gajim styles
 import { getRoomCreatorLabel } from '../utils/roomUtils';
+import friendService from '../services/friendService';
+import notificationService from '../services/notificationService';
+import NotificationsModal from './NotificationsModal';
+import { socket } from '../services/socket';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -17,13 +21,17 @@ export default function Sidebar({
   recentRooms = [],
   rooms = [],
   activeRoom,
+  directConversations = [],
+  activeDirectConversation = null,
+  onSelectDirectConversation,
   onSelectRoom,
   searchQuery,
   setSearchQuery,
   unreadCounts = {},
   roomsLoading = false,
   isMobileSidebarOpen,
-  setIsMobileSidebarOpen
+  setIsMobileSidebarOpen,
+  onNavigateNotification
 }) {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -31,6 +39,55 @@ export default function Sidebar({
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showThemeSettings, setShowThemeSettings] = useState(false);
   const [showPersonalityStudio, setShowPersonalityStudio] = useState(false);
+  const [pendingFriendCount, setPendingFriendCount] = useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifsCount = async () => {
+      try {
+        const res = await notificationService.getNotifications();
+        setUnreadNotificationsCount(res.unreadCount || 0);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchNotifsCount();
+
+    const handleNotifReceived = () => {
+      setUnreadNotificationsCount((prev) => prev + 1);
+    };
+    socket.on('notification_received', handleNotifReceived);
+
+    return () => {
+      socket.off('notification_received', handleNotifReceived);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const res = await friendService.getIncomingRequests();
+        setPendingFriendCount(res.requests?.length || 0);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchPending();
+
+    const handleReq = () => fetchPending();
+    socket.on('friend_request_received', handleReq);
+    socket.on('friend_request_accepted', handleReq);
+    socket.on('friend_request_rejected', handleReq);
+    socket.on('friend_request_cancelled', handleReq);
+
+    return () => {
+      socket.off('friend_request_received', handleReq);
+      socket.off('friend_request_accepted', handleReq);
+      socket.off('friend_request_rejected', handleReq);
+      socket.off('friend_request_cancelled', handleReq);
+    };
+  }, []);
 
   const touchStartXRef = useRef(0);
   const userMenuRef = useRef(null);
@@ -103,6 +160,17 @@ export default function Sidebar({
 
   const currentRoomsList = activeTab === 'joined' ? (rooms && rooms.length > 0 ? rooms : recentRooms) : rooms;
 
+  const filteredDMs = (directConversations || []).filter((conv) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const f = conv.friend || {};
+    return (
+      (f.username && f.username.toLowerCase().includes(q)) ||
+      (f.fullName && f.fullName.toLowerCase().includes(q)) ||
+      (f.publicId && f.publicId.toLowerCase().includes(q))
+    );
+  });
+
   return (
       <>
         {/* Mobile Backdrop */}
@@ -155,6 +223,11 @@ export default function Sidebar({
                     <div className="presence-header">
                         <span className="user-display-name">{user?.username || 'My Account'}</span>
                         <span className="user-jid">{user?.email || 'user@xmpp.net'}</span>
+                        {user?.publicId && (
+                          <span style={{ fontSize: '11px', color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
+                            ID: {user.publicId}
+                          </span>
+                        )}
                     </div>
                     <div className="presence-divider"></div>
                     <button className="presence-option" onClick={() => { setShowUserMenu(false); setShowProfile(true); }} role="menuitem">
@@ -201,6 +274,41 @@ export default function Sidebar({
                     <span className="tooltip">Group Rooms</span>
                 </button>
                 <button 
+                  className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('friends')} 
+                  title="Friends" 
+                  aria-label="Friends" 
+                  aria-selected={activeTab === 'friends'} 
+                  role="tab"
+                  style={{ position: 'relative' }}
+                >
+                    <svg className="icon bi bi-person-heart" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M9 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h10s1 0 1-1-1-4-6-4-6 3-6 4m13.5-8.09c1.387-1.425 4.855 1.07 0 4.277-4.854-3.207-1.387-5.702 0-4.276Z"/>
+                    </svg>
+                    {pendingFriendCount > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
+                      }}>
+                        {pendingFriendCount}
+                      </span>
+                    )}
+                    <span className="tooltip">Friends</span>
+                </button>
+                <button 
                   className={`nav-item ${activeTab === 'calls' ? 'active' : ''}`} 
                   onClick={() => setActiveTab('calls')} 
                   title="Calls" 
@@ -210,6 +318,39 @@ export default function Sidebar({
                 >
                     <svg className="icon bi bi-telephone-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42 18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z"/></svg>
                     <span className="tooltip">Calls</span>
+                </button>
+                <button 
+                  className={`nav-item ${isNotificationsOpen ? 'active' : ''}`} 
+                  onClick={() => setIsNotificationsOpen(true)} 
+                  title="Notifications" 
+                  aria-label="Notifications" 
+                  style={{ position: 'relative' }}
+                >
+                    <svg className="icon bi bi-bell-fill" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"/>
+                    </svg>
+                    {unreadNotificationsCount > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
+                      }}>
+                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                      </span>
+                    )}
+                    <span className="tooltip">Notifications</span>
                 </button>
             </nav>
 
@@ -238,7 +379,7 @@ export default function Sidebar({
             {/* Header with Title & Action Button */}
             <div className="chat-list-header">
                 <div className="header-title-container">
-                    <h1 className="panel-title">{activeTab === 'joined' ? 'Rooms' : 'Chats'}</h1>
+                    <h1 className="panel-title">{activeTab === 'joined' ? 'Rooms' : activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Chats'}</h1>
                     <span className="connection-status-pill connected" title="Connected">
                         <span className="status-dot"></span> JoyBoy
                     </span>
@@ -257,6 +398,38 @@ export default function Sidebar({
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{getUserInitials(user?.username || 'User')}</span>
                       )}
                     </div>
+                  </button>
+                  <button 
+                    className="btn-icon btn-primary-soft" 
+                    onClick={() => setIsNotificationsOpen(true)} 
+                    title="Notifications" 
+                    aria-label="Open Notifications"
+                    style={{ position: 'relative' }}
+                  >
+                    <svg className="icon bi bi-bell-fill" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"/>
+                    </svg>
+                    {unreadNotificationsCount > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: 9,
+                        fontWeight: 700,
+                        minWidth: 15,
+                        height: 15,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 3px',
+                        border: '1.5px solid var(--theme-sidebar-bg, #1a1c23)'
+                      }}>
+                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                      </span>
+                    )}
                   </button>
                   <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Add Contact or Join Room" aria-label="Add Contact or Join Room">
                       <svg className="icon bi bi-plus-lg" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>
@@ -336,17 +509,156 @@ export default function Sidebar({
                       <SkeletonChatItem key={i} />
                     ))}
                   </div>
-                ) : currentRoomsList.length === 0 ? (
+                ) : (activeTab === 'chats' && filteredDMs.length === 0 && currentRoomsList.length === 0) || (activeTab !== 'chats' && currentRoomsList.length === 0) ? (
                   /* Empty Roster State */
                   <div className="empty-roster-state">
                       <svg className="icon icon-empty bi bi-chat-square-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0m4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg>
                       <p className="empty-title">No conversations found</p>
                       <p className="empty-subtitle">
-                        {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel.'}
+                        {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel or add friends.'}
                       </p>
                   </div>
                 ) : (
-                  currentRoomsList.map((room) => {
+                  <>
+                    {/* Direct Messages Section */}
+                    {activeTab === 'chats' && filteredDMs.length > 0 && (
+                      <div className="direct-messages-roster-group" style={{ marginBottom: 8 }}>
+                        <div style={{
+                          padding: '6px 14px 4px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          color: 'var(--theme-text-muted, #9ca3af)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span>Direct Messages ({filteredDMs.length})</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('friends')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--theme-primary, #a78bfa)',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            + Add
+                          </button>
+                        </div>
+
+                        {filteredDMs.map((conv) => {
+                          const isSelected = activeDirectConversation && (activeDirectConversation._id === conv._id);
+                          const friend = conv.friend || {};
+                          const isOnline = friend.status === 'online';
+                          return (
+                            <div
+                              key={conv._id}
+                              className={`chat-item direct-chat-item ${isSelected ? 'active' : ''}`}
+                              onClick={() => onSelectDirectConversation && onSelectDirectConversation(conv)}
+                              tabIndex="0"
+                              role="button"
+                            >
+                              <div
+                                className="avatar-circle"
+                                style={{
+                                  position: 'relative',
+                                  width: 38,
+                                  height: 38,
+                                  borderRadius: '50%',
+                                  flexShrink: 0,
+                                  background: '#374151',
+                                  overflow: 'visible'
+                                }}
+                              >
+                                {friend.avatar ? (
+                                  <img
+                                    src={friend.avatar}
+                                    alt={friend.username || 'Friend'}
+                                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      borderRadius: '50%',
+                                      background: 'var(--theme-primary, #7c3aed)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#fff',
+                                      fontWeight: 700,
+                                      fontSize: 13
+                                    }}
+                                  >
+                                    {getUserInitials(friend.fullName || friend.username || 'Friend')}
+                                  </div>
+                                )}
+                                <span
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    background: isOnline ? '#10b981' : '#6b7280',
+                                    border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
+                                  }}
+                                  title={isOnline ? 'Online' : 'Offline'}
+                                />
+                              </div>
+
+                              <div className="chat-item-content">
+                                <div className="chat-item-top">
+                                  <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                                    <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                      {friend.fullName || friend.username}
+                                    </span>
+                                    {friend.publicId && (
+                                      <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', background: 'rgba(124, 58, 237, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
+                                        {friend.publicId}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {conv.unreadCount > 0 && (
+                                    <span className="unread-badge">
+                                      {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="chat-item-bottom">
+                                  <span className="chat-preview" style={{ fontSize: 12, color: '#9ca3af' }}>
+                                    {conv.lastMessage?.content ? conv.lastMessage.content : `@${friend.username}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Channels & Rooms Section Header */}
+                    {activeTab === 'chats' && filteredDMs.length > 0 && currentRoomsList.length > 0 && (
+                      <div style={{
+                        padding: '8px 14px 4px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        color: 'var(--theme-text-muted, #9ca3af)'
+                      }}>
+                        Channels & Rooms ({currentRoomsList.length})
+                      </div>
+                    )}
+
+                    {currentRoomsList.map((room) => {
                     const isSelected = activeRoom && (activeRoom._id || activeRoom.id) === (room._id || room.id);
                     const avatarBg = getRoomColor(room.name);
                     return (
@@ -421,8 +733,9 @@ export default function Sidebar({
                             </div>
                         </div>
                       </div>
-                    )
-                  })
+                    );
+                  })}
+                  </>
                 )}
             </div>
         </section>
@@ -448,6 +761,13 @@ export default function Sidebar({
         isOpen={showPersonalityStudio}
         onClose={() => setShowPersonalityStudio(false)}
       />
+
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        onNavigate={onNavigateNotification}
+        onUnreadCountChange={(cnt) => setUnreadNotificationsCount(cnt)}
+      />
     </>
   );
 }
@@ -460,11 +780,15 @@ Sidebar.propTypes = {
   recentRooms: PropTypes.array,
   rooms: PropTypes.array,
   activeRoom: PropTypes.object,
+  directConversations: PropTypes.array,
+  activeDirectConversation: PropTypes.object,
+  onSelectDirectConversation: PropTypes.func,
   onSelectRoom: PropTypes.func,
   searchQuery: PropTypes.string,
   setSearchQuery: PropTypes.func,
   unreadCounts: PropTypes.object,
   roomsLoading: PropTypes.bool,
   isMobileSidebarOpen: PropTypes.bool,
-  setIsMobileSidebarOpen: PropTypes.func
+  setIsMobileSidebarOpen: PropTypes.func,
+  onNavigateNotification: PropTypes.func
 };

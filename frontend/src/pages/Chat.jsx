@@ -2,14 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import CreateRoomModal from '../components/CreateRoomModal';
 import JoinRoomModal from '../components/JoinRoomModal';
+import PrivateRoomPreviewModal from '../components/PrivateRoomPreviewModal';
 import ChatWindow from '../components/ChatWindow';
 import ErrorBoundary from '../components/ErrorBoundary';
 import CallHistoryPage from './CallHistoryPage';
+import FriendsPage from './FriendsPage';
+import DirectChatWindow from '../components/DirectChatWindow';
+import conversationService from '../services/conversationService';
 import api from '../services/api';
 import { socket } from '../services/socket';
 import { useAuth } from '../context/useAuth';
 import { requestNotificationPermission, showDesktopNotification } from '../utils/desktopNotifications';
 import { animateEmptyState } from '../utils/animations';
+import { toast } from '../utils/toast';
 
 export default function Chat() {
   const { user } = useAuth();
@@ -18,6 +23,8 @@ export default function Chat() {
   const [activeRoom, setActiveRoom] = useState(null);
   const [joinedRooms, setJoinedRooms] = useState([]);
   const [recentRooms, setRecentRooms] = useState([]);
+  const [directConversations, setDirectConversations] = useState([]);
+  const [activeDirectConversation, setActiveDirectConversation] = useState(null);
   const emptyCardRef = useRef(null);
 
   useEffect(() => {
@@ -25,6 +32,40 @@ export default function Chat() {
       animateEmptyState(emptyCardRef.current);
     }
   }, [activeRoom]);
+
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await conversationService.getConversations();
+      setDirectConversations(res.conversations || []);
+    } catch (err) {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  useEffect(() => {
+    const handleConvUpdated = () => fetchConversations();
+    const handleDmReceived = (data) => {
+      fetchConversations();
+      if (data?.message && (!activeDirectConversation || activeDirectConversation._id !== data.conversationId)) {
+        const senderName = data.message.sender?.fullName || data.message.sender?.username || 'A friend';
+        showDesktopNotification(`New message from ${senderName}`, {
+          body: data.message.content || 'Sent an attachment'
+        });
+      }
+    };
+
+    socket.on('conversation_updated', handleConvUpdated);
+    socket.on('direct_message_received', handleDmReceived);
+
+    return () => {
+      socket.off('conversation_updated', handleConvUpdated);
+      socket.off('direct_message_received', handleDmReceived);
+    };
+  }, [fetchConversations, activeDirectConversation]);
 
   const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +75,7 @@ export default function Chat() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   // Room that triggered the join-code modal (private room without access)
   const [pendingJoinRoom, setPendingJoinRoom] = useState(null);
+  const [previewRoomId, setPreviewRoomId] = useState(null);
 
   // Unread counts per room (roomId -> count) for badges + document.title
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -204,12 +246,12 @@ export default function Chat() {
       const isMember = room.isMember === true || memberIds.includes(userId?.toString());
 
       if (!isMember && !isCreator) {
-        setPendingJoinRoom(room);
-        setIsJoinModalOpen(true);
+        setPreviewRoomId(room._id || room.id);
         return;
       }
     }
 
+    setActiveDirectConversation(null);
     setActiveRoom(room);
     // On mobile, open the full-screen chat (Instagram-style slide)
     if (window.innerWidth < 768) {
@@ -237,6 +279,34 @@ export default function Chat() {
     });
   }, [user, openMobileChat]);
 
+  // Start or open a direct chat conversation with an accepted friend
+  const handleStartDirectChatWithFriend = useCallback(async (friend) => {
+    try {
+      const res = await conversationService.getOrCreateConversation({
+        friendPublicId: friend.publicId,
+        friendId: friend._id || friend.id
+      });
+      if (res.conversation) {
+        setActiveDirectConversation(res.conversation);
+        setActiveRoom(null);
+        setActiveTab('chats');
+        if (window.innerWidth < 768) {
+          openMobileChat();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to open direct conversation:', err);
+    }
+  }, [openMobileChat]);
+
+  const handleSelectDirectConversation = useCallback((conv) => {
+    setActiveDirectConversation(conv);
+    setActiveRoom(null);
+    if (window.innerWidth < 768) {
+      openMobileChat();
+    }
+  }, [openMobileChat]);
+
   // Desktop notification click → navigate to the room
   const handleSelectRoomRef = useRef();
   handleSelectRoomRef.current = handleSelectRoom;
@@ -253,6 +323,44 @@ export default function Chat() {
     window.addEventListener('chat-navigate', onNavigate);
     return () => window.removeEventListener('chat-navigate', onNavigate);
   }, [rooms, joinedRooms]);
+
+  const handleNavigateNotification = useCallback((link, notif) => {
+    if (!link) return;
+    if (link.screen === 'friends') {
+      setActiveRoom(null);
+      setActiveDirectConversation(null);
+      setActiveTab('friends');
+      if (window.innerWidth < 768) {
+        openMobileChat();
+      }
+    } else if (link.screen === 'direct') {
+      const friendPublicId = link.id || notif?.data?.friendPublicId;
+      if (friendPublicId) {
+        conversationService.getOrCreateConversation({ friendPublicId }).then((res) => {
+          if (res.conversation) {
+            setActiveDirectConversation(res.conversation);
+            setActiveRoom(null);
+            setActiveTab('chats');
+            if (window.innerWidth < 768) openMobileChat();
+          }
+        }).catch(() => {
+          setActiveTab('friends');
+        });
+      } else {
+        setActiveTab('friends');
+      }
+    } else if (link.screen === 'room') {
+      const targetId = link.id || notif?.data?.roomId;
+      if (targetId) {
+        const target = rooms.find((r) => (r._id || r.id) === targetId) || joinedRooms.find((r) => (r._id || r.id) === targetId);
+        if (target) {
+          handleSelectRoom(target);
+        } else {
+          setPreviewRoomId(targetId);
+        }
+      }
+    }
+  }, [rooms, joinedRooms, handleSelectRoom, openMobileChat]);
 
   // Handle Create Room
   const handleCreateRoom = async (newRoomData) => {
@@ -331,6 +439,9 @@ export default function Chat() {
           recentRooms={recentRooms}
           rooms={displayedRooms}
           activeRoom={activeRoom}
+          directConversations={directConversations}
+          activeDirectConversation={activeDirectConversation}
+          onSelectDirectConversation={handleSelectDirectConversation}
           onSelectRoom={handleSelectRoom}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -338,12 +449,36 @@ export default function Chat() {
           roomsLoading={roomsLoading}
           isMobileSidebarOpen={isMobileSidebarOpen}
           setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+          onNavigateNotification={handleNavigateNotification}
         />
 
         {/* Main workspace (Chat screen) */}
         <main className="chat-panel">
           {activeTab === 'calls' ? (
             <CallHistoryPage />
+          ) : activeTab === 'friends' ? (
+            <FriendsPage
+              onStartChat={handleStartDirectChatWithFriend}
+              onBack={() => {
+                if (window.innerWidth < 768) {
+                  closeMobileChat();
+                } else {
+                  setActiveTab('chats');
+                }
+              }}
+            />
+          ) : activeDirectConversation ? (
+            <DirectChatWindow
+              conversation={activeDirectConversation}
+              onBack={() => {
+                if (window.innerWidth < 768) {
+                  closeMobileChat();
+                } else {
+                  setActiveDirectConversation(null);
+                }
+              }}
+              onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            />
           ) : (
             <>
               {/* Active room */}
@@ -424,6 +559,27 @@ export default function Chat() {
         onClose={() => { setPendingJoinRoom(null); setIsJoinModalOpen(false); }}
         onJoinRoom={handleJoinRoom}
         roomName={pendingJoinRoom?.name}
+        onRequestJoin={pendingJoinRoom ? () => {
+          const rId = pendingJoinRoom._id || pendingJoinRoom.id;
+          setIsJoinModalOpen(false);
+          setPendingJoinRoom(null);
+          setPreviewRoomId(rId);
+        } : undefined}
+      />
+      <PrivateRoomPreviewModal
+        isOpen={Boolean(previewRoomId)}
+        onClose={() => setPreviewRoomId(null)}
+        roomId={previewRoomId}
+        onEnterRoom={(roomObj) => {
+          setPreviewRoomId(null);
+          fetchRooms();
+          if (roomObj) handleSelectRoom(roomObj);
+        }}
+        onToast={(msg, type) => {
+          if (type === 'error') toast.error(msg);
+          else if (type === 'success') toast.success(msg);
+          else toast.info(msg);
+        }}
       />
     </div>
   );

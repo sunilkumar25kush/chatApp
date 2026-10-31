@@ -11,6 +11,8 @@ import PresenceBadge from './common/PresenceBadge';
 import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
 import UserProfileModal from './profile/UserProfileModal';
+import RoomPrivacyModal from './RoomPrivacyModal';
+import RoomJoinRequestsModal from './RoomJoinRequestsModal';
 import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import { SkeletonMessageList } from './SkeletonLoaders';
@@ -82,6 +84,34 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   // Chat Personality Studio State
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isJoinRequestsModalOpen, setIsJoinRequestsModalOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  const roomId = room?._id || room?.id;
+  const currentUserId = user?._id || user?.id;
+
+  const isRoomOwnerOrAdmin = Boolean(
+    room?.owner && (
+      (user?._id && String(user._id) === String(room.owner?._id || room.owner)) ||
+      (user?.id && String(user.id) === String(room.owner?._id || room.owner)) ||
+      (room.admins || []).some((a) => String(a?._id || a?.id || a) === String(user?._id || user?.id))
+    )
+  );
+
+  const fetchPendingRequestsCount = useCallback(async () => {
+    if (!roomId || !isRoomOwnerOrAdmin) return;
+    try {
+      const res = await api.get(`/rooms/${roomId}/join-requests?status=pending`);
+      setPendingRequestsCount(res.data.count || (res.data.requests || []).length);
+    } catch {
+      /* ignore */
+    }
+  }, [roomId, isRoomOwnerOrAdmin]);
+
+  useEffect(() => {
+    fetchPendingRequestsCount();
+  }, [fetchPendingRequestsCount]);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -113,8 +143,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const [pendingQueue, setPendingQueue] = useState([]);
   const [isOffline, setIsOffline] = useState(false);
 
-  const roomId = room._id || room.id;
-  const currentUserId = user?._id || user?.id;
 
   // Memory-leak guards: abort in-flight requests, clear pending timers,
   // and never setState after unmount
@@ -494,11 +522,50 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     socket.on('user_stop_typing', handleUserStopTyping);
     socket.on('status_updated', handleStatusUpdated);
     socket.on('room_access_denied', ({ message }) => {
-      // User tried to join a private room they're not a member of
       addNotification('Access Denied', message || 'This is a private room. You need an invite to join.', 'error');
-      // Navigate back to chat list
       onBack?.();
     });
+
+    const handleRoomAccessRevoked = ({ roomId: revokedRoomId, message }) => {
+      if (String(revokedRoomId) === String(roomId)) {
+        addNotification('Access Revoked', message || 'This room has been made private and you are no longer a member.', 'error');
+        onBack?.();
+      }
+    };
+
+    const handleRoomVisibilityChanged = (updated) => {
+      if (String(updated.roomId || updated._id || updated.id) === String(roomId)) {
+        onRoomUpdated?.({
+          ...room,
+          visibility: updated.visibility,
+          isPrivate: updated.isPrivate
+        });
+        addNotification(
+          'Room Privacy Updated',
+          `Room is now ${updated.visibility === 'private' ? 'Private' : 'Public'}.`,
+          'info'
+        );
+      }
+    };
+
+    socket.on('room_access_revoked', handleRoomAccessRevoked);
+    socket.on('room_visibility_changed', handleRoomVisibilityChanged);
+
+    const handleJoinRequestCreated = (data) => {
+      if (String(data.roomId) === String(roomId)) {
+        setPendingRequestsCount((prev) => prev + 1);
+        addNotification('Join Request', `@${data.user?.username || 'user'} requested to join this room.`, 'info');
+      }
+    };
+
+    const handleJoinRequestCancelled = (data) => {
+      if (String(data.roomId) === String(roomId)) {
+        setPendingRequestsCount((prev) => Math.max(0, prev - 1));
+      }
+    };
+
+    socket.on('room_join_request_created', handleJoinRequestCreated);
+    socket.on('room_join_request_cancelled', handleJoinRequestCancelled);
 
     return () => {
       abortControllerRef.current?.abort();
@@ -514,6 +581,10 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
       socket.off('status_updated', handleStatusUpdated);
+      socket.off('room_access_revoked', handleRoomAccessRevoked);
+      socket.off('room_visibility_changed', handleRoomVisibilityChanged);
+      socket.off('room_join_request_created', handleJoinRequestCreated);
+      socket.off('room_join_request_cancelled', handleJoinRequestCancelled);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user]);
@@ -909,18 +980,26 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           <div className="contact-details">
             <div className="contact-name-row">
               <h2 className="contact-name" id="header-contact-name" title={room.name || 'Chat'}>{room.name || 'Chat'}</h2>
-              {room.isPrivate ? (
-                <span className="header-status-badge badge-private" title="Private Space (Code Required)">
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2" /></svg>
-                  <span>Private</span>
-                </span>
-              ) : (
-                <span className="header-status-badge badge-published" title="Published Public Channel">
-                  <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1" /></svg>
-                  <span>Public</span>
-                </span>
-              )}
-            </div>
+              <button
+                type="button"
+                onClick={() => setIsPrivacyModalOpen(true)}
+                title="Room Privacy Settings"
+                aria-label="Room Privacy Settings"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                {room.isPrivate ? (
+                  <span className="header-status-badge badge-private" title="Private Space (Click to manage privacy)">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2" /></svg>
+                    <span>Private</span>
+                  </span>
+                ) : (
+                  <span className="header-status-badge badge-published" title="Public Space (Click to manage privacy)">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1" /></svg>
+                    <span>Public</span>
+                  </span>
+                )}
+              </button>
+</div>
             <div className="contact-status-text room-meta-line" id="header-status-text">
               <span className="room-created-by" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
                 Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
@@ -971,6 +1050,42 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         </div>
 
         <div className="header-right-actions">
+          {isRoomOwnerOrAdmin && (
+            <button
+              className="btn-icon header-action-requests"
+              onClick={() => setIsJoinRequestsModalOpen(true)}
+              title="Review Join Requests"
+              aria-label="Review Join Requests"
+              style={{ position: 'relative' }}
+            >
+              <span>👥</span>
+              {pendingRequestsCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    background: '#ef4444',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    width: 16,
+                    height: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 4px rgba(0,0,0,0.5)'
+                  }}
+                >
+                  {pendingRequestsCount}
+                </span>
+              )}
+            </button>
+          )}
+          <button className="btn-icon header-action-privacy" onClick={() => setIsPrivacyModalOpen(true)} title="Room Privacy Settings" aria-label="Room Privacy Settings">
+            <span>{room.isPrivate ? '🔒' : '🌐'}</span>
+          </button>
           <button className="btn-icon header-action-studio" onClick={() => setIsStudioOpen(true)} title="Chat Personality Studio" aria-label="Studio">
             <span>✨</span>
           </button>
@@ -1009,6 +1124,17 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         {/* Mobile ⋮ More Dropdown Menu */}
         {isMobileMoreOpen && (
           <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()}>
+            <button className="mobile-more-dropdown-item" onClick={() => { setIsPrivacyModalOpen(true); setIsMobileMoreOpen(false); }}>
+              <span>{room.isPrivate ? '🔒' : '🌐'}</span> <span>Room Privacy Settings</span>
+            </button>
+            {isRoomOwnerOrAdmin && (
+              <button
+                className="mobile-more-dropdown-item"
+                onClick={() => { setIsJoinRequestsModalOpen(true); setIsMobileMoreOpen(false); }}
+              >
+                <span>👥</span> <span>Join Requests {pendingRequestsCount > 0 ? `(${pendingRequestsCount})` : ''}</span>
+              </button>
+            )}
             <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }}>
               <span>✨</span> Appearance Studio
             </button>
