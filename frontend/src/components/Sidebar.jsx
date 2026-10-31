@@ -325,17 +325,18 @@ export default function Sidebar({
                     className="presence-dropdown active"
                     items={presenceMenuItems}
                     onItemSelect={(item) => item?.action?.()}
+                    theme="gajim"
                     width={230}
                     maxHeight={360}
                     radius={10}
-                    gap={4}
-                    frame={true}
+                    gap={2}
+                    frame={false}
                     showGradients={false}
                     animation="pop"
                     stagger={0.03}
                     renderItem={(item) => (
                       item.type === 'header' ? (
-                        <div className="presence-header" style={{ padding: '2px 4px', display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default' }}>
+                        <div className="presence-header" style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default' }}>
                           <span className="user-display-name">{item.title}</span>
                           <span className="user-jid">{item.description}</span>
                           {item.publicId && (
@@ -345,16 +346,11 @@ export default function Sidebar({
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
-                          <span style={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left' }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: item.isDanger ? '#f87171' : 'inherit' }}>
-                              {item.title}
-                            </span>
-                            <span style={{ fontSize: 11, color: 'var(--al-muted)' }}>
-                              {item.description}
-                            </span>
-                          </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                          <span style={{ fontSize: 15, lineHeight: 1 }}>{item.icon}</span>
+                          <span className="presence-label" style={{ fontSize: 13, fontWeight: 500, color: item.isDanger ? '#f87171' : 'inherit' }}>
+                            {item.title}
+                          </span>
                         </div>
                       )
                     )}
@@ -488,6 +484,7 @@ export default function Sidebar({
           aria-label="Chat List and Roster"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          style={{ overflow: 'hidden' }}
         >
             {/* Header with Title & Action Button */}
             <div className="chat-list-header">
@@ -669,13 +666,13 @@ export default function Sidebar({
                 initialSelectedIndex={selectedChatIndex}
                 onItemSelect={handleChatSelect}
                 selectOnHover={false}
+                theme="gajim"
                 width="100%"
                 maxHeight="100%"
-                gap={6}
+                gap={2}
                 radius={12}
                 frame={false}
-                showGradients={true}
-                fadeSize={32}
+                showGradients={false}
                 animation="pop"
                 stagger={0.02}
                 renderItem={(item) => {
@@ -683,7 +680,7 @@ export default function Sidebar({
                     const friend = item.friend || {};
                     const isOnline = item.isOnline;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0 }}>
                         <div
                           className="avatar-circle"
                           style={{
@@ -738,7 +735,7 @@ export default function Sidebar({
                         <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
                           <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden', minWidth: 0 }}>
-                              <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13.5 }}>
+                              <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                 {friend.fullName || friend.username}
                               </span>
                               {friend.publicId && (
@@ -754,7 +751,7 @@ export default function Sidebar({
                             )}
                           </div>
                           <div className="chat-item-bottom" style={{ marginTop: 2 }}>
-                            <span className="chat-preview" style={{ fontSize: 12, color: 'var(--al-muted, #9ca3af)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            <span className="chat-preview" style={{ color: 'var(--text-muted)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                               {item.description}
                             </span>
                           </div>
@@ -766,7 +763,7 @@ export default function Sidebar({
                   const room = item.room || item.raw;
                   const avatarBg = getRoomColor(room?.name);
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0 }}>
                       <div
                         className="avatar-circle"
                         style={{
@@ -803,7 +800,7 @@ export default function Sidebar({
                       <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
                         <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                           <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13.5 }}>
+                            <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                               {room?.name}
                             </span>
                             {room?.isPrivate ? (
@@ -828,7 +825,7 @@ export default function Sidebar({
                           )}
                         </div>
                         <div className="chat-item-bottom" style={{ marginTop: 2 }}>
-                          <span className="chat-preview room-creator-preview" title={`Created by ${getRoomCreatorLabel(room, user)}`} style={{ fontSize: 12, color: 'var(--al-muted, #9ca3af)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          <span className="chat-preview room-creator-preview" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
                             Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
                           </span>
                         </div>

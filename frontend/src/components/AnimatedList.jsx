@@ -60,6 +60,25 @@ const THEMES = {
     '--al-hover': 'brightness(0.97)',
     '--al-press': 'brightness(0.92)',
     '--al-active': 'none'
+  },
+  gajim: {
+    '--al-frame': 'var(--bg-popover, #1f232e)',
+    '--al-frame-edge': 'var(--border-color, rgba(255, 255, 255, 0.1))',
+    '--al-frame-highlight': 'transparent',
+    '--al-frame-shadow': '0 10px 30px rgba(0, 0, 0, 0.6)',
+    '--al-tile': 'transparent',
+    '--al-tile-edge': 'transparent',
+    '--al-tile-highlight': 'transparent',
+    '--al-tile-shadow': 'none',
+    '--al-well': 'var(--bg-panel-hover, rgba(255, 255, 255, 0.06))',
+    '--al-ink': 'var(--text-main, #ffffff)',
+    '--al-muted': 'var(--text-muted, #9ca3af)',
+    '--al-thumb': 'var(--border-color, rgba(255, 255, 255, 0.15))',
+    '--al-ring': 'var(--color-primary-alpha, rgba(240, 136, 44, 0.2))',
+    '--al-ring-fill': 'var(--bg-panel-active, rgba(240, 136, 44, 0.12))',
+    '--al-hover': 'none',
+    '--al-press': 'none',
+    '--al-active': 'none'
   }
 };
 
@@ -491,6 +510,7 @@ const AnimatedList = ({
       ref={rootRef}
       className={`animated-list${frame ? ' animated-list--framed' : ''} ${className}`.trim()}
       data-animated={animation !== 'none' ? '' : undefined}
+      data-lenis-prevent
       style={{
         ...(THEMES[theme] ?? THEMES.dark),
         '--al-radius': `${Math.max(0, radius)}px`,
@@ -507,6 +527,7 @@ const AnimatedList = ({
         ref={viewportRef}
         className={`animated-list__viewport${displayScrollbar ? '' : ' animated-list__viewport--bare'}`}
         role="listbox"
+        data-lenis-prevent
         tabIndex={0}
         aria-activedescendant={selected >= 0 && selected < items.length ? `${baseId}-${selected}` : undefined}
         style={{
