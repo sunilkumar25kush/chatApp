@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { animateModalEnter } from '../utils/animations';
 
-export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName }) {
+export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName, onRequestJoin }) {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const cardRef = useRef(null);
@@ -87,6 +87,26 @@ export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName })
                 ? `"${roomName}" is a private room. Enter its code below to join.`
                 : 'Ask the room owner to share their Room Code or paste it below.'}
             </div>
+
+            {onRequestJoin && (
+              <div style={{ textAlign: 'center', marginTop: -6, marginBottom: 4 }}>
+                <button
+                  type="button"
+                  onClick={onRequestJoin}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-primary, #a78bfa)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Don't have a code? Preview & Request to Join
+                </button>
+              </div>
+            )}
 
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" htmlFor="join-room-code">Room Code / ID</label>
