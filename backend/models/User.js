@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { generatePublicId } = require('../utils/publicId');
 
 const userSchema = new mongoose.Schema(
   {
@@ -36,6 +37,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['local', 'google'],
       default: 'local'
+    },
+    // Permanent, globally unique public user identifier (e.g. SKY-7K9M2Q)
+    publicId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      uppercase: true,
+      trim: true,
+      immutable: true
     },
     // Google account identifier (sub) when user signs in with Google
     googleId: {
@@ -122,6 +132,14 @@ const userSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+// Auto-generate permanent publicId on document validation if not already present
+userSchema.pre('validate', function (next) {
+  if (!this.publicId) {
+    this.publicId = generatePublicId();
+  }
+  next();
+});
 
 // Encrypt password before saving user
 userSchema.pre('save', async function (next) {
