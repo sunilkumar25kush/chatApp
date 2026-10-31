@@ -12,6 +12,7 @@ import friendService from '../services/friendService';
 import notificationService from '../services/notificationService';
 import NotificationsModal from './NotificationsModal';
 import { socket } from '../services/socket';
+import AnimatedList from './AnimatedList';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -219,7 +220,14 @@ export default function Sidebar({
                 </div>
 
                 {/* Presence Dropdown Menu */}
-                <div className={`presence-dropdown ${showUserMenu ? 'active' : ''}`} role="menu" aria-hidden={!showUserMenu} style={{ display: showUserMenu ? 'block' : 'none' }}>
+                {showUserMenu && (
+                  <AnimatedList
+                    className={`presence-dropdown ${showUserMenu ? 'active' : ''}`}
+                    role="menu"
+                    aria-hidden={!showUserMenu}
+                    staggerDelay={0.03}
+                    enableArrowNavigation
+                  >
                     <div className="presence-header">
                         <span className="user-display-name">{user?.username || 'My Account'}</span>
                         <span className="user-jid">{user?.email || 'user@xmpp.net'}</span>
@@ -246,7 +254,8 @@ export default function Sidebar({
                     <button className="presence-option" onClick={logout} role="menuitem">
                         <span className="presence-label" style={{ color: '#f87171' }}>🚪 Logout</span>
                     </button>
-                </div>
+                  </AnimatedList>
+                )}
             </div>
 
             {/* Primary Navigation Icons */}
@@ -501,7 +510,14 @@ export default function Sidebar({
             </div>
 
             {/* Chat List Scrollable Roster */}
-            <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
+            <AnimatedList
+              className="chat-list"
+              data-lenis-prevent
+              role="listbox"
+              aria-label="Conversations List"
+              showGradients
+              staggerDelay={0.02}
+            >
                 {roomsLoading ? (
                   /* Loading Roster State - Skeleton Loaders */
                   <div className="chat-list-skeleton" style={{ padding: 8 }}>
@@ -737,7 +753,7 @@ export default function Sidebar({
                   })}
                   </>
                 )}
-            </div>
+            </AnimatedList>
         </section>
 
       </div>
