@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/useAuth';
 import UserProfileModal from './profile/UserProfileModal';
@@ -172,6 +172,106 @@ export default function Sidebar({
     );
   });
 
+  const presenceMenuItems = useMemo(() => [
+    {
+      id: 'header',
+      type: 'header',
+      title: user?.username || 'My Account',
+      description: user?.email || 'user@xmpp.net',
+      publicId: user?.publicId
+    },
+    {
+      id: 'profile',
+      icon: '👤',
+      title: 'Profile',
+      description: 'View & edit details',
+      action: () => { setShowUserMenu(false); setShowProfile(true); }
+    },
+    {
+      id: 'status',
+      icon: '💬',
+      title: 'Set Status',
+      description: 'Update custom status',
+      action: () => { setShowUserMenu(false); setShowStatusPicker(true); }
+    },
+    {
+      id: 'themes',
+      icon: '🎨',
+      title: 'Themes',
+      description: 'Customize app appearance',
+      action: () => { setShowUserMenu(false); setShowThemeSettings(true); }
+    },
+    {
+      id: 'personality',
+      icon: '✨',
+      title: 'Personality Studio',
+      description: 'AI chat personality settings',
+      action: () => { setShowUserMenu(false); setShowPersonalityStudio(true); }
+    },
+    {
+      id: 'logout',
+      icon: '🚪',
+      title: 'Logout',
+      description: 'Sign out of your account',
+      isDanger: true,
+      action: logout
+    }
+  ], [user, logout]);
+
+  const chatItems = useMemo(() => {
+    const list = [];
+    if (activeTab === 'chats' && filteredDMs.length > 0) {
+      filteredDMs.forEach((conv) => {
+        const friend = conv.friend || {};
+        list.push({
+          id: `dm-${conv._id}`,
+          type: 'dm',
+          raw: conv,
+          title: friend.fullName || friend.username,
+          description: conv.lastMessage?.content ? conv.lastMessage.content : `@${friend.username}`,
+          unreadCount: conv.unreadCount || 0,
+          friend,
+          isOnline: friend.status === 'online'
+        });
+      });
+    }
+
+    currentRoomsList.forEach((room) => {
+      const unread = unreadCounts[room._id || room.id] || 0;
+      list.push({
+        id: `room-${room._id || room.id || room.name}`,
+        type: 'room',
+        raw: room,
+        title: room.name,
+        description: `Created by ${getRoomCreatorLabel(room, user)}`,
+        unreadCount: unread,
+        isPrivate: room.isPrivate,
+        room
+      });
+    });
+
+    return list;
+  }, [activeTab, filteredDMs, currentRoomsList, unreadCounts, user]);
+
+  const selectedChatIndex = useMemo(() => {
+    if (activeDirectConversation) {
+      return chatItems.findIndex(i => i.type === 'dm' && i.raw._id === activeDirectConversation._id);
+    }
+    if (activeRoom) {
+      return chatItems.findIndex(i => i.type === 'room' && ((i.raw._id && i.raw._id === activeRoom._id) || (i.raw.id && i.raw.id === activeRoom.id) || i.raw.name === activeRoom.name));
+    }
+    return -1;
+  }, [chatItems, activeDirectConversation, activeRoom]);
+
+  const handleChatSelect = (item) => {
+    if (!item) return;
+    if (item.type === 'dm') {
+      onSelectDirectConversation?.(item.raw);
+    } else if (item.type === 'room') {
+      onSelectRoom?.(item.raw);
+    }
+  };
+
   return (
       <>
         {/* Mobile Backdrop */}
@@ -222,39 +322,43 @@ export default function Sidebar({
                 {/* Presence Dropdown Menu */}
                 {showUserMenu && (
                   <AnimatedList
-                    className={`presence-dropdown ${showUserMenu ? 'active' : ''}`}
-                    role="menu"
-                    aria-hidden={!showUserMenu}
-                    staggerDelay={0.03}
-                    enableArrowNavigation
-                  >
-                    <div className="presence-header">
-                        <span className="user-display-name">{user?.username || 'My Account'}</span>
-                        <span className="user-jid">{user?.email || 'user@xmpp.net'}</span>
-                        {user?.publicId && (
-                          <span style={{ fontSize: '11px', color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
-                            ID: {user.publicId}
-                          </span>
-                        )}
-                    </div>
-                    <div className="presence-divider"></div>
-                    <button className="presence-option" onClick={() => { setShowUserMenu(false); setShowProfile(true); }} role="menuitem">
-                        <span className="presence-label">👤 Profile</span>
-                    </button>
-                    <button className="presence-option" onClick={() => { setShowUserMenu(false); setShowStatusPicker(true); }} role="menuitem">
-                        <span className="presence-label">💬 Set Status</span>
-                    </button>
-                    <button className="presence-option" onClick={() => { setShowUserMenu(false); setShowThemeSettings(true); }} role="menuitem">
-                        <span className="presence-label">🎨 Themes</span>
-                    </button>
-                    <button className="presence-option" onClick={() => { setShowUserMenu(false); setShowPersonalityStudio(true); }} role="menuitem">
-                        <span className="presence-label">✨ Personality Studio</span>
-                    </button>
-                    <div className="presence-divider"></div>
-                    <button className="presence-option" onClick={logout} role="menuitem">
-                        <span className="presence-label" style={{ color: '#f87171' }}>🚪 Logout</span>
-                    </button>
-                  </AnimatedList>
+                    className="presence-dropdown active"
+                    items={presenceMenuItems}
+                    onItemSelect={(item) => item?.action?.()}
+                    width={230}
+                    maxHeight={360}
+                    radius={10}
+                    gap={4}
+                    frame={true}
+                    showGradients={false}
+                    animation="pop"
+                    stagger={0.03}
+                    renderItem={(item) => (
+                      item.type === 'header' ? (
+                        <div className="presence-header" style={{ padding: '2px 4px', display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default' }}>
+                          <span className="user-display-name">{item.title}</span>
+                          <span className="user-jid">{item.description}</span>
+                          {item.publicId && (
+                            <span style={{ fontSize: '11px', color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
+                              ID: {item.publicId}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+                          <span style={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left' }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: item.isDanger ? '#f87171' : 'inherit' }}>
+                              {item.title}
+                            </span>
+                            <span style={{ fontSize: 11, color: 'var(--al-muted)' }}>
+                              {item.description}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  />
                 )}
             </div>
 
@@ -509,251 +613,231 @@ export default function Sidebar({
                 </button>
             </div>
 
-            {/* Chat List Scrollable Roster */}
-            <AnimatedList
-              className="chat-list"
-              data-lenis-prevent
-              role="listbox"
-              aria-label="Conversations List"
-              showGradients
-              staggerDelay={0.02}
-            >
-                {roomsLoading ? (
-                  /* Loading Roster State - Skeleton Loaders */
-                  <div className="chat-list-skeleton" style={{ padding: 8 }}>
-                    {Array.from({ length: 8 }, (_, i) => (
-                      <SkeletonChatItem key={i} />
-                    ))}
-                  </div>
-                ) : (activeTab === 'chats' && filteredDMs.length === 0 && currentRoomsList.length === 0) || (activeTab !== 'chats' && currentRoomsList.length === 0) ? (
-                  /* Empty Roster State */
-                  <div className="empty-roster-state">
-                      <svg className="icon icon-empty bi bi-chat-square-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0m4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg>
-                      <p className="empty-title">No conversations found</p>
-                      <p className="empty-subtitle">
-                        {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel or add friends.'}
-                      </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Direct Messages Section */}
-                    {activeTab === 'chats' && filteredDMs.length > 0 && (
-                      <div className="direct-messages-roster-group" style={{ marginBottom: 8 }}>
-                        <div style={{
-                          padding: '6px 14px 4px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          color: 'var(--theme-text-muted, #9ca3af)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between'
-                        }}>
-                          <span>Direct Messages ({filteredDMs.length})</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab('friends')}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--theme-primary, #a78bfa)',
-                              fontSize: 11,
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            + Add
-                          </button>
-                        </div>
+            {/* Chat List Scrollable Roster using AnimatedList */}
+            {activeTab === 'chats' && filteredDMs.length > 0 && (
+              <div style={{
+                padding: '6px 14px 4px',
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--theme-text-muted, #9ca3af)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span>Direct Messages ({filteredDMs.length})</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('friends')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--theme-primary, #a78bfa)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+            )}
 
-                        {filteredDMs.map((conv) => {
-                          const isSelected = activeDirectConversation && (activeDirectConversation._id === conv._id);
-                          const friend = conv.friend || {};
-                          const isOnline = friend.status === 'online';
-                          return (
-                            <div
-                              key={conv._id}
-                              className={`chat-item direct-chat-item ${isSelected ? 'active' : ''}`}
-                              onClick={() => onSelectDirectConversation && onSelectDirectConversation(conv)}
-                              tabIndex="0"
-                              role="button"
-                            >
-                              <div
-                                className="avatar-circle"
-                                style={{
-                                  position: 'relative',
-                                  width: 38,
-                                  height: 38,
-                                  borderRadius: '50%',
-                                  flexShrink: 0,
-                                  background: '#374151',
-                                  overflow: 'visible'
-                                }}
-                              >
-                                {friend.avatar ? (
-                                  <img
-                                    src={friend.avatar}
-                                    alt={friend.username || 'Friend'}
-                                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      borderRadius: '50%',
-                                      background: 'var(--theme-primary, #7c3aed)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      color: '#fff',
-                                      fontWeight: 700,
-                                      fontSize: 13
-                                    }}
-                                  >
-                                    {getUserInitials(friend.fullName || friend.username || 'Friend')}
-                                  </div>
-                                )}
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    right: 0,
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: '50%',
-                                    background: isOnline ? '#10b981' : '#6b7280',
-                                    border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
-                                  }}
-                                  title={isOnline ? 'Online' : 'Offline'}
-                                />
-                              </div>
-
-                              <div className="chat-item-content">
-                                <div className="chat-item-top">
-                                  <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                                    <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                      {friend.fullName || friend.username}
-                                    </span>
-                                    {friend.publicId && (
-                                      <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', background: 'rgba(124, 58, 237, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
-                                        {friend.publicId}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {conv.unreadCount > 0 && (
-                                    <span className="unread-badge">
-                                      {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="chat-item-bottom">
-                                  <span className="chat-preview" style={{ fontSize: 12, color: '#9ca3af' }}>
-                                    {conv.lastMessage?.content ? conv.lastMessage.content : `@${friend.username}`}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Channels & Rooms Section Header */}
-                    {activeTab === 'chats' && filteredDMs.length > 0 && currentRoomsList.length > 0 && (
-                      <div style={{
-                        padding: '8px 14px 4px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        color: 'var(--theme-text-muted, #9ca3af)'
-                      }}>
-                        Channels & Rooms ({currentRoomsList.length})
-                      </div>
-                    )}
-
-                    {currentRoomsList.map((room) => {
-                    const isSelected = activeRoom && (activeRoom._id || activeRoom.id) === (room._id || room.id);
-                    const avatarBg = getRoomColor(room.name);
+            {roomsLoading ? (
+              <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
+                <div className="chat-list-skeleton" style={{ padding: 8 }}>
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <SkeletonChatItem key={i} />
+                  ))}
+                </div>
+              </div>
+            ) : chatItems.length === 0 ? (
+              <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
+                <div className="empty-roster-state">
+                  <svg className="icon icon-empty bi bi-chat-square-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0m4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg>
+                  <p className="empty-title">No conversations found</p>
+                  <p className="empty-subtitle">
+                    {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel or add friends.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <AnimatedList
+                className="chat-list"
+                items={chatItems}
+                initialSelectedIndex={selectedChatIndex}
+                onItemSelect={handleChatSelect}
+                selectOnHover={false}
+                width="100%"
+                maxHeight="100%"
+                gap={6}
+                radius={12}
+                frame={false}
+                showGradients={true}
+                fadeSize={32}
+                animation="pop"
+                stagger={0.02}
+                renderItem={(item) => {
+                  if (item.type === 'dm') {
+                    const friend = item.friend || {};
+                    const isOnline = item.isOnline;
                     return (
-                      <div
-                        key={room._id || room.id || room.name}
-                        className={`chat-item ${isSelected ? 'active' : ''}`}
-                        onClick={() => onSelectRoom(room)}
-                        tabIndex="0"
-                      >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
                         <div
                           className="avatar-circle"
                           style={{
-                            background: avatarBg,
+                            position: 'relative',
                             width: 38,
                             height: 38,
                             borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#fff',
-                            fontSize: 13,
-                            fontWeight: 700,
                             flexShrink: 0,
-                            position: 'relative'
+                            background: '#374151',
+                            overflow: 'visible'
                           }}
                         >
-                          {getUserInitials(room.name)}
+                          {friend.avatar ? (
+                            <img
+                              src={friend.avatar}
+                              alt={friend.username || 'Friend'}
+                              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                borderRadius: '50%',
+                                background: 'var(--theme-primary, #7c3aed)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                                fontWeight: 700,
+                                fontSize: 13
+                              }}
+                            >
+                              {getUserInitials(friend.fullName || friend.username || 'Friend')}
+                            </div>
+                          )}
                           <span
                             style={{
                               position: 'absolute',
                               bottom: 0,
                               right: 0,
-                              width: 9,
-                              height: 9,
+                              width: 10,
+                              height: 10,
                               borderRadius: '50%',
-                              background: room.isPrivate ? '#f59e0b' : '#10b981',
-                              border: '1.5px solid var(--bg-sidebar, #0e1626)',
-                              boxShadow: room.isPrivate ? '0 0 6px rgba(245, 158, 11, 0.5)' : '0 0 6px rgba(16, 185, 129, 0.6)'
+                              background: isOnline ? '#10b981' : '#6b7280',
+                              border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
                             }}
+                            title={isOnline ? 'Online' : 'Offline'}
                           />
                         </div>
 
-                        <div className="chat-item-content">
-                            <div className="chat-item-top">
-                                <div className="chat-name-wrapper">
-                                    <span className="chat-name">{room.name}</span>
-                                    {room.isPrivate ? (
-                                      <span className="roster-badge roster-badge-private" title="Private Space (Code Required)">
-                                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
-                                        <span>Private</span>
-                                      </span>
-                                    ) : (
-                                      <span className="roster-badge roster-badge-public" title="Published Public Channel">
-                                        <svg width="10.5" height="10.5" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1"/></svg>
-                                        <span>Public</span>
-                                      </span>
-                                    )}
-                                </div>
-                                {unreadCounts[room._id || room.id] > 0 && (
-                                  <span
-                                    className="unread-badge"
-                                    aria-label={`${unreadCounts[room._id || room.id]} unread messages`}
-                                  >
-                                    {unreadCounts[room._id || room.id] > 99 ? '99+' : unreadCounts[room._id || room.id]}
-                                  </span>
-                                )}
-                            </div>
-                            <div className="chat-item-bottom">
-                                <span className="chat-preview room-creator-preview" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
-                                  Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
+                        <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
+                          <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden', minWidth: 0 }}>
+                              <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13.5 }}>
+                                {friend.fullName || friend.username}
+                              </span>
+                              {friend.publicId && (
+                                <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', background: 'rgba(124, 58, 237, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
+                                  {friend.publicId}
                                 </span>
+                              )}
                             </div>
+                            {item.unreadCount > 0 && (
+                              <span className="unread-badge">
+                                {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                          <div className="chat-item-bottom" style={{ marginTop: 2 }}>
+                            <span className="chat-preview" style={{ fontSize: 12, color: 'var(--al-muted, #9ca3af)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {item.description}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
-                  })}
-                  </>
-                )}
-            </AnimatedList>
+                  }
+
+                  const room = item.room || item.raw;
+                  const avatarBg = getRoomColor(room?.name);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
+                      <div
+                        className="avatar-circle"
+                        style={{
+                          background: avatarBg,
+                          width: 38,
+                          height: 38,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          position: 'relative'
+                        }}
+                      >
+                        {getUserInitials(room?.name)}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            right: 0,
+                            width: 9,
+                            height: 9,
+                            borderRadius: '50%',
+                            background: room?.isPrivate ? '#f59e0b' : '#10b981',
+                            border: '1.5px solid var(--bg-sidebar, #0e1626)',
+                            boxShadow: room?.isPrivate ? '0 0 6px rgba(245, 158, 11, 0.5)' : '0 0 6px rgba(16, 185, 129, 0.6)'
+                          }}
+                        />
+                      </div>
+
+                      <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                          <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13.5 }}>
+                              {room?.name}
+                            </span>
+                            {room?.isPrivate ? (
+                              <span className="roster-badge roster-badge-private" title="Private Space (Code Required)" style={{ flexShrink: 0 }}>
+                                <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
+                                <span>Private</span>
+                              </span>
+                            ) : (
+                              <span className="roster-badge roster-badge-public" title="Published Public Channel" style={{ flexShrink: 0 }}>
+                                <svg width="10.5" height="10.5" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1"/></svg>
+                                <span>Public</span>
+                              </span>
+                            )}
+                          </div>
+                          {item.unreadCount > 0 && (
+                            <span
+                              className="unread-badge"
+                              aria-label={`${item.unreadCount} unread messages`}
+                            >
+                              {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className="chat-item-bottom" style={{ marginTop: 2 }}>
+                          <span className="chat-preview room-creator-preview" title={`Created by ${getRoomCreatorLabel(room, user)}`} style={{ fontSize: 12, color: 'var(--al-muted, #9ca3af)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+            )}
         </section>
 
       </div>
