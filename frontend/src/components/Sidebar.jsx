@@ -553,8 +553,8 @@ export default function Sidebar({
             {/* Primary Navigation Icons */}
             <nav className="sidebar-nav" aria-label="Primary Features">
                 <button 
-                  className={`nav-item ${activeTab === 'joined' ? 'active' : ''}`} 
-                  onClick={() => setActiveTab('joined')} 
+                  className={`nav-item ${(activeTab === 'all' || activeTab === 'joined' || activeTab === 'public' || activeTab === 'private' || activeTab === 'rooms') ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('all')} 
                   title="Group Chat Rooms" 
                   aria-label="Group Chat Rooms" 
                   aria-selected={activeTab === 'joined'} 
@@ -831,10 +831,8 @@ export default function Sidebar({
             {activeTab !== 'friends' && (
               <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter group rooms">
                 <button 
-                  className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'joined' || activeTab === 'all') ? 'active' : ''}`} 
-                  onClick={() => setActiveTab('joined')} 
-                  role="tab" 
-                  aria-selected={activeTab === 'joined' || activeTab === 'chats'}
+                  className={`tab-item ui-tab-chip ${(activeTab === 'all' || activeTab === 'rooms') ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('all')} role="tab" aria-selected={activeTab === 'all' || activeTab === 'rooms'}
                 >
                   All
                 </button>

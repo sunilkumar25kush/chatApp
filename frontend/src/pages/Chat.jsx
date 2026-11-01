@@ -67,7 +67,7 @@ export default function Chat() {
     };
   }, [fetchConversations, activeDirectConversation]);
 
-  const [activeTab, setActiveTab] = useState('joined'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
+  const [activeTab, setActiveTab] = useState('all'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
   const selectedCategory = 'All';
 
@@ -464,7 +464,7 @@ export default function Chat() {
                 if (window.innerWidth < 768) {
                   closeMobileChat();
                 } else {
-                  setActiveTab('joined');
+                  setActiveTab('all');
                 }
               }}
             />

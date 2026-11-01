@@ -21,10 +21,17 @@ const getUserById = async (req, res, next) => {
 
     if (isDBConnected() && mongoose.Types.ObjectId.isValid(id)) {
       user = await User.findById(id).select('-password');
+      if (user && !user.publicId) {
+        user.publicId = generatePublicId();
+        await user.save();
+      }
     }
 
     if (!user && memoryUsers) {
       user = memoryUsers.get(String(id));
+      if (user && !user.publicId) {
+        user.publicId = generatePublicId();
+      }
     }
 
     if (!user) {

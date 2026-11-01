@@ -10,6 +10,10 @@ export default function RoomInfoModal({
   onLeaveRoom,
   onOpenStudio,
   onOpenPrivacy,
+  onOpenJoinRequests,
+  onDeleteRoom,
+  isRoomOwnerOrAdmin,
+  pendingRequestsCount = 0,
   onToggleSelectionMode,
   onViewAdminProfile
 }) {
@@ -542,6 +546,73 @@ export default function RoomInfoModal({
                 </div>
               </button>
 
+              {/* Join Requests (if owner/admin) */}
+              {isRoomOwnerOrAdmin && onOpenJoinRequests && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose?.();
+                    onOpenJoinRequests?.();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-main, #f3f4f6)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%'
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>👥</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>Review Join Requests</span>
+                      {pendingRequestsCount > 0 && (
+                        <span style={{ background: '#ef4444', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
+                          {pendingRequestsCount}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted, #94a3b8)' }}>Approve or decline member access</div>
+                  </div>
+                </button>
+              )}
+
+              {/* Delete Room (if creator) */}
+              {onDeleteRoom && room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose?.();
+                    onDeleteRoom?.();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%'
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>🗑️</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>Delete Room</div>
+                    <div style={{ fontSize: 11, color: 'rgba(239, 68, 68, 0.8)' }}>Permanently remove this chat space</div>
+                  </div>
+                </button>
+              )}
+
               {/* Chat Room Studio in More */}
               <button
                 type="button"
@@ -675,3 +746,4 @@ RoomInfoModal.propTypes = {
   onToggleSelectionMode: PropTypes.func,
   onViewAdminProfile: PropTypes.func
 };
+

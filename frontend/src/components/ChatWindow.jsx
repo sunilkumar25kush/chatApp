@@ -1052,74 +1052,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         </div>
 
         <div className="header-right-actions">
-          {isRoomOwnerOrAdmin && (
-            <button
-              className="btn-icon header-action-requests"
-              onClick={() => setIsJoinRequestsModalOpen(true)}
-              title="Review Join Requests"
-              aria-label="Review Join Requests"
-              style={{ position: 'relative' }}
-            >
-              <span>👥</span>
-              {pendingRequestsCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    background: '#ef4444',
-                    color: '#fff',
-                    borderRadius: '50%',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    width: 16,
-                    height: 16,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 0 4px rgba(0,0,0,0.5)'
-                  }}
-                >
-                  {pendingRequestsCount}
-                </span>
-              )}
-            </button>
-          )}
-          <button className="btn-icon header-action-privacy" onClick={() => setIsPrivacyModalOpen(true)} title="Room Privacy Settings" aria-label="Room Privacy Settings">
-            <span>{room.isPrivate ? '🔒' : '🌐'}</span>
-          </button>
-          <button className="btn-icon header-action-studio" onClick={() => setIsStudioOpen(true)} title="Chat Personality Studio" aria-label="Studio">
-            <span>✨</span>
-          </button>
           <button className="btn-icon header-action-voice" onClick={handleStartVoiceCall} title="Start Audio Call" aria-label="Audio Call">
             <svg className="icon bi bi-telephone-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.68.68 0 0 0 .178.643l2.457 2.457a.68.68 0 0 0 .644.178l2.189-.547a1.75 1.75 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.6 18.6 0 0 1-7.01-4.42 18.6 18.6 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877z" /></svg>
           </button>
           <button className="btn-icon header-action-video" onClick={handleStartVideoCall} title="Start Video Call" aria-label="Video Call">
             <svg className="icon bi bi-camera-video-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M0 5a2 2 0 0 1 2-2h7.5a2 2 0 0 1 1.983 1.738l3.11-1.382A1 1 0 0 1 16 4.269v7.462a1 1 0 0 1-1.406.913l-3.111-1.382A2 2 0 0 1 9.5 13H2a2 2 0 0 1-2-2z" /></svg>
-          </button>
-          <button className="btn-icon header-action-more" onClick={() => setIsMobileMoreOpen(!isMobileMoreOpen)} title="More options" aria-label="More options">
-            {/* Search icon (desktop) */}
-            <svg className="icon icon-more-search bi bi-search" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" /></svg>
-            {/* Three-dot icon (mobile) */}
-            <svg className="icon icon-more-dots bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" /></svg>
-          </button>
-          <button
-            className="btn-icon header-action-select"
-            onClick={() => setSelectionMode((prev) => !prev)}
-            title={selectionMode ? 'Exit multi-select mode' : 'Select messages'}
-            aria-label="Toggle multi-select"
-            style={selectionMode ? { color: 'var(--color-primary)', background: 'var(--primary-light)' } : undefined}
-          >
-            <svg className="icon bi bi-check2-square" viewBox="0 0 16 16" fill="currentColor"><path d="M3 14.5A1.5 1.5 0 0 1 1.5 13V3A1.5 1.5 0 0 1 3 1.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5zM10 5.5a.5.5 0 0 0-.854-.354l-3 3-1.5-1.5a.5.5 0 0 0-.708.708l2 2a.5.5 0 0 0 .708 0l3.5-3.5a.5.5 0 0 0 .146-.354" /></svg>
-          </button>
-          <div className="action-divider header-action-divider"></div>
-          {room.owner && (user?._id === room.owner._id || user?.id === room.owner._id || user?._id === room.owner || user?.id === room.owner) && (
-            <button className="btn-icon header-action-delete" onClick={handleDeleteRoom} title="Delete Room" aria-label="Delete Room">
-              <svg className="icon bi bi-trash3-fill" viewBox="0 0 16 16" fill="#ef4444"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5" /></svg>
-            </button>
-          )}
-          <button className="btn-icon header-action-leave" onClick={() => onLeaveRoom(roomId)} title="Leave Room" aria-label="Leave Room">
-            <svg className="icon bi bi-box-arrow-right" viewBox="0 0 16 16" fill="#ef4444"><path fillRule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z" /><path fillRule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z" /></svg>
           </button>
         </div>
 
@@ -1982,6 +1919,10 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         onLeaveRoom={onLeaveRoom}
         onOpenStudio={() => setIsStudioOpen(true)}
         onOpenPrivacy={() => setIsPrivacyModalOpen(true)}
+        onOpenJoinRequests={() => setIsJoinRequestsModalOpen(true)}
+        onDeleteRoom={handleDeleteRoom}
+        isRoomOwnerOrAdmin={isRoomOwnerOrAdmin}
+        pendingRequestsCount={pendingRequestsCount}
         onToggleSelectionMode={() => setSelectionMode((prev) => !prev)}
         onViewAdminProfile={(adminId) => setTargetProfileId(adminId)}
       />

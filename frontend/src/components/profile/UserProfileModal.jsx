@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../services/api';
+import friendService from '../../services/friendService';
 import { useAuth } from '../../context/useAuth';
 import ImageCropperModal from './ImageCropperModal';
 import { animateModalEnter } from '../../utils/animations';
@@ -18,6 +19,8 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [relationshipStatus, setRelationshipStatus] = useState(null);
+  const [sendingFriendReq, setSendingFriendReq] = useState(false);
 
   // Image Upload States
   const [cropTarget, setCropTarget] = useState(null); // 'avatar' or 'bannerImage'
@@ -61,6 +64,32 @@ export default function UserProfileModal({ targetUserId, onClose }) {
     };
     if (targetUserId) fetchProfile();
   }, [targetUserId, isMe, currentUser, updateLocalUser]);
+
+  // Fetch relationship status when viewing another user
+  useEffect(() => {
+    if (!isMe && profileData?.publicId) {
+      friendService.getRelationshipStatus(profileData.publicId)
+        .then((res) => setRelationshipStatus(res.relationship))
+        .catch(() => setRelationshipStatus('none'));
+    }
+  }, [isMe, profileData?.publicId]);
+
+  const handleSendFriendRequest = async () => {
+    if (!profileData?.publicId) return;
+    setSendingFriendReq(true);
+    try {
+      await friendService.sendFriendRequest({ publicId: profileData.publicId });
+      setRelationshipStatus('pending_sent');
+      toast.success('Friend Request Sent!', {
+        description: `Sent friend request to @${profileData.username}`
+      });
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to send friend request';
+      toast.error(msg);
+    } finally {
+      setSendingFriendReq(false);
+    }
+  };
 
   // Lock body scroll and listen for Escape key
   useEffect(() => {
@@ -323,8 +352,8 @@ export default function UserProfileModal({ targetUserId, onClose }) {
               )}
             </div>
 
-            {/* Header Action Buttons (Edit / Save / Cancel) */}
-            {isMe && (
+            {/* Header Action Buttons (Edit / Save / Cancel for me, Add Friend for other users) */}
+            {isMe ? (
               <div className="profile-header-actions">
                 {isEditing ? (
                   <>
@@ -353,6 +382,38 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                     Edit Profile
                   </button>
                 )}
+              </div>
+            ) : (
+              <div className="profile-header-actions">
+                <button
+                  type="button"
+                  onClick={handleSendFriendRequest}
+                  disabled={sendingFriendReq || relationshipStatus === 'pending_sent' || relationshipStatus === 'accepted'}
+                  className="btn-profile-primary btn-add-friend"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: relationshipStatus === 'accepted' ? '#10b981' : relationshipStatus === 'pending_sent' ? 'rgba(255,255,255,0.1)' : 'var(--theme-primary, #7c3aed)',
+                    color: '#fff',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: (relationshipStatus === 'pending_sent' || relationshipStatus === 'accepted' || sendingFriendReq) ? 'default' : 'pointer'
+                  }}
+                >
+                  {relationshipStatus === 'accepted' ? (
+                    <><span>👥</span><span>Friends</span></>
+                  ) : relationshipStatus === 'pending_sent' ? (
+                    <><span>⏳</span><span>Request Sent</span></>
+                  ) : relationshipStatus === 'pending_received' ? (
+                    <><span>✓</span><span>Accept Request</span></>
+                  ) : (
+                    <><span>➕</span><span>{sendingFriendReq ? 'Sending...' : 'Add Friend'}</span></>
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -424,11 +485,11 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 <div className="profile-identity-handle">@{profileData.username}</div>
                 
                 {/* Clearly Displayed Permanent Public ID with Copy & Share Actions */}
-                {profileData.publicId && (
+                {(
                   <div className="profile-user-id-container">
                     <div className="profile-user-id-badge">
                       <span className="profile-user-id-label">PUBLIC ID</span>
-                      <span className="profile-user-id-value">{profileData.publicId}</span>
+                      <span className="profile-user-id-value">{profileData.publicId || (profileData._id ? `SKY-${String(profileData._id).slice(-6).toUpperCase()}` : "ID-PENDING")}</span>
                     </div>
                     <div className="profile-user-id-actions">
                       <button
