@@ -75,7 +75,9 @@ const sendFriendRequest = async (req, res, next) => {
           }
         }
       }
-    } else if (targetUserId) {
+    }
+
+    if (!targetUser && targetUserId) {
       if (isDBConnected() && mongoose.Types.ObjectId.isValid(targetUserId)) {
         targetUser = await User.findById(targetUserId);
       }
@@ -814,11 +816,33 @@ const getRelationshipStatus = async (req, res, next) => {
         }
       }
     } else {
-      if (isDBConnected() && mongoose.Types.ObjectId.isValid(targetId)) {
-        targetUser = await User.findById(targetId);
+      if (isDBConnected()) {
+        if (mongoose.Types.ObjectId.isValid(targetId)) {
+          targetUser = await User.findById(targetId);
+        }
+        if (!targetUser) {
+          targetUser = await User.findOne({
+            $or: [
+              { publicId: String(targetId).toUpperCase().trim() },
+              { username: String(targetId).trim() }
+            ]
+          });
+        }
       }
       if (!targetUser && memoryUsers) {
         targetUser = memoryUsers.get(String(targetId));
+        if (!targetUser) {
+          const lower = String(targetId).toLowerCase().trim();
+          for (const u of memoryUsers.values()) {
+            if (
+              (u.publicId && u.publicId.toLowerCase() === lower) ||
+              (u.username && u.username.toLowerCase() === lower)
+            ) {
+              targetUser = u;
+              break;
+            }
+          }
+        }
       }
     }
 

@@ -19,16 +19,43 @@ const getUserById = async (req, res, next) => {
     const { id } = req.params;
     let user = null;
 
-    if (isDBConnected() && mongoose.Types.ObjectId.isValid(id)) {
-      user = await User.findById(id).select('-password');
+    if (isDBConnected()) {
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        user = await User.findById(id).select('-password');
+      } else {
+        const queryStr = String(id).trim();
+        user = await User.findOne({
+          $or: [
+            { publicId: queryStr.toUpperCase() },
+            { username: { $regex: new RegExp(`^${queryStr}$`, 'i') } }
+          ]
+        }).select('-password');
+      }
+
       if (user && !user.publicId) {
-        user.publicId = generatePublicId();
-        await user.save();
+        const newId = generatePublicId();
+        await User.collection.updateOne(
+          { _id: user._id },
+          { $set: { publicId: newId } }
+        );
+        user.publicId = newId;
       }
     }
 
     if (!user && memoryUsers) {
       user = memoryUsers.get(String(id));
+      if (!user) {
+        const target = String(id).toLowerCase().trim();
+        for (const u of memoryUsers.values()) {
+          if (
+            (u.publicId && u.publicId.toLowerCase() === target) ||
+            (u.username && u.username.toLowerCase() === target)
+          ) {
+            user = u;
+            break;
+          }
+        }
+      }
       if (user && !user.publicId) {
         user.publicId = generatePublicId();
       }
@@ -62,8 +89,9 @@ const getMyPublicId = async (req, res, next) => {
       const user = await User.findById(userId);
       if (user) {
         if (!user.publicId) {
-          user.publicId = generatePublicId();
-          await user.save();
+          const gen = generatePublicId();
+          await User.collection.updateOne({ _id: user._id }, { $set: { publicId: gen } });
+          user.publicId = gen;
         }
         publicId = user.publicId;
       }
@@ -112,7 +140,13 @@ const lookupByPublicId = async (req, res, next) => {
 
     if (isDBConnected()) {
       targetUser = await User.findOne({ publicId: normalized });
+      if (targetUser && !targetUser.publicId) {
+        const genId = generatePublicId();
+        await User.collection.updateOne({ _id: targetUser._id }, { $set: { publicId: genId } });
+        targetUser.publicId = genId;
+      }
     }
+
     if (!targetUser && memoryUsers) {
       for (const u of memoryUsers.values()) {
         if (u.publicId === normalized) {
@@ -384,7 +418,8 @@ const searchUsers = async (req, res, next) => {
         $or: [
           { username: { $regex: escaped, $options: 'i' } },
           { fullName: { $regex: escaped, $options: 'i' } },
-          { email: { $regex: escaped, $options: 'i' } }
+          { email: { $regex: escaped, $options: 'i' } },
+          { publicId: { $regex: escaped, $options: 'i' } }
         ]
       })
         .select('username email avatar fullName bio status lastSeen publicId')
@@ -395,7 +430,7 @@ const searchUsers = async (req, res, next) => {
     // Memory fallback
     const users = Array.from(memoryUsers.values())
       .filter((u) => String(u._id) !== String(currentUserId))
-      .filter((u) => (u.username || '').toLowerCase().includes(q.toLowerCase()) || (u.email || '').toLowerCase().includes(q.toLowerCase()))
+      .filter((u) => (u.username || '').toLowerCase().includes(q.toLowerCase()) || (u.publicId || '').toLowerCase().includes(q.toLowerCase()) || (u.email || '').toLowerCase().includes(q.toLowerCase()))
       .slice(0, limit);
     return res.json({ users });
   } catch (error) {

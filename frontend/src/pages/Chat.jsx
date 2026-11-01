@@ -457,17 +457,6 @@ export default function Chat() {
         <main className="chat-panel">
           {activeTab === 'calls' ? (
             <CallHistoryPage />
-          ) : activeTab === 'friends' ? (
-            <FriendsPage
-              onStartChat={handleStartDirectChatWithFriend}
-              onBack={() => {
-                if (window.innerWidth < 768) {
-                  closeMobileChat();
-                } else {
-                  setActiveTab('all');
-                }
-              }}
-            />
           ) : activeDirectConversation ? (
             <DirectChatWindow
               conversation={activeDirectConversation}
@@ -479,6 +468,17 @@ export default function Chat() {
                 }
               }}
               onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            />
+          ) : activeTab === 'friends' ? (
+            <FriendsPage
+              onStartChat={handleStartDirectChatWithFriend}
+              onBack={() => {
+                if (window.innerWidth < 768) {
+                  closeMobileChat();
+                } else {
+                  setActiveTab('all');
+                }
+              }}
             />
           ) : (
             <>

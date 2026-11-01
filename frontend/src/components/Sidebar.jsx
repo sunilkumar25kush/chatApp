@@ -15,6 +15,7 @@ import notificationService from '../services/notificationService';
 import NotificationsModal from './NotificationsModal';
 import { socket } from '../services/socket';
 import AnimatedList from './AnimatedList';
+import api from '../services/api';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -129,6 +130,59 @@ export default function Sidebar({
       socket.off('friend_request_cancelled', handleReq);
     };
   }, []);
+
+  const handleSearchFriendToAdd = async (e) => {
+    if (e) e.preventDefault();
+    const query = addFriendInput.trim();
+    if (!query) return;
+    setAddFriendSearching(true);
+    setAddFriendFoundUser(null);
+    try {
+      let found = null;
+      try {
+        const res = await friendService.lookupUserByPublicId(query.toUpperCase());
+        if (res.user) found = res.user;
+      } catch {
+        // Fallback search
+        const searchRes = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
+        if (searchRes.data?.users?.length > 0) {
+          found = searchRes.data.users[0];
+        }
+      }
+
+      if (found) {
+        setAddFriendFoundUser(found);
+      } else {
+        toast.error('User not found. Please verify the Public ID or username.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to find user');
+    } finally {
+      setAddFriendSearching(false);
+    }
+  };
+
+  const handleSendFriendRequestFromSidebar = async () => {
+    if (!addFriendFoundUser) return;
+    setAddFriendSubmitting(true);
+    try {
+      await friendService.sendFriendRequest({
+        publicId: addFriendFoundUser.publicId,
+        targetUserId: addFriendFoundUser._id || addFriendFoundUser.id
+      });
+      toast.success('Friend Request Sent!', {
+        description: `Sent friend request to @${addFriendFoundUser.username}`
+      });
+      setShowAddFriendModal(false);
+      setAddFriendFoundUser(null);
+      setAddFriendInput('');
+      fetchFriends();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send friend request');
+    } finally {
+      setAddFriendSubmitting(false);
+    }
+  };
 
   const touchStartXRef = useRef(0);
   const userMenuRef = useRef(null);
@@ -555,13 +609,13 @@ export default function Sidebar({
                 <button 
                   className={`nav-item ${(activeTab === 'all' || activeTab === 'joined' || activeTab === 'public' || activeTab === 'private' || activeTab === 'rooms') ? 'active' : ''}`} 
                   onClick={() => setActiveTab('all')} 
-                  title="Group Chat Rooms" 
-                  aria-label="Group Chat Rooms" 
+                  title="Rooms" 
+                  aria-label="Rooms" 
                   aria-selected={activeTab === 'joined'} 
                   role="tab"
                 >
                     <svg className="icon bi bi-people-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/></svg>
-                    <span className="tooltip">Group Rooms</span>
+                    <span className="tooltip">Rooms</span>
                 </button>
                 <button 
                   className={`nav-item ${activeTab === 'friends' ? 'active' : ''}`} 
@@ -735,7 +789,7 @@ export default function Sidebar({
             {/* Header with Title & Action Button */}
             <div className="chat-list-header">
                 <div className="header-title-container">
-                    <h1 className="panel-title">{activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Group Rooms'}</h1>
+                    <h1 className="panel-title">{activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Rooms'}</h1>
                     <span className="connection-status-pill connected" title="Connected">
                         <span className="status-dot"></span> JoyBoy
                     </span>
@@ -827,9 +881,9 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Filter Tabs - Shown ONLY in Group Rooms section, NEVER in Friends section */}
+            {/* Filter Tabs - Shown ONLY in Rooms section, NEVER in Friends section */}
             {activeTab !== 'friends' && (
-              <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter group rooms">
+              <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter rooms">
                 <button 
                   className={`tab-item ui-tab-chip ${(activeTab === 'all' || activeTab === 'rooms') ? 'active' : ''}`} 
                   onClick={() => setActiveTab('all')} role="tab" aria-selected={activeTab === 'all' || activeTab === 'rooms'}
@@ -889,6 +943,32 @@ export default function Sidebar({
       ? 'No private rooms found.'
       : 'Click the + button to create a new group channel.'}
   </p>
+                  {activeTab === 'friends' && searchQuery && (
+                    <div style={{ marginTop: 12 }}>
+                      <button
+                        type="button"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '8px 14px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          borderRadius: 8,
+                          background: 'var(--theme-primary, #7c3aed)',
+                          color: '#fff',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setAddFriendInput(searchQuery);
+                          setShowAddFriendModal(true);
+                        }}
+                      >
+                        🔍 Find & Add "{searchQuery}"
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1097,6 +1177,95 @@ export default function Sidebar({
         onNavigate={onNavigateNotification}
         onUnreadCountChange={(cnt) => setUnreadNotificationsCount(cnt)}
       />
+
+      {/* Add Friend by Public ID Modal */}
+      {showAddFriendModal && (
+        <div 
+          className="modal-backdrop" 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 16 }}
+          onClick={() => { setShowAddFriendModal(false); setAddFriendFoundUser(null); }}
+        >
+          <div 
+            className="modal-content"
+            style={{ width: '100%', maxWidth: 440, background: 'var(--theme-card-bg, #1e2029)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.4)', color: '#f3f4f6' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>👥</span> Add Friend
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => { setShowAddFriendModal(false); setAddFriendFoundUser(null); }}
+                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 20, cursor: 'pointer', padding: 4 }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px 0' }}>
+              Enter a permanent Public ID (e.g. <code>SKY-3QYYR4</code>) or username to search and connect.
+            </p>
+
+            <form onSubmit={handleSearchFriendToAdd} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input
+                type="text"
+                value={addFriendInput}
+                onChange={(e) => setAddFriendInput(e.target.value)}
+                placeholder="Enter Public ID (SKY-XXXXXX) or username"
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 14, outline: 'none' }}
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={addFriendSearching || !addFriendInput.trim()}
+                style={{ padding: '10px 18px', borderRadius: 10, background: 'var(--theme-primary, #7c3aed)', color: '#fff', border: 'none', fontWeight: 600, fontSize: 13, cursor: addFriendSearching || !addFriendInput.trim() ? 'not-allowed' : 'pointer', opacity: addFriendSearching || !addFriendInput.trim() ? 0.6 : 1 }}
+              >
+                {addFriendSearching ? 'Searching...' : 'Search'}
+              </button>
+            </form>
+
+            {addFriendFoundUser && (
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <img
+                    src={addFriendFoundUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${addFriendFoundUser.username}`}
+                    alt={addFriendFoundUser.username}
+                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>
+                      {addFriendFoundUser.fullName || addFriendFoundUser.username}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9ca3af' }}>@{addFriendFoundUser.username}</div>
+                    {addFriendFoundUser.publicId && (
+                      <div style={{ fontSize: 11, color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
+                        ID: {addFriendFoundUser.publicId}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {addFriendFoundUser.bio && (
+                  <p style={{ fontSize: 12, color: '#d1d5db', margin: '0 0 14px 0', fontStyle: 'italic' }}>
+                    "{addFriendFoundUser.bio}"
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSendFriendRequestFromSidebar}
+                  disabled={addFriendSubmitting}
+                  style={{ width: '100%', padding: '10px', borderRadius: 8, background: 'var(--theme-primary, #7c3aed)', color: '#fff', border: 'none', fontWeight: 600, fontSize: 13, cursor: addFriendSubmitting ? 'not-allowed' : 'pointer', opacity: addFriendSubmitting ? 0.6 : 1 }}
+                >
+                  {addFriendSubmitting ? 'Sending Request...' : 'Send Friend Request'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

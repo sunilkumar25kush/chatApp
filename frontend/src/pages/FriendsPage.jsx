@@ -203,13 +203,39 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
   // Copy ID Helper
   const handleCopyId = async (id) => {
-    try {
-      await navigator.clipboard.writeText(id);
+    let successful = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(id);
+        successful = true;
+      } catch {
+        /* fallback below */
+      }
+    }
+
+    if (!successful) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = id;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (successful) {
       setCopiedId(id);
       toast.success('Public ID copied to clipboard');
       setTimeout(() => setCopiedId(null), 2000);
-    } catch {
-      toast.error('Failed to copy ID');
+    } else {
+      toast.error(`Please copy manually: ${id}`);
     }
   };
 

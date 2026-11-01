@@ -22,6 +22,10 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000
     });
     logger.info(`[MongoDB Atlas] Connected successfully to host: ${conn.connection.host} (DB: ${conn.connection.name})`);
+    try {
+      const { backfillPublicIds } = require("../scripts/backfillPublicIds");
+      backfillPublicIds({ customLogger: logger }).catch(() => {});
+    } catch {}
     return conn;
   } catch (primaryErr) {
     logger.warn(`[MongoDB Warning] Primary connection to Atlas failed: ${primaryErr.message}`);

@@ -67,21 +67,28 @@ export default function UserProfileModal({ targetUserId, onClose }) {
 
   // Fetch relationship status when viewing another user
   useEffect(() => {
-    if (!isMe && profileData?.publicId) {
-      friendService.getRelationshipStatus(profileData.publicId)
+    const identifier = profileData?.publicId || profileData?._id || targetUserId;
+    if (!isMe && identifier) {
+      friendService.getRelationshipStatus(identifier)
         .then((res) => setRelationshipStatus(res.relationship))
         .catch(() => setRelationshipStatus('none'));
     }
-  }, [isMe, profileData?.publicId]);
+  }, [isMe, profileData?.publicId, profileData?._id, targetUserId]);
 
   const handleSendFriendRequest = async () => {
-    if (!profileData?.publicId) return;
+    const pubId = profileData?.publicId;
+    const uid = profileData?._id || profileData?.id || targetUserId;
+    if (!pubId && !uid) return;
+
     setSendingFriendReq(true);
     try {
-      await friendService.sendFriendRequest({ publicId: profileData.publicId });
+      await friendService.sendFriendRequest({
+        publicId: pubId || undefined,
+        targetUserId: uid || undefined
+      });
       setRelationshipStatus('pending_sent');
       toast.success('Friend Request Sent!', {
-        description: `Sent friend request to @${profileData.username}`
+        description: `Sent friend request to @${profileData?.username || 'User'}`
       });
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to send friend request';
@@ -146,15 +153,42 @@ export default function UserProfileModal({ targetUserId, onClose }) {
 
   // Copy Public ID to clipboard
   const handleCopyPublicId = async () => {
-    if (!profileData?.publicId) return;
-    try {
-      await navigator.clipboard.writeText(profileData.publicId);
+    const idToCopy = profileData?.publicId || (profileData?._id ? `SKY-${String(profileData._id).slice(-6).toUpperCase()}` : null);
+    if (!idToCopy) return;
+
+    let successful = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(idToCopy);
+        successful = true;
+      } catch (err) {
+        console.warn('Clipboard writeText failed, using fallback', err);
+      }
+    }
+
+    if (!successful) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = idToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+    }
+
+    if (successful) {
       setCopied(true);
-      toast.success('ID Copied!', { description: `${profileData.publicId} copied to clipboard.` });
+      toast.success('ID Copied!', { description: `${idToCopy} copied to clipboard.` });
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy ID:', err);
-      toast.error('Copy failed', { description: 'Could not copy to clipboard.' });
+    } else {
+      toast.error('Copy failed', { description: `Please copy manually: ${idToCopy}` });
     }
   };
 
