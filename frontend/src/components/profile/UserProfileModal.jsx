@@ -5,7 +5,8 @@ import { useAuth } from '../../context/useAuth';
 import ImageCropperModal from './ImageCropperModal';
 import { animateModalEnter } from '../../utils/animations';
 import toast from '../../utils/toast';
-import SpotlightCard from './SpotlightCard';
+import SpotlightCard from '../SpotlightCard';
+import '../SpotlightCard.css';
 
 export default function UserProfileModal({ targetUserId, onClose }) {
   const { user: currentUser, updateLocalUser } = useAuth();

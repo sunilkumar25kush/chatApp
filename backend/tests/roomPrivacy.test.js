@@ -1,10 +1,7 @@
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
 
-const BACKEND_DIR = path.join(__dirname, '..');
 const Room = require('../models/Room');
 const {
   isPrivateRoom,
@@ -14,25 +11,18 @@ const {
   checkRoomAccess
 } = require('../utils/roomAccess');
 
-function testMongoUri() {
-  const envPath = path.join(BACKEND_DIR, '.env');
-  if (fs.existsSync(envPath)) {
-    const match = fs.readFileSync(envPath, 'utf8').match(/^MONGO_URI=(.+)$/m);
-    if (match) {
-      return match[1].trim().replace(/\/([^/?]+)(\?|$)/, '/chatroom_test$2');
-    }
-  }
-  return 'mongodb://localhost:27017/chatroom_test';
-}
-
-const MONGO_URI = testMongoUri();
-
-before(async () => {
-  await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
-});
-
-after(async () => {
-  await mongoose.disconnect();
+test('Room Model: hydrates legacy document with isPrivate: true and asserts it remains private', async () => {
+  const ownerId = new mongoose.Types.ObjectId();
+  const legacyRoom = Room.hydrate({
+    _id: new mongoose.Types.ObjectId(),
+    name: 'Legacy Private Room',
+    code: 'ROOM-LEGACY',
+    owner: ownerId,
+    isPrivate: true
+  });
+  await legacyRoom.validate();
+  assert.equal(legacyRoom.isPrivate, true);
+  assert.equal(legacyRoom.visibility, 'private');
 });
 
 test('Room Model: synchronizes visibility and isPrivate bidirectionally', async () => {

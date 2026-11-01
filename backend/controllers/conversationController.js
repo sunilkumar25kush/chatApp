@@ -202,11 +202,18 @@ const getConversations = async (req, res, next) => {
         .populate('participants', PUBLIC_PROFILE_FIELDS)
         .sort({ lastActivityAt: -1 });
 
-      // Verify accepted friendship for each conversation (filter out revoked/deleted friendships)
+      // Batch-fetch accepted friendships for all conversation pair keys (filter out revoked/deleted friendships)
+      const pairKeys = conversations.map((conv) => conv.pairKey).filter(Boolean);
+      const acceptedFriendships = await Friendship.find({
+        pairKey: { $in: pairKeys },
+        status: 'accepted'
+      }).select('pairKey').lean();
+
+      const acceptedPairKeys = new Set(acceptedFriendships.map((f) => f.pairKey));
+
       const validConversations = [];
       for (const conv of conversations) {
-        const friendship = await Friendship.findOne({ pairKey: conv.pairKey, status: 'accepted' });
-        if (!friendship) continue;
+        if (!acceptedPairKeys.has(conv.pairKey)) continue;
 
         const otherUser = conv.participants.find(
           (p) => p._id.toString() !== currentUserId

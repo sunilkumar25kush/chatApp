@@ -94,7 +94,10 @@ roomSchema.pre('validate', function (next) {
   } else if (this.isModified('visibility')) {
     this.isPrivate = this.visibility === 'private';
   } else {
-    if (this.visibility) {
+    if (this.isPrivate) {
+      this.visibility = 'private';
+      this.isPrivate = true;
+    } else if (this.visibility) {
       this.isPrivate = this.visibility === 'private';
     } else if (typeof this.isPrivate === 'boolean') {
       this.visibility = this.isPrivate ? 'private' : 'public';
