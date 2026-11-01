@@ -204,6 +204,45 @@ export default function Chat() {
     return () => socket.off('receive_message', onReceive);
   }, [activeRoom, user]);
 
+  // Real-time synchronization of room updates & privacy changes across all connected clients
+  useEffect(() => {
+    const handleRoomUpdated = (updated) => {
+      if (!updated) return;
+      const updatedId = String(updated._id || updated.id);
+      setRooms((prev) =>
+        prev.map((r) => (String(r._id || r.id) === updatedId ? { ...r, ...updated } : r))
+      );
+      setActiveRoom((prev) =>
+        prev && String(prev._id || prev.id) === updatedId ? { ...prev, ...updated } : prev
+      );
+    };
+
+    const handleRoomVisibilityChanged = (data) => {
+      if (!data) return;
+      const roomIdStr = String(data.roomId);
+      setRooms((prev) =>
+        prev.map((r) =>
+          String(r._id || r.id) === roomIdStr
+            ? { ...r, visibility: data.visibility, isPrivate: data.isPrivate }
+            : r
+        )
+      );
+      setActiveRoom((prev) =>
+        prev && String(prev._id || prev.id) === roomIdStr
+          ? { ...prev, visibility: data.visibility, isPrivate: data.isPrivate }
+          : prev
+      );
+    };
+
+    socket.on('room_updated', handleRoomUpdated);
+    socket.on('room_visibility_changed', handleRoomVisibilityChanged);
+
+    return () => {
+      socket.off('room_updated', handleRoomUpdated);
+      socket.off('room_visibility_changed', handleRoomVisibilityChanged);
+    };
+  }, []);
+
   // Reflect unread totals in the tab title
   useEffect(() => {
     const total = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
@@ -239,11 +278,14 @@ export default function Chat() {
   const handleSelectRoom = useCallback((room) => {
     // Private room: user must be a member OR the creator to enter directly.
     // Otherwise, open the join-code modal so they can enter the room code.
-    if (room.isPrivate) {
-      const userId = user?._id || user?.id;
-      const memberIds = (room.members || []).map(m => (m._id || m.id || m).toString());
-      const isCreator = room.owner && (userId === room.owner._id || userId === room.owner);
-      const isMember = room.isMember === true || memberIds.includes(userId?.toString());
+    const isRoomPriv = Boolean(room.isPrivate) || room.visibility === 'private';
+    if (isRoomPriv) {
+      const userIdStr = String(user?._id || user?.id || '');
+      const ownerIdStr = String(room.owner?._id || room.owner?.id || room.owner || '');
+      const isCreator = Boolean(ownerIdStr && userIdStr && ownerIdStr === userIdStr);
+      const memberIds = (room.members || []).map((m) => String(m?._id || m?.id || m));
+      const adminIds = (room.admins || []).map((a) => String(a?._id || a?.id || a));
+      const isMember = room.isMember === true || memberIds.includes(userIdStr) || adminIds.includes(userIdStr);
 
       if (!isMember && !isCreator) {
         setPreviewRoomId(room._id || room.id);
@@ -413,15 +455,18 @@ export default function Chat() {
   };
 
   // Filtered Rooms List
-  const displayedRooms = (activeTab === 'joined' ? (joinedRooms.length > 0 ? joinedRooms : recentRooms) : rooms).filter((room) => {
+  const displayedRooms = (activeTab === 'joined' ? joinedRooms : rooms).filter((room) => {
+    if (!room) return false;
+    const isPriv = Boolean(room.isPrivate) || room.visibility === 'private';
     const matchesSearch =
+      !searchQuery ||
       room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (room.description && room.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (room.code && room.code.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
     const matchesTab =
-      activeTab === 'public' ? !room.isPrivate :
-      activeTab === 'private' ? Boolean(room.isPrivate) :
+      activeTab === 'public' ? !isPriv :
+      activeTab === 'private' ? isPriv :
       true;
     return matchesSearch && matchesCategory && matchesTab;
   });

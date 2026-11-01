@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import notificationService from '../services/notificationService';
 import { toast } from '../utils/toast';
+import LineSidebar from './LineSidebar';
 
 export default function NotificationsModal({
   isOpen,
@@ -12,6 +13,7 @@ export default function NotificationsModal({
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const cardRef = useRef(null);
 
   const fetchNotifications = async () => {
@@ -140,6 +142,30 @@ export default function NotificationsModal({
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  const friendReqCount = notifications.filter(
+    (n) => n.type === 'friend_request' || n.type === 'friend_accepted'
+  ).length;
+
+  const roomReqCount = notifications.filter(
+    (n) => n.type === 'room_join_request' || n.type === 'room_join_approved' || n.type === 'room_join_rejected'
+  ).length;
+
+  const categoryFilters = [
+    { id: 'all', label: 'All Notifications', count: notifications.length },
+    { id: 'friend_requests', label: 'Friend Requests', count: friendReqCount },
+    { id: 'room_requests', label: 'Room Requests', count: roomReqCount }
+  ];
+
+  const displayedList = notifications.filter((n) => {
+    if (activeCategoryIndex === 1) {
+      return n.type === 'friend_request' || n.type === 'friend_accepted';
+    }
+    if (activeCategoryIndex === 2) {
+      return n.type === 'room_join_request' || n.type === 'room_join_approved' || n.type === 'room_join_rejected';
+    }
+    return true;
+  });
+
   return (
     <div
       className="modal-overlay"
@@ -258,6 +284,31 @@ export default function NotificationsModal({
           </div>
         </div>
 
+        {/* LineSidebar Category Filter */}
+        <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(0, 0, 0, 0.15)' }}>
+          <LineSidebar
+            items={categoryFilters}
+            accentColor="#A855F7"
+            textColor="#c4c4c4"
+            markerColor="#6c6c6c"
+            showIndex={false}
+            showMarker={true}
+            proximityRadius={100}
+            maxShift={20}
+            falloff="smooth"
+            markerLength={40}
+            markerGap={0}
+            tickScale={0.5}
+            scaleTick={true}
+            itemGap={6}
+            fontSize={0.9}
+            smoothing={100}
+            defaultActive={0}
+            activeItem={activeCategoryIndex}
+            onItemClick={(index) => setActiveCategoryIndex(index)}
+          />
+        </div>
+
         {/* Content list */}
         <div
           style={{
@@ -281,7 +332,7 @@ export default function NotificationsModal({
               />
               Loading notifications...
             </div>
-          ) : notifications.length === 0 ? (
+          ) : displayedList.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -294,12 +345,16 @@ export default function NotificationsModal({
                 No notifications
               </h3>
               <p style={{ fontSize: 13, margin: 0 }}>
-                You're completely caught up! Friend updates and room join requests will appear here.
+                {activeCategoryIndex === 1
+                  ? 'No friend requests waiting.'
+                  : activeCategoryIndex === 2
+                  ? 'No room requests waiting.'
+                  : "You're completely caught up! Friend updates and room join requests will appear here."}
               </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {notifications.map((notif) => {
+              {displayedList.map((notif) => {
                 const icon = getNotificationIcon(notif.type);
                 return (
                   <div

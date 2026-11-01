@@ -271,7 +271,7 @@ export default function Sidebar({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const currentRoomsList = activeTab === 'joined' ? (rooms && rooms.length > 0 ? rooms : recentRooms) : rooms;
+  const currentRoomsList = rooms || [];
 
   const filteredDMs = (directConversations || []).filter((conv) => {
     if (!searchQuery) return true;
@@ -322,7 +322,7 @@ export default function Sidebar({
     },
     {
       id: 'personality',
-      icon: '✨',
+      icon: 'âœ¨',
       title: 'Personality Studio',
       description: 'AI chat personality settings',
       action: () => { setShowUserMenu(false); setShowPersonalityStudio(true); }
@@ -367,7 +367,7 @@ export default function Sidebar({
     },
     {
       id: 'personality-studio',
-      icon: '✨',
+      icon: 'âœ¨',
       title: 'Personality Studio',
       description: 'AI personalities & effects',
       action: () => {
@@ -475,7 +475,7 @@ export default function Sidebar({
         title: room.name,
         description: `Created by ${getRoomCreatorLabel(room, user)}`,
         unreadCount: unread,
-        isPrivate: room.isPrivate,
+        isPrivate: Boolean(room.isPrivate) || room.visibility === 'private',
         room
       });
     });
@@ -1075,54 +1075,54 @@ export default function Sidebar({
                   const room = item.room || item.raw;
                   const avatarBg = getRoomColor(room?.name);
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0, position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0, position: "relative", zIndex: 2 }}>
                       <div
                         className="avatar-circle"
                         style={{
                           background: avatarBg,
                           width: 38,
                           height: 38,
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#fff',
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
                           fontSize: 13,
                           fontWeight: 700,
                           flexShrink: 0,
-                          position: 'relative'
+                          position: "relative"
                         }}
                       >
                         {getUserInitials(room?.name)}
                         <span
                           style={{
-                            position: 'absolute',
+                            position: "absolute",
                             bottom: 0,
                             right: 0,
                             width: 9,
                             height: 9,
-                            borderRadius: '50%',
-                            background: room?.isPrivate ? '#f59e0b' : '#10b981',
-                            border: '1.5px solid var(--theme-sidebar-bg, var(--bg-surface, #ECEAC9))',
-                            boxShadow: room?.isPrivate ? '0 0 6px rgba(245, 158, 11, 0.5)' : '0 0 6px rgba(16, 185, 129, 0.6)'
+                            borderRadius: "50%",
+                            background: room?.isPrivate ? "#f59e0b" : "#10b981",
+                            border: "1.5px solid var(--theme-sidebar-bg, var(--bg-surface, #ECEAC9))",
+                            boxShadow: room?.isPrivate ? "0 0 6px rgba(245, 158, 11, 0.5)" : "0 0 6px rgba(16, 185, 129, 0.6)"
                           }}
                         />
                       </div>
 
                       <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
-                        <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                          <div className="chat-name-wrapper" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                            <span className="chat-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <div className="chat-item-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                          <div className="chat-name-wrapper" style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                            <span className="chat-name" style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                               {room?.name}
                             </span>
                             {room?.isPrivate ? (
                               <span className="roster-badge roster-badge-private" title="Private Space (Code Required)" style={{ flexShrink: 0 }}>
-                                <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" className="bi bi-lock-fill" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
+                                <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
                                 <span>Private</span>
                               </span>
                             ) : (
                               <span className="roster-badge roster-badge-public" title="Published Public Channel" style={{ flexShrink: 0 }}>
-                                <svg width="10.5" height="10.5" viewBox="0 0 16 16" fill="currentColor" className="bi bi-globe2" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1"/></svg>
+                                <svg width="10.5" height="10.5" viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.18 2.472a6.7 6.7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.07 2.472M1.674 8.5c.123.987.355 1.857.656 2.5h2.146a13 13 0 0 1-.312-2.5zm10.608 2.5h2.146c.301-.643.533-1.513.656-2.5h-2.49a13 13 0 0 1-.312 2.5m1.58-3.5a7 7 0 0 0-.656-2.5H12.28c.174.782.282 1.623.312 2.5zM12.49 4h2.146a7.03 7.03 0 0 0-3.07-2.472q.328.45.597.933c.24.478.455 1.02.639 1.539M8.5 4h2.355a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077zM11.887 13.068c.26-.487.468-1.068.468-1.068H8.5v2.923c.67-.204 1.335-.82 1.887-1.855M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1"/></svg>
                                 <span>Public</span>
                               </span>
                             )}
@@ -1132,7 +1132,7 @@ export default function Sidebar({
                               className="unread-badge"
                               aria-label={`${item.unreadCount} unread messages`}
                             >
-                              {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                              {item.unreadCount > 99 ? "99+" : item.unreadCount}
                             </span>
                           )}
                         </div>
@@ -1200,7 +1200,7 @@ export default function Sidebar({
                 style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 20, cursor: 'pointer', padding: 4 }}
                 aria-label="Close"
               >
-                ✕
+                âœ•
               </button>
             </div>
 

@@ -791,8 +791,25 @@ export default function DirectChatWindow({
             </h3>
             <p style={{ fontSize: 13, margin: 0 }}>This is the beginning of your direct conversation.</p>
           </div>
-        ) : (
-          messages.map((msg) => {
+        ) : (() => {
+          const isSameDay = (a, b) => { const da = new Date(a), db = new Date(b); return da.getFullYear()===db.getFullYear()&&da.getMonth()===db.getMonth()&&da.getDate()===db.getDate(); };
+          const fmtDateLbl = (iso) => new Date(iso).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+          const dcItems = [];
+          messages.forEach((msg, idx) => {
+            if (idx===0 || !isSameDay(messages[idx-1].createdAt, msg.createdAt)) {
+              dcItems.push({ _type:'date', key:`date-${msg._id}`, label: fmtDateLbl(msg.createdAt) });
+            }
+            dcItems.push(msg);
+          });
+          return dcItems.map((item) => {
+            if (item._type === 'date') {
+              return (
+                <div key={item.key} style={{display:'flex',justifyContent:'center',margin:'14px 0 6px'}}>
+                  <span style={{background:'var(--bg-input,rgba(255,255,255,0.08))',color:'var(--text-muted)',borderRadius:20,padding:'3px 14px',fontSize:11.5,fontWeight:500,letterSpacing:0.2}}>{item.label}</span>
+                </div>
+              );
+            }
+            const msg = item;
             const senderId = (msg.sender?._id || msg.sender?.id || msg.sender)?.toString();
             const isMe = senderId === currentUserId;
             const isEditing = editingMessageId === msg._id;
@@ -1378,8 +1395,8 @@ export default function DirectChatWindow({
                 </div>
               </div>
             );
-          })
-        )}
+          });
+        })()}
 
         {/* Friend Typing Indicator */}
         {friendTyping && (

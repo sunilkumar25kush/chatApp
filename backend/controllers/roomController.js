@@ -206,15 +206,10 @@ const getAllRooms = async (req, res, next) => {
 
     if (isDBConnected()) {
       // 🔒 SECURITY: Exclude soft-deleted rooms.
-      // Private rooms are strictly hidden from non-members in public listings.
+      // Private rooms are listed so non-members can view preview and submit join requests.
+      // Sensitive data (such as room codes and messages) are stripped for non-members.
       const filter = {
-        isDeleted: { $ne: true },
-        $or: [
-          { isPrivate: false, visibility: { $ne: 'private' } },
-          { members: userId },
-          { owner: userId },
-          { admins: userId }
-        ]
+        isDeleted: { $ne: true }
       };
       if (category && category !== 'All') filter.category = category;
 
@@ -1225,7 +1220,15 @@ const searchRooms = async (req, res, next) => {
     if (!isDBConnected()) {
       const results = Array.from(memoryRooms.values())
         .filter((r) => !r.isDeleted && (r.name.toLowerCase().includes(q.toLowerCase()) || (r.code || '').toLowerCase().includes(q.toLowerCase())))
-        .filter((r) => !isPrivateRoom(r) || isRoomMember(r, userId))
+        .map((r) => {
+          const isMem = isRoomMember(r, userId);
+          const isOwn = isRoomOwner(r, userId);
+          const isPriv = isPrivateRoom(r);
+          return {
+            ...r,
+            code: isMem || isOwn || !isPriv ? r.code : undefined
+          };
+        })
         .slice(0, limit);
       return res.json({ rooms: results, total: results.length });
     }
@@ -1233,33 +1236,42 @@ const searchRooms = async (req, res, next) => {
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const filter = {
       isDeleted: { $ne: true },
-      $and: [
-        {
-          $or: [
-            { isPrivate: false, visibility: { $ne: 'private' } },
-            { members: userId },
-            { owner: userId },
-            { admins: userId }
-          ]
-        },
-        {
-          $or: [
-            { name: { $regex: escaped, $options: 'i' } },
-            { code: { $regex: escaped, $options: 'i' } },
-            { description: { $regex: escaped, $options: 'i' } }
-          ]
-        }
+      $or: [
+        { name: { $regex: escaped, $options: 'i' } },
+        { code: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } }
       ]
     };
     const [rooms, total] = await Promise.all([
       Room.find(filter)
         .populate('owner', 'username email avatar')
+        .populate('createdBy', 'username email avatar')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
       Room.countDocuments(filter)
     ]);
-    return res.json({ rooms, total });
+    const formatted = rooms.map((r) => {
+      const isMem = isRoomMember(r, userId);
+      const isOwn = isRoomOwner(r, userId);
+      const isPriv = isPrivateRoom(r);
+      return {
+        _id: r._id.toString(),
+        id: r._id.toString(),
+        name: r.name,
+        code: isMem || isOwn || !isPriv ? r.code : undefined,
+        category: r.category,
+        description: r.description,
+        visibility: r.visibility || (r.isPrivate ? 'private' : 'public'),
+        isPrivate: isPriv,
+        isMember: isMem,
+        owner: r.owner,
+        createdBy: r.createdBy || r.owner,
+        membersCount: r.members ? r.members.length : 0,
+        createdAt: r.createdAt
+      };
+    });
+    return res.json({ rooms: formatted, total });
   } catch (error) {
     next(error);
   }

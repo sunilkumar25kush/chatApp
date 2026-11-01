@@ -9,7 +9,7 @@
     "dev": "nodemon server.js",
     "lint": "eslint .",
     "migrate:public-ids": "node scripts/backfillPublicIds.js",
-    "test": "node --test --test-timeout=30000"
+    "test": "node --test --test-concurrency=1 --test-timeout=30000"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -4,7 +4,7 @@ import { animateModalEnter } from '../utils/animations';
 import api from '../services/api';
 import { socket } from '../services/socket';
 
-export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomName, onMemberAdded, onToast }) {
+export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomName, onMemberAdded, onViewProfile, onToast }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
@@ -161,8 +161,32 @@ export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomNam
                     justifyContent: 'space-between'
                   }}
                 >
-                  {/* User Profile Info */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  {/* User Profile Info (Clickable to view profile) */}
+                  <div
+                    onClick={() => onViewProfile?.(u._id || u.id || u.publicId || u)}
+                    title="Click to view user profile"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      minWidth: 0,
+                      flex: 1,
+                      cursor: 'pointer',
+                      padding: '4px 6px',
+                      borderRadius: 8,
+                      transition: 'background 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onViewProfile?.(u._id || u.id || u.publicId || u);
+                      }
+                    }}
+                  >
                     <div
                       style={{
                         width: 44,
@@ -199,7 +223,7 @@ export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomNam
                               padding: '1px 6px',
                               borderRadius: 4,
                               background: 'rgba(255, 255, 255, 0.08)',
-                              color: 'var(--color-primary)'
+                              color: 'var(--color-primary, #a78bfa)'
                             }}
                           >
                             {u.publicId}
@@ -209,8 +233,9 @@ export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomNam
                       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                         @{u.username} {u.bio ? `· ${u.bio.slice(0, 40)}` : ''}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', opacity: 0.8 }}>
-                        Requested {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      <div style={{ fontSize: 11, color: 'var(--theme-primary, #a78bfa)', opacity: 0.9, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>🕒</span>
+                        <span>Requested {new Date(req.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </div>
                   </div>
@@ -267,6 +292,7 @@ RoomJoinRequestsModal.propTypes = {
   roomId: PropTypes.string,
   roomName: PropTypes.string,
   onMemberAdded: PropTypes.func,
+  onViewProfile: PropTypes.func,
   onToast: PropTypes.func
 };
 

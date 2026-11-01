@@ -1,0 +1,86 @@
+/* LineSidebar React Bits Component Styles */
+.line-sidebar-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  user-select: none;
+  width: 100%;
+}
+
+.line-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.line-sidebar-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 8px;
+  position: relative;
+  will-change: transform;
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease;
+}
+
+.line-sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.line-sidebar-item.is-active {
+  background-color: rgba(168, 85, 247, 0.08);
+}
+
+.line-sidebar-marker-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: width 0.15s ease, transform 0.15s ease;
+}
+
+.line-sidebar-marker {
+  height: 2px;
+  border-radius: 2px;
+  transition: background-color 0.2s ease, width 0.15s ease, transform 0.15s ease;
+}
+
+.line-sidebar-index {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8em;
+  opacity: 0.6;
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.line-sidebar-label {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  transition: color 0.2s ease;
+}
+
+.line-sidebar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
