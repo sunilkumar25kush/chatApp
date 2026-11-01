@@ -336,19 +336,26 @@ export default function Sidebar({
                     stagger={0.03}
                     renderItem={(item) => (
                       item.type === 'header' ? (
-                        <div className="presence-header" style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default' }}>
+                        <div className="presence-header" style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default', position: 'relative', zIndex: 2 }}>
                           <span className="user-display-name">{item.title}</span>
                           <span className="user-jid">{item.description}</span>
                           {item.publicId && (
-                            <span style={{ fontSize: '11px', color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
+                            <span className="user-public-id" style={{ fontSize: '11px', color: 'var(--color-primary, var(--theme-primary, #F0882C))', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
                               ID: {item.publicId}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-                          <span style={{ fontSize: 15, lineHeight: 1 }}>{item.icon}</span>
-                          <span className="presence-label" style={{ fontSize: 13, fontWeight: 500, color: item.isDanger ? '#f87171' : 'inherit' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', position: 'relative', zIndex: 2 }}>
+                          <span className="presence-icon" style={{ fontSize: 15, lineHeight: 1 }}>{item.icon}</span>
+                          <span 
+                            className={`presence-label ${item.isDanger ? 'presence-label-danger' : ''}`} 
+                            style={{ 
+                              fontSize: 13, 
+                              fontWeight: 500, 
+                              color: item.isDanger ? 'var(--color-error, #dc2626)' : 'inherit' 
+                            }}
+                          >
                             {item.title}
                           </span>
                         </div>
@@ -618,7 +625,7 @@ export default function Sidebar({
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
-                color: 'var(--theme-text-muted, #9ca3af)',
+                color: 'var(--text-secondary, var(--theme-text-muted, #71717a))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between'
@@ -630,7 +637,7 @@ export default function Sidebar({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--theme-primary, #a78bfa)',
+                    color: 'var(--color-primary, var(--theme-primary, #F0882C))',
                     fontSize: 11,
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -680,7 +687,7 @@ export default function Sidebar({
                     const friend = item.friend || {};
                     const isOnline = item.isOnline;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0, position: 'relative', zIndex: 2 }}>
                         <div
                           className="avatar-circle"
                           style={{
@@ -689,7 +696,7 @@ export default function Sidebar({
                             height: 38,
                             borderRadius: '50%',
                             flexShrink: 0,
-                            background: '#374151',
+                            background: 'var(--bg-panel-hover, #374151)',
                             overflow: 'visible'
                           }}
                         >
@@ -726,7 +733,7 @@ export default function Sidebar({
                               height: 10,
                               borderRadius: '50%',
                               background: isOnline ? '#10b981' : '#6b7280',
-                              border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
+                              border: '2px solid var(--theme-sidebar-bg, var(--bg-surface, #ECEAC9))'
                             }}
                             title={isOnline ? 'Online' : 'Offline'}
                           />
@@ -739,7 +746,7 @@ export default function Sidebar({
                                 {friend.fullName || friend.username}
                               </span>
                               {friend.publicId && (
-                                <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', background: 'rgba(124, 58, 237, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
+                                <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--color-primary, var(--theme-primary, #F0882C))', background: 'rgba(240, 136, 44, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
                                   {friend.publicId}
                                 </span>
                               )}
@@ -763,7 +770,7 @@ export default function Sidebar({
                   const room = item.room || item.raw;
                   const avatarBg = getRoomColor(room?.name);
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0, position: 'relative', zIndex: 2 }}>
                       <div
                         className="avatar-circle"
                         style={{
@@ -791,7 +798,7 @@ export default function Sidebar({
                             height: 9,
                             borderRadius: '50%',
                             background: room?.isPrivate ? '#f59e0b' : '#10b981',
-                            border: '1.5px solid var(--bg-sidebar, #0e1626)',
+                            border: '1.5px solid var(--theme-sidebar-bg, var(--bg-surface, #ECEAC9))',
                             boxShadow: room?.isPrivate ? '0 0 6px rgba(245, 158, 11, 0.5)' : '0 0 6px rgba(16, 185, 129, 0.6)'
                           }}
                         />

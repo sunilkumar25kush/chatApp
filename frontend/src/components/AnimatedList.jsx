@@ -543,6 +543,9 @@ const AnimatedList = ({
         }}
       >
         <div ref={trackRef} className="animated-list__track">
+          <span ref={indicatorRef} className="animated-list__indicator" aria-hidden="true">
+            <span ref={ringRef} className="animated-list__ring" />
+          </span>
           {items.map((item, index) => {
             const entry = item !== null && typeof item === 'object' ? item : { title: item };
             const isSelected = index === selected;
@@ -581,9 +584,6 @@ const AnimatedList = ({
               </div>
             );
           })}
-          <span ref={indicatorRef} className="animated-list__indicator" aria-hidden="true">
-            <span ref={ringRef} className="animated-list__ring" />
-          </span>
         </div>
       </div>
       {frame && <span className="animated-list__frame-rim" aria-hidden="true" />}
