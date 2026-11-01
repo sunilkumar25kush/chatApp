@@ -280,9 +280,13 @@ const toggleStarMessage = async (req, res, next) => {
       return res.json({ starred: idx === -1 });
     }
 
-    const msg = await Message.findById(messageId);
+    let msg = await Message.findById(messageId);
+    if (!msg) {
+      msg = await DirectMessage.findById(messageId);
+    }
     if (!msg) return res.status(404).json({ message: 'Message not found' });
 
+    msg.starredBy = msg.starredBy || [];
     const idx = msg.starredBy.indexOf(userId);
     if (idx > -1) msg.starredBy.splice(idx, 1);
     else msg.starredBy.push(userId);

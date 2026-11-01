@@ -49,6 +49,17 @@ const directMessageSchema = new mongoose.Schema(
         users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
       }
     ],
+    starredBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DirectMessage',
+      default: null
+    },
     // Delivery & Read state receipts
     isDelivered: {
       type: Boolean,

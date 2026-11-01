@@ -8,6 +8,7 @@ import { useCall } from '../context/CallContext';
 import { useAppearance } from '../context/AppearanceContext';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from '../utils/toast';
+import PresenceBadge from './common/PresenceBadge';
 import UserProfileModal from './profile/UserProfileModal';
 import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
@@ -41,9 +42,13 @@ export default function DirectChatWindow({
   const [sending, setSending] = useState(false);
   const [friendTyping, setFriendTyping] = useState(false);
 
-  // Message editing state
+  // Message reply & edit state
+  const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState('');
+
+  // Info card popover
+  const [infoMessageId, setInfoMessageId] = useState(null);
 
   // Reactions state
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
@@ -68,10 +73,49 @@ export default function DirectChatWindow({
   const reactionPickerRef = useRef(null);
   const composerEmojiRef = useRef(null);
   const inputRef = useRef(null);
+  const chatFeedRef = useRef(null);
+  const messageRefs = useRef({});
 
   const scrollToBottom = (smooth = true) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
   };
+
+  const formatTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  const getUserInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Dynamically calculate whether popover should open above or below the message
+  const updatePopoverPlacement = useCallback((msgId) => {
+    const el = messageRefs.current[msgId];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const feedEl = chatFeedRef.current;
+    const feedTop = feedEl ? feedEl.getBoundingClientRect().top : 60;
+    const isNearTop = rect.top - feedTop < 140;
+    setPopoverPlacement(isNearTop ? 'bottom' : 'top');
+  }, []);
+
+  // Recalculate placement if feed scrolls while menu is open
+  useEffect(() => {
+    const feed = chatFeedRef.current;
+    if (!feed) return;
+    const onScroll = () => {
+      if (hoveredMessageId) {
+        updatePopoverPlacement(hoveredMessageId);
+      }
+    };
+    feed.addEventListener('scroll', onScroll, { passive: true });
+    return () => feed.removeEventListener('scroll', onScroll);
+  }, [hoveredMessageId, updatePopoverPlacement]);
 
   // Close emoji pickers on outside click
   useEffect(() => {
@@ -255,8 +299,11 @@ export default function DirectChatWindow({
 
       const res = await conversationService.sendMessage(conversationId, {
         content: trimmed,
-        clientMsgId
+        clientMsgId,
+        replyToId: replyingTo ? replyingTo._id : null
       });
+
+      setReplyingTo(null);
 
       if (res.message) {
         setMessages((prev) => {
@@ -305,7 +352,39 @@ export default function DirectChatWindow({
     }
   };
 
-  // 7. Message Reactions Handler
+  // 7. Message Actions: Copy & Star
+  const copyMessage = async (msg) => {
+    const text = msg.content || msg.fileUrl || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Message copied to clipboard');
+    } catch {
+      toast.error('Could not copy message');
+    }
+  };
+
+  const toggleStar = async (msg) => {
+    try {
+      await api.post(`/messages/${msg._id}/star`);
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m._id !== msg._id) return m;
+          const starredBy = m.starredBy || [];
+          const isStarred = starredBy.includes(currentUserId);
+          return {
+            ...m,
+            starredBy: isStarred
+              ? starredBy.filter((id) => id !== currentUserId)
+              : [...starredBy, currentUserId]
+          };
+        })
+      );
+    } catch {
+      toast.error('Failed to update star');
+    }
+  };
+
+  // 8. Message Reactions Handler
   const handleToggleReaction = (messageId, emoji) => {
     if (!messageId || !emoji) return;
 
@@ -332,7 +411,7 @@ export default function DirectChatWindow({
     }
   };
 
-  // 8. Voice Note Send Handler
+  // 9. Voice Note Send Handler
   const handleSendVoiceNote = async (blob) => {
     try {
       setIsRecordingVoice(false);
@@ -350,8 +429,11 @@ export default function DirectChatWindow({
         content: '',
         fileUrl: url,
         fileType: 'audio',
-        fileName: 'Voice Note'
+        fileName: 'Voice Note',
+        replyToId: replyingTo ? replyingTo._id : null
       });
+
+      setReplyingTo(null);
 
       if (sent.message) {
         setMessages((prev) => {
@@ -368,7 +450,7 @@ export default function DirectChatWindow({
     }
   };
 
-  // 9. File Upload Handler (Images & Documents)
+  // 10. File Upload Handler (Images & Documents)
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -391,8 +473,11 @@ export default function DirectChatWindow({
         fileUrl: url,
         fileType: computedFileType,
         fileName: fileName || file.name,
-        fileSize: file.size
+        fileSize: file.size,
+        replyToId: replyingTo ? replyingTo._id : null
       });
+
+      setReplyingTo(null);
 
       if (sent.message) {
         setMessages((prev) => {
@@ -410,7 +495,7 @@ export default function DirectChatWindow({
     }
   };
 
-  // 10. Call Starters
+  // 11. Call Starters
   const handleVoiceCall = () => {
     const friendName = friend?.fullName || friend?.username || 'Friend';
     startCall(conversationId, friendName, 'voice');
@@ -650,6 +735,7 @@ export default function DirectChatWindow({
 
       {/* ── Message History Stream ──────────────────────────────────── */}
       <div
+        ref={chatFeedRef}
         className="direct-messages-stream chat-feed"
         style={{
           flex: 1,
@@ -712,14 +798,24 @@ export default function DirectChatWindow({
             const isEditing = editingMessageId === msg._id;
             const isHovered = hoveredMessageId === msg._id;
 
+            const senderUser = isMe ? currentUser : friend;
+            const senderName = isMe
+              ? (currentUser?.fullName || currentUser?.username || 'You')
+              : (friend?.fullName || friend?.username || 'Friend');
+            const senderAvatar = isMe ? currentUser?.avatar : friend?.avatar;
+
             return (
               <div
                 key={msg._id}
-                className={`msg-row-container ${isMe ? 'msg-row--me' : 'msg-row--incoming'}`}
-                onMouseEnter={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setPopoverPlacement(rect.top < 180 ? 'bottom' : 'top');
-                  setHoveredMessageId(msg._id);
+                ref={(el) => {
+                  if (el) messageRefs.current[msg._id] = el;
+                }}
+                className={`message-row ${isMe ? 'message-row--me' : ''} ${isHovered ? 'is-hovered' : ''}`}
+                onMouseEnter={() => {
+                  if (reactionPickerMessageId !== msg._id) {
+                    updatePopoverPlacement(msg._id);
+                    setHoveredMessageId(msg._id);
+                  }
                 }}
                 onMouseLeave={() => {
                   if (reactionPickerMessageId !== msg._id) {
@@ -728,21 +824,272 @@ export default function DirectChatWindow({
                 }}
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: isMe ? 'flex-end' : 'flex-start',
-                  marginBottom: 6,
-                  position: 'relative'
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  position: 'relative',
+                  padding: '4px 8px'
                 }}
               >
-                {/* Message Bubble Container */}
+                {/* ── Avatar with Presence Badge (Image 2) ──────────────── */}
                 <div
-                  className="msg-bubble-wrapper"
+                  style={{ cursor: 'pointer', flexShrink: 0 }}
+                  onClick={() => setTargetProfileId(senderId)}
+                  title={`View ${senderName}'s profile`}
+                >
+                  <PresenceBadge userId={senderId}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        background: isMe ? '#6366f1' : '#d97706',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {senderAvatar ? (
+                        <img
+                          src={senderAvatar}
+                          alt={senderName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        getUserInitials(senderName)
+                      )}
+                    </div>
+                  </PresenceBadge>
+                </div>
+
+                {/* ── Message Content Wrap ──────────────────────────────── */}
+                <div
+                  className="msg-content-wrap"
                   style={{
-                    maxWidth: '78%',
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: isMe ? 'flex-end' : 'flex-start',
                     position: 'relative'
                   }}
                 >
-                  {/* Unified Hover Menu: Quick Emoji Reactions & Author Actions */}
+                  {/* Sender Header Row: Name & Timestamp (Image 2) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 3
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: isMe ? 'var(--theme-sender-me, #a78bfa)' : 'var(--theme-sender-color, #60a5fa)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setTargetProfileId(senderId)}
+                    >
+                      {senderName}
+                    </span>
+                    <span
+                      className="chat-timestamp"
+                      title={new Date(msg.createdAt).toLocaleString()}
+                      style={{ fontSize: 11, color: 'var(--text-muted, #9ca3af)' }}
+                    >
+                      {formatTime(msg.createdAt)}
+                    </span>
+                    {msg.isEdited && (
+                      <span style={{ fontSize: 10, color: 'var(--text-muted, #9ca3af)' }}>(edited)</span>
+                    )}
+                    {(msg.starredBy || []).includes(currentUserId) && (
+                      <span title="Starred by you" style={{ fontSize: 12 }}>⭐</span>
+                    )}
+                    {isMe && !msg.isDeleted && (
+                      <span
+                        title={msg.isRead ? 'Read' : 'Delivered'}
+                        style={{
+                          color: msg.isRead ? '#38bdf8' : 'var(--text-muted, #9ca3af)',
+                          fontSize: 11,
+                          fontWeight: 700
+                        }}
+                      >
+                        {msg.isRead ? '✓✓' : '✓'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Reply Reference Preview Snippet */}
+                  {msg.replyTo && (
+                    <div
+                      style={{
+                        padding: '4px 10px',
+                        background: 'rgba(0, 0, 0, 0.25)',
+                        borderLeft: '3px solid var(--theme-primary, #7c3aed)',
+                        borderRadius: 6,
+                        marginBottom: 4,
+                        fontSize: 12,
+                        opacity: 0.9,
+                        maxWidth: 'min(85%, 680px)'
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 11, color: 'var(--theme-primary, #a78bfa)' }}>
+                        @{msg.replyTo.sender?.username || 'user'}
+                      </div>
+                      <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {msg.replyTo.content || (msg.replyTo.fileType ? `Attachment: ${msg.replyTo.fileType}` : 'Message')}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Image Attachment */}
+                  {msg.fileUrl && msg.fileType === 'image' && (
+                    <div
+                      className="msg-image-container"
+                      style={{
+                        marginTop: 2,
+                        marginBottom: msg.content ? 4 : 0,
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}
+                    >
+                      <img
+                        src={msg.fileUrl}
+                        alt="Attachment"
+                        style={{ width: '100%', maxWidth: 320, display: 'block', cursor: 'pointer', borderRadius: 12 }}
+                        onClick={() => setPreviewImageUrl(msg.fileUrl)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Audio / Voice Note Attachment */}
+                  {msg.fileUrl && msg.fileType === 'audio' && (
+                    <div style={{ marginTop: 2, marginBottom: msg.content ? 4 : 0 }}>
+                      <AudioPlayer src={msg.fileUrl} />
+                    </div>
+                  )}
+
+                  {/* Document File Attachment */}
+                  {msg.fileUrl && msg.fileType !== 'image' && msg.fileType !== 'audio' && (
+                    <div
+                      className="attachment-item"
+                      style={{
+                        marginTop: 2,
+                        marginBottom: msg.content ? 4 : 0,
+                        width: 'fit-content',
+                        borderRadius: 8,
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        background: 'rgba(0, 0, 0, 0.25)',
+                        padding: '6px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                      }}
+                    >
+                      <span>📎</span>
+                      <a
+                        href={msg.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={msg.fileName || true}
+                        style={{ color: '#38bdf8', fontSize: 13, textDecoration: 'none' }}
+                      >
+                        {msg.fileName || 'Download File'}
+                      </a>
+                      {msg.fileSize && (
+                        <span style={{ fontSize: 11, opacity: 0.7 }}>
+                          ({Math.round(msg.fileSize / 1024)} KB)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Text Message Bubble (Image 2) */}
+                  {isEditing ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        width: '100%',
+                        maxWidth: 420
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        style={{
+                          background: 'rgba(0,0,0,0.3)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: 8,
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: 14
+                        }}
+                        autoFocus
+                      />
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(msg._id)}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 6,
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMessageId(null)}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 6,
+                            background: 'rgba(255,255,255,0.2)',
+                            color: '#fff',
+                            border: 'none',
+                            fontSize: 12,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    msg.content && (
+                      <div
+                        className={isMe ? 'msg-bubble msg-bubble-out' : 'msg-bubble msg-bubble-in'}
+                        style={{
+                          width: 'fit-content',
+                          maxWidth: 'min(85%, 680px)'
+                        }}
+                      >
+                        {msg.isDeleted ? (
+                          <span style={{ fontStyle: 'italic', opacity: 0.65 }}>
+                            🚫 {msg.content}
+                          </span>
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  {/* ── Unified Hover Popover Menu (Image 1) ─────────────── */}
                   {isHovered && !isEditing && (
                     <div
                       className={`msg-unified-menu ${isMe ? 'msg-unified-menu--me' : 'msg-unified-menu--incoming'} ${
@@ -752,7 +1099,7 @@ export default function DirectChatWindow({
                       aria-label="Message options"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Emoji Reactions Row */}
+                      {/* Top Row: Quick Emoji Reactions + Search + Plus (Image 1) */}
                       <div className="msg-reactions-toolbar">
                         {['👍', '❤️', '😂', '🔥', '😮', '😢'].map((emoji) => {
                           const hasReactedWithThis = (msg.reactions || []).some(
@@ -781,7 +1128,26 @@ export default function DirectChatWindow({
                           );
                         })}
 
-                        {/* Search / Expand Reactions */}
+                        {/* Search Emojis 🔍 */}
+                        <button
+                          type="button"
+                          className="msg-emoji-btn msg-emoji-search-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReactionPickerMessageId(
+                              reactionPickerMessageId === msg._id ? null : msg._id
+                            );
+                          }}
+                          title="Search emojis"
+                          aria-label="Search emojis"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          </svg>
+                        </button>
+
+                        {/* Expand / Plus Emojis ➕ */}
                         <button
                           type="button"
                           className="msg-emoji-btn msg-emoji-expand-btn"
@@ -801,52 +1167,129 @@ export default function DirectChatWindow({
                         </button>
                       </div>
 
-                      {/* Author Edit/Delete Toolbar */}
-                      {isMe && !msg.isDeleted && (
-                        <>
-                          <div className="msg-toolbar-divider" />
-                          <div className="msg-actions-toolbar">
-                            <button
-                              type="button"
-                              className="msg-action-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingMessageId(msg._id);
-                                setEditText(msg.content || '');
-                                setHoveredMessageId(null);
-                              }}
-                              title="Edit message"
-                              aria-label="Edit message"
-                            >
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              className="msg-action-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteMessage(msg._id);
-                                setHoveredMessageId(null);
-                              }}
-                              title="Delete message"
-                              aria-label="Delete message"
-                              style={{ color: '#ef4444' }}
-                            >
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      {/* Divider (Image 1) */}
+                      <div className="msg-toolbar-divider" />
+
+                      {/* Bottom Row: Actions (Reply, Copy, Star, Edit, Delete, Info) (Image 1) */}
+                      <div className="msg-actions-toolbar">
+                        {/* 1. Reply */}
+                        <button
+                          type="button"
+                          className="msg-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyingTo(msg);
+                            setHoveredMessageId(null);
+                          }}
+                          title="Reply"
+                          aria-label="Reply"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="9 17 4 12 9 7" />
+                            <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+                          </svg>
+                        </button>
+
+                        {/* 2. Copy */}
+                        <button
+                          type="button"
+                          className="msg-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyMessage(msg);
+                            setHoveredMessageId(null);
+                          }}
+                          title="Copy text"
+                          aria-label="Copy text"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        </button>
+
+                        {/* 3. Star */}
+                        <button
+                          type="button"
+                          className={`msg-action-btn ${(msg.starredBy || []).includes(currentUserId) ? 'starred' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(msg);
+                            setHoveredMessageId(null);
+                          }}
+                          title={(msg.starredBy || []).includes(currentUserId) ? 'Unstar' : 'Star message'}
+                          aria-label="Star message"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={(msg.starredBy || []).includes(currentUserId) ? '#f59e0b' : 'none'} stroke="currentColor" strokeWidth="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                        </button>
+
+                        {/* 4. Edit (if author) */}
+                        {isMe && !msg.isDeleted && (
+                          <button
+                            type="button"
+                            className="msg-action-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingMessageId(msg._id);
+                              setEditText(msg.content || '');
+                              setHoveredMessageId(null);
+                            }}
+                            title="Edit message"
+                            aria-label="Edit message"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                          </button>
+                        )}
+
+                        {/* 5. Delete (if author) */}
+                        {isMe && !msg.isDeleted && (
+                          <button
+                            type="button"
+                            className="msg-action-btn danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMessage(msg._id);
+                              setHoveredMessageId(null);
+                            }}
+                            title="Delete message"
+                            aria-label="Delete message"
+                            style={{ color: '#ef4444' }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        )}
+
+                        {/* 6. Message Info */}
+                        <button
+                          type="button"
+                          className="msg-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInfoMessageId(infoMessageId === msg._id ? null : msg._id);
+                            setHoveredMessageId(null);
+                          }}
+                          title="Message Info"
+                          aria-label="Message Info"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
 
-                  {/* Reaction Picker Popover */}
+                  {/* Full Reaction Emoji Picker Popover */}
                   {reactionPickerMessageId === msg._id && (
                     <div
                       ref={reactionPickerRef}
@@ -868,8 +1311,8 @@ export default function DirectChatWindow({
                         theme={isDarkMode ? Theme.DARK : Theme.LIGHT}
                         lazyLoadEmojis
                         searchPlaceHolder="Search reaction emoji..."
-                        width={300}
-                        height={360}
+                        width={310}
+                        height={370}
                         previewConfig={{ showPreview: false }}
                         skinTonesDisabled={false}
                         autoFocusSearch={true}
@@ -877,165 +1320,26 @@ export default function DirectChatWindow({
                     </div>
                   )}
 
-                  {/* Main Bubble Box */}
-                  <div
-                    style={{
-                      padding: '10px 14px',
-                      borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                      background: isMe ? 'var(--theme-msg-outgoing, #7c3aed)' : 'var(--theme-msg-incoming, #222530)',
-                      color: '#fff',
-                      wordBreak: 'break-word',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                      position: 'relative'
-                    }}
-                  >
-                    {isEditing ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <input
-                          type="text"
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          style={{
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: 6,
-                            padding: '6px 8px',
-                            color: '#fff',
-                            fontSize: 13
-                          }}
-                          autoFocus
-                        />
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleSaveEdit(msg._id)}
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              background: '#10b981',
-                              color: '#fff',
-                              border: 'none',
-                              fontSize: 11,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingMessageId(null)}
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              background: 'rgba(255,255,255,0.2)',
-                              color: '#fff',
-                              border: 'none',
-                              fontSize: 11,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {msg.isDeleted ? (
-                          <span style={{ fontStyle: 'italic', opacity: 0.65 }}>
-                            🚫 {msg.content}
-                          </span>
-                        ) : (
-                          <>
-                            {/* Image Attachment */}
-                            {msg.fileUrl && msg.fileType === 'image' && (
-                              <div style={{ marginBottom: msg.content ? 8 : 2 }}>
-                                <img
-                                  src={msg.fileUrl}
-                                  alt="Attachment"
-                                  onClick={() => setPreviewImageUrl(msg.fileUrl)}
-                                  style={{
-                                    maxWidth: '100%',
-                                    maxHeight: 280,
-                                    borderRadius: 8,
-                                    display: 'block',
-                                    cursor: 'pointer',
-                                    objectFit: 'cover'
-                                  }}
-                                />
-                              </div>
-                            )}
-
-                            {/* Audio / Voice Note Attachment */}
-                            {msg.fileUrl && msg.fileType === 'audio' && (
-                              <div style={{ marginBottom: msg.content ? 8 : 2 }}>
-                                <AudioPlayer src={msg.fileUrl} />
-                              </div>
-                            )}
-
-                            {/* Generic Document File Attachment */}
-                            {msg.fileUrl && msg.fileType !== 'image' && msg.fileType !== 'audio' && (
-                              <div style={{ marginBottom: msg.content ? 8 : 2 }}>
-                                <a
-                                  href={msg.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  download={msg.fileName || true}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    padding: '8px 12px',
-                                    borderRadius: 8,
-                                    background: 'rgba(0, 0, 0, 0.25)',
-                                    color: '#38bdf8',
-                                    textDecoration: 'none',
-                                    fontSize: 13
-                                  }}
-                                >
-                                  <span>📎 {msg.fileName || 'Download attachment'}</span>
-                                  {msg.fileSize && (
-                                    <span style={{ fontSize: 11, opacity: 0.7 }}>
-                                      ({Math.round(msg.fileSize / 1024)} KB)
-                                    </span>
-                                  )}
-                                </a>
-                              </div>
-                            )}
-
-                            {/* Text Body */}
-                            {msg.content && <div>{msg.content}</div>}
-                          </>
-                        )}
-
-                        {/* Metadata Row: Timestamp, Edited tag, Read Receipts */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            gap: 4,
-                            marginTop: 4,
-                            fontSize: 11,
-                            opacity: 0.75
-                          }}
-                        >
-                          {msg.isEdited && <span>(edited)</span>}
-                          <span>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-
-                          {isMe && !msg.isDeleted && (
-                            <span
-                              title={msg.isRead ? 'Read' : 'Delivered'}
-                              style={{ color: msg.isRead ? '#38bdf8' : 'inherit', marginLeft: 2, fontWeight: 700 }}
-                            >
-                              {msg.isRead ? '✓✓' : '✓'}
-                            </span>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  {/* Message Info Card */}
+                  {infoMessageId === msg._id && (
+                    <div
+                      className="msg-info-card"
+                      style={{
+                        marginTop: 4,
+                        padding: '8px 12px',
+                        background: 'rgba(0,0,0,0.4)',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    >
+                      <div><strong style={{ color: '#fff' }}>From:</strong> {senderName}</div>
+                      <div><strong style={{ color: '#fff' }}>Sent:</strong> {new Date(msg.createdAt).toLocaleString()}</div>
+                      {msg.editedAt && <div><strong style={{ color: '#fff' }}>Edited:</strong> {new Date(msg.editedAt).toLocaleString()}</div>}
+                      {msg.fileType && <div><strong style={{ color: '#fff' }}>Type:</strong> {msg.fileType}</div>}
+                      <div style={{ wordBreak: 'break-all' }}><strong style={{ color: '#fff' }}>ID:</strong> {msg._id}</div>
+                    </div>
+                  )}
 
                   {/* Reaction Pills Below Bubble */}
                   {msg.reactions && msg.reactions.length > 0 && (
@@ -1137,6 +1441,37 @@ export default function DirectChatWindow({
           position: 'relative'
         }}
       >
+        {/* Reply Preview Banner */}
+        {replyingTo && (
+          <div
+            style={{
+              padding: '6px 12px',
+              background: 'rgba(124, 58, 237, 0.15)',
+              borderRadius: 8,
+              border: '1px solid rgba(124, 58, 237, 0.3)',
+              fontSize: 12,
+              color: '#c4b5fd',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 8
+            }}
+          >
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Replying to <strong style={{ color: '#fff' }}>@{replyingTo.sender?.username || 'user'}</strong>: &quot;
+              {replyingTo.content || replyingTo.fileName || 'Attachment'}&quot;
+            </span>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              style={{ background: 'transparent', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 16 }}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
         {isRecordingVoice ? (
           <VoiceRecorder
             onCancel={() => setIsRecordingVoice(false)}
@@ -1238,7 +1573,11 @@ export default function DirectChatWindow({
               type="text"
               value={inputText}
               onChange={handleInputChange}
-              placeholder={`Message ${friend?.username || 'friend'}...`}
+              placeholder={
+                replyingTo
+                  ? `Replying to @${replyingTo.sender?.username || 'user'}...`
+                  : `Message ${friend?.username || 'friend'}...`
+              }
               maxLength={4000}
               style={{
                 flex: 1,

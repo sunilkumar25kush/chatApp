@@ -92,7 +92,7 @@ module.exports = (io, socket) => {
       return;
     }
 
-    const { conversationId, content, fileUrl, fileType, fileName, fileSize, clientMsgId } = data || {};
+    const { conversationId, content, fileUrl, fileType, fileName, fileSize, clientMsgId, replyToId } = data || {};
 
     if (!conversationId) {
       if (typeof callback === 'function') callback({ error: 'Conversation ID is required' });
@@ -156,6 +156,7 @@ module.exports = (io, socket) => {
           fileName: fileName || null,
           fileSize: fileSize || null,
           clientMsgId: clientMsgId || null,
+          replyTo: replyToId || null,
           isDelivered: true,
           deliveredAt: new Date()
         });
@@ -163,6 +164,12 @@ module.exports = (io, socket) => {
         await message.populate('sender', 'publicId username avatar fullName');
         await message.populate('recipient', 'publicId username avatar fullName');
         await message.populate('reactions.users', 'username avatar publicId');
+        if (replyToId) {
+          await message.populate({
+            path: 'replyTo',
+            populate: { path: 'sender', select: 'publicId username avatar fullName' }
+          });
+        }
 
         // 2. Update Conversation state & unread count
         const unread = conversation.unreadCounts?.get(recipientId) || 0;

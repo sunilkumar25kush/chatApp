@@ -312,7 +312,11 @@ const getConversationMessages = async (req, res, next) => {
         .limit(pageSize + 1)
         .populate('sender', 'publicId username avatar fullName')
         .populate('recipient', 'publicId username avatar fullName')
-        .populate('reactions.users', 'username avatar publicId');
+        .populate('reactions.users', 'username avatar publicId')
+        .populate({
+          path: 'replyTo',
+          populate: { path: 'sender', select: 'publicId username avatar fullName' }
+        });
 
       const hasMore = messages.length > pageSize;
       if (hasMore) {
@@ -356,7 +360,7 @@ const sendDirectMessage = async (req, res, next) => {
   try {
     const currentUserId = getUserId(req);
     const { id } = req.params;
-    const { content, fileUrl, fileType, fileName, fileSize, clientMsgId } = req.body;
+    const { content, fileUrl, fileType, fileName, fileSize, clientMsgId, replyToId } = req.body;
 
     if (!content?.trim() && !fileUrl) {
       return res.status(400).json({
@@ -429,6 +433,7 @@ const sendDirectMessage = async (req, res, next) => {
         fileName: fileName || null,
         fileSize: fileSize || null,
         clientMsgId: clientMsgId || null,
+        replyTo: replyToId || null,
         isDelivered: true,
         deliveredAt: new Date()
       });
@@ -436,6 +441,12 @@ const sendDirectMessage = async (req, res, next) => {
       await message.populate('sender', 'publicId username avatar fullName');
       await message.populate('recipient', 'publicId username avatar fullName');
       await message.populate('reactions.users', 'username avatar publicId');
+      if (replyToId) {
+        await message.populate({
+          path: 'replyTo',
+          populate: { path: 'sender', select: 'publicId username avatar fullName' }
+        });
+      }
 
       // Update Conversation lastMessage & unread count
       const currentUnread = conversation.unreadCounts?.get(recipientId) || 0;
