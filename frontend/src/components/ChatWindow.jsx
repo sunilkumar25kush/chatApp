@@ -13,6 +13,7 @@ import AudioPlayer from './AudioPlayer';
 import UserProfileModal from './profile/UserProfileModal';
 import RoomPrivacyModal from './RoomPrivacyModal';
 import RoomJoinRequestsModal from './RoomJoinRequestsModal';
+import RoomInfoModal from './RoomInfoModal';
 import AppearanceStudioModal from './appearance/AppearanceStudioModal';
 import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import { SkeletonMessageList } from './SkeletonLoaders';
@@ -84,6 +85,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   // Chat Personality Studio State
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [isRoomInfoOpen, setIsRoomInfoOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isJoinRequestsModalOpen, setIsJoinRequestsModalOpen] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -971,7 +973,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
             <svg className="icon bi bi-arrow-left" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8" /></svg>
           </button>
 
-          <div className="avatar-container">
+          <div className="avatar-container clickable-room-target" onClick={() => setIsRoomInfoOpen(true)} title="View Room Details" role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsRoomInfoOpen(true); }} style={{ cursor: 'pointer' }}>
             <div className="avatar" style={{ background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="avatar-text" style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{getUserInitials(room.name)}</span>
             </div>
@@ -979,7 +981,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           </div>
           <div className="contact-details">
             <div className="contact-name-row">
-              <h2 className="contact-name" id="header-contact-name" title={room.name || 'Chat'}>{room.name || 'Chat'}</h2>
+              <h2 className="contact-name clickable-room-title" id="header-contact-name" title="Click to view room details" onClick={() => setIsRoomInfoOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsRoomInfoOpen(true); }} style={{ cursor: 'pointer' }}>{room.name || 'Chat'}</h2>
               <button
                 type="button"
                 onClick={() => setIsPrivacyModalOpen(true)}
@@ -1971,6 +1973,18 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           onClose={() => setTargetProfileId(null)}
         />
       )}
+
+      {/* Room Info & Details Modal */}
+      <RoomInfoModal
+        isOpen={isRoomInfoOpen}
+        onClose={() => setIsRoomInfoOpen(false)}
+        room={room}
+        onLeaveRoom={onLeaveRoom}
+        onOpenStudio={() => setIsStudioOpen(true)}
+        onOpenPrivacy={() => setIsPrivacyModalOpen(true)}
+        onToggleSelectionMode={() => setSelectionMode((prev) => !prev)}
+        onViewAdminProfile={(adminId) => setTargetProfileId(adminId)}
+      />
 
       {/* Appearance Studio Modal */}
       <AppearanceStudioModal

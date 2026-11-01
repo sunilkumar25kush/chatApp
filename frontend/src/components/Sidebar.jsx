@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/ThemeContext';
+import { toast } from '../utils/toast';
 import UserProfileModal from './profile/UserProfileModal';
 import StatusPickerModal from './profile/StatusPickerModal';
 import ThemeSettingsModal from './profile/ThemeSettingsModal';
@@ -24,6 +26,7 @@ export default function Sidebar({
   activeRoom,
   directConversations = [],
   activeDirectConversation = null,
+  onSelectFriend,
   onSelectDirectConversation,
   onSelectRoom,
   searchQuery,
@@ -35,6 +38,15 @@ export default function Sidebar({
   onNavigateNotification
 }) {
   const { user, logout } = useAuth();
+  const { resolvedMode, toggleTheme } = useTheme();
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);
+  const [addFriendInput, setAddFriendInput] = useState('');
+  const [addFriendSearching, setAddFriendSearching] = useState(false);
+  const [addFriendFoundUser, setAddFriendFoundUser] = useState(null);
+  const [addFriendSubmitting, setAddFriendSubmitting] = useState(false);
+  const settingsMenuRef = useRef(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -65,6 +77,34 @@ export default function Sidebar({
     };
   }, []);
 
+  const fetchFriends = async () => {
+    try {
+      const res = await friendService.getFriends();
+      setFriendsList(res.friends || []);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    fetchFriends();
+  }, []);
+
+  useEffect(() => {
+    const handleFriendUpdate = () => {
+      fetchFriends();
+    };
+    socket.on('friend_request_accepted', handleFriendUpdate);
+    socket.on('friend_removed', handleFriendUpdate);
+    socket.on('friend_request_received', handleFriendUpdate);
+
+    return () => {
+      socket.off('friend_request_accepted', handleFriendUpdate);
+      socket.off('friend_removed', handleFriendUpdate);
+      socket.off('friend_request_received', handleFriendUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchPending = async () => {
       try {
@@ -92,6 +132,24 @@ export default function Sidebar({
 
   const touchStartXRef = useRef(0);
   const userMenuRef = useRef(null);
+
+  // Click Outside Listener for Settings Dropdown Menu
+  useEffect(() => {
+    if (!showSettingsMenu) return;
+    const handleClickOutsideSettings = (e) => {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(e.target)) {
+        setShowSettingsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideSettings);
+    document.addEventListener('pointerdown', handleClickOutsideSettings);
+    document.addEventListener('touchstart', handleClickOutsideSettings);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideSettings);
+      document.removeEventListener('pointerdown', handleClickOutsideSettings);
+      document.removeEventListener('touchstart', handleClickOutsideSettings);
+    };
+  }, [showSettingsMenu]);
 
   // Click Outside Listener for Presence Dropdown Menu
   useEffect(() => {
@@ -195,6 +253,13 @@ export default function Sidebar({
       action: () => { setShowUserMenu(false); setShowStatusPicker(true); }
     },
     {
+      id: 'theme-mode',
+      icon: resolvedMode === 'dark' ? '☀️' : '🌙',
+      title: `Theme Mode: ${resolvedMode === 'dark' ? 'Dark' : 'Light'}`,
+      description: `Switch to ${resolvedMode === 'dark' ? 'Light' : 'Dark'} mode`,
+      action: () => { setShowUserMenu(false); toggleTheme(); }
+    },
+    {
       id: 'themes',
       icon: '🎨',
       title: 'Themes',
@@ -218,24 +283,135 @@ export default function Sidebar({
     }
   ], [user, logout]);
 
+  const settingsMenuItems = useMemo(() => [
+    {
+      id: 'settings-header',
+      type: 'header',
+      title: 'Settings',
+      description: 'Preferences & Themes'
+    },
+    {
+      id: 'theme-mode',
+      icon: resolvedMode === 'dark' ? '☀️' : '🌙',
+      title: 'Theme Mode',
+      description: `Current: ${resolvedMode === 'dark' ? 'Dark' : 'Light'} (tap to switch)`,
+      badge: resolvedMode === 'dark' ? 'Dark' : 'Light',
+      action: () => {
+        setShowSettingsMenu(false);
+        toggleTheme();
+      }
+    },
+    {
+      id: 'themes-studio',
+      icon: '🎨',
+      title: 'Themes & Styles',
+      description: 'Colors, backgrounds & fonts',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowThemeSettings(true);
+      }
+    },
+    {
+      id: 'personality-studio',
+      icon: '✨',
+      title: 'Personality Studio',
+      description: 'AI personalities & effects',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowPersonalityStudio(true);
+      }
+    },
+    {
+      id: 'profile',
+      icon: '👤',
+      title: 'My Profile',
+      description: 'View & edit details',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowProfile(true);
+      }
+    },
+    {
+      id: 'join-code',
+      icon: '🔑',
+      title: 'Join Room with Code',
+      description: 'Enter room invite code',
+      action: () => {
+        setShowSettingsMenu(false);
+        onOpenJoinModal?.();
+      }
+    },
+    {
+      id: 'status',
+      icon: '💬',
+      title: 'Set Status',
+      description: 'Update presence status',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowStatusPicker(true);
+      }
+    },
+    {
+      id: 'logout',
+      icon: '🚪',
+      title: 'Logout',
+      description: 'Sign out of your account',
+      isDanger: true,
+      action: logout
+    }
+  ], [resolvedMode, toggleTheme, onOpenJoinModal, logout]);
+
   const chatItems = useMemo(() => {
     const list = [];
-    if (activeTab === 'chats' && filteredDMs.length > 0) {
-      filteredDMs.forEach((conv) => {
-        const friend = conv.friend || {};
+
+    // ==========================================
+    // FRIENDS SECTION: Contains ONLY Friends
+    // ==========================================
+    if (activeTab === 'friends') {
+      (friendsList || []).forEach((item) => {
+        const friend = item.friend || item;
+        if (!friend) return;
+
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matches =
+            (friend.username && friend.username.toLowerCase().includes(q)) ||
+            (friend.fullName && friend.fullName.toLowerCase().includes(q)) ||
+            (friend.publicId && friend.publicId.toLowerCase().includes(q));
+          if (!matches) return;
+        }
+
+        const conv = (directConversations || []).find((c) => {
+          const f = c.friend || {};
+          return (
+            (f._id && friend._id && String(f._id) === String(friend._id)) ||
+            (f.id && friend.id && String(f.id) === String(friend.id)) ||
+            (f.publicId && friend.publicId && f.publicId === friend.publicId)
+          );
+        });
+
+        const isOnline = friend.status === 'online';
+        const unread = conv?.unreadCount || 0;
+
         list.push({
-          id: `dm-${conv._id}`,
-          type: 'dm',
-          raw: conv,
-          title: friend.fullName || friend.username,
-          description: conv.lastMessage?.content ? conv.lastMessage.content : `@${friend.username}`,
-          unreadCount: conv.unreadCount || 0,
+          id: `friend-${item.friendshipId || friend._id || friend.publicId}`,
+          type: 'friend',
           friend,
-          isOnline: friend.status === 'online'
+          conv,
+          raw: conv || { friend },
+          title: friend.fullName || friend.username,
+          description: conv?.lastMessage?.content ? conv.lastMessage.content : (friend.bio ? `"${friend.bio}"` : `@${friend.username}`),
+          unreadCount: unread,
+          isOnline
         });
       });
+
+      return list;
     }
 
+    // ==========================================
+    // GROUP ROOMS SECTION: Contains ONLY Group Rooms
+    // ==========================================
     currentRoomsList.forEach((room) => {
       const unread = unreadCounts[room._id || room.id] || 0;
       list.push({
@@ -251,22 +427,31 @@ export default function Sidebar({
     });
 
     return list;
-  }, [activeTab, filteredDMs, currentRoomsList, unreadCounts, user]);
+  }, [activeTab, friendsList, directConversations, currentRoomsList, searchQuery, unreadCounts, user]);
 
   const selectedChatIndex = useMemo(() => {
-    if (activeDirectConversation) {
-      return chatItems.findIndex(i => i.type === 'dm' && i.raw._id === activeDirectConversation._id);
+    if (activeTab === 'friends' && activeDirectConversation) {
+      return chatItems.findIndex((i) => {
+        if (i.type !== 'friend') return false;
+        const targetId = activeDirectConversation.friend?._id || activeDirectConversation.friend?.id || activeDirectConversation.friend?.publicId;
+        const itemId = i.friend?._id || i.friend?.id || i.friend?.publicId;
+        return targetId && itemId && String(targetId) === String(itemId);
+      });
     }
-    if (activeRoom) {
+    if (activeTab !== 'friends' && activeRoom) {
       return chatItems.findIndex(i => i.type === 'room' && ((i.raw._id && i.raw._id === activeRoom._id) || (i.raw.id && i.raw.id === activeRoom.id) || i.raw.name === activeRoom.name));
     }
     return -1;
-  }, [chatItems, activeDirectConversation, activeRoom]);
+  }, [chatItems, activeTab, activeDirectConversation, activeRoom]);
 
   const handleChatSelect = (item) => {
     if (!item) return;
-    if (item.type === 'dm') {
-      onSelectDirectConversation?.(item.raw);
+    if (item.type === 'friend') {
+      if (item.conv) {
+        onSelectDirectConversation?.(item.conv);
+      } else {
+        onSelectFriend?.(item.friend);
+      }
     } else if (item.type === 'room') {
       onSelectRoom?.(item.raw);
     }
@@ -368,17 +553,6 @@ export default function Sidebar({
             {/* Primary Navigation Icons */}
             <nav className="sidebar-nav" aria-label="Primary Features">
                 <button 
-                  className={`nav-item ${activeTab === 'chats' ? 'active' : ''}`} 
-                  onClick={() => setActiveTab('chats')} 
-                  title="Chats & Roster" 
-                  aria-label="Chats and Roster" 
-                  aria-selected={activeTab === 'chats'} 
-                  role="tab"
-                >
-                    <svg className="icon bi bi-chat-dots-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M16 8c0 3.866-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.584.296-1.925.864-4.181 1.234-.2.032-.352-.176-.273-.362.354-.836.674-1.95.77-2.966C.744 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7M5 8a1 1 0 1 0-2 0 1 1 0 0 0 2 0m4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0m3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/></svg>
-                    <span className="tooltip">Conversations</span>
-                </button>
-                <button 
                   className={`nav-item ${activeTab === 'joined' ? 'active' : ''}`} 
                   onClick={() => setActiveTab('joined')} 
                   title="Group Chat Rooms" 
@@ -471,15 +645,80 @@ export default function Sidebar({
             </nav>
 
             {/* Bottom Utilities */}
-            <div className="sidebar-footer">
-                <button className="nav-item" onClick={() => setShowThemeSettings(true)} title="Toggle Theme" aria-label="Toggle Theme">
+            <div className="sidebar-footer" ref={settingsMenuRef} style={{ position: 'relative' }}>
+                <button
+                  className="nav-item"
+                  onClick={() => toggleTheme()}
+                  title={`Theme Mode: ${resolvedMode === 'dark' ? 'Dark' : 'Light'} (Click to toggle)`}
+                  aria-label="Toggle Theme Mode"
+                >
                     <svg className="icon theme-icon-dark bi bi-moon-stars-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/><path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.25 6.206l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/></svg>
-                    <span className="tooltip">Theme Mode</span>
+                    <span className="tooltip">Theme Mode: {resolvedMode === 'dark' ? 'Dark' : 'Light'}</span>
                 </button>
-                <button className="nav-item" onClick={onOpenJoinModal} title="Settings" aria-label="Open Settings">
+                <button
+                  className={`nav-item ${showSettingsMenu ? 'active' : ''}`}
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  title="Settings"
+                  aria-label="Open Settings"
+                  aria-haspopup="true"
+                  aria-expanded={showSettingsMenu}
+                >
                     <svg className="icon bi bi-gear-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg>
                     <span className="tooltip">Settings</span>
                 </button>
+
+                {/* Bottom Left Settings Dropdown */}
+                {showSettingsMenu && (
+                  <AnimatedList
+                    className="presence-dropdown active settings-dropdown"
+                    items={settingsMenuItems}
+                    onItemSelect={(item) => item?.action?.()}
+                    theme="gajim"
+                    width={235}
+                    maxHeight={360}
+                    radius={10}
+                    gap={2}
+                    frame={false}
+                    showGradients={false}
+                    animation="pop"
+                    stagger={0.03}
+                    style={{
+                      position: 'absolute',
+                      bottom: '54px',
+                      left: '8px',
+                      top: 'auto'
+                    }}
+                    renderItem={(item) => (
+                      item.type === 'header' ? (
+                        <div className="presence-header" style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default', position: 'relative', zIndex: 2 }}>
+                          <span className="user-display-name">{item.title}</span>
+                          <span className="user-jid">{item.description}</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', position: 'relative', zIndex: 2 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span className="presence-icon" style={{ fontSize: 15, lineHeight: 1 }}>{item.icon}</span>
+                            <span 
+                              className={`presence-label ${item.isDanger ? 'presence-label-danger' : ''}`} 
+                              style={{ 
+                                fontSize: 13, 
+                                fontWeight: 500, 
+                                color: item.isDanger ? 'var(--color-error, #dc2626)' : 'inherit' 
+                              }}
+                            >
+                              {item.title}
+                            </span>
+                          </div>
+                          {item.badge && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(240, 136, 44, 0.18)', color: 'var(--color-primary, #F0882C)' }}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    )}
+                  />
+                )}
             </div>
         </aside>
 
@@ -496,7 +735,7 @@ export default function Sidebar({
             {/* Header with Title & Action Button */}
             <div className="chat-list-header">
                 <div className="header-title-container">
-                    <h1 className="panel-title">{activeTab === 'joined' ? 'Rooms' : activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Chats'}</h1>
+                    <h1 className="panel-title">{activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Group Rooms'}</h1>
                     <span className="connection-status-pill connected" title="Connected">
                         <span className="status-dot"></span> JoyBoy
                     </span>
@@ -548,9 +787,18 @@ export default function Sidebar({
                       </span>
                     )}
                   </button>
-                  <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Add Contact or Join Room" aria-label="Add Contact or Join Room">
+                  {activeTab === 'friends' ? (
+                    <button className="btn-icon btn-primary-soft" onClick={() => setShowAddFriendModal(true)} title="Add Friend by Public ID" aria-label="Add Friend by Public ID">
+                      <svg className="icon bi bi-person-plus-fill" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                        <path fillRule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5"/>
+                      </svg>
+                    </button>
+                  ) : (
+                    <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Create Group Room" aria-label="Create Group Room">
                       <svg className="icon bi bi-plus-lg" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>
-                  </button>
+                    </button>
+                  )}
                 </div>
             </div>
 
@@ -563,7 +811,7 @@ export default function Sidebar({
                       value={searchQuery || ''}
                       onChange={(e) => setSearchQuery && setSearchQuery(e.target.value)}
                       className="search-input" 
-                      placeholder="Search conversations or contacts..." 
+                      placeholder={activeTab === 'friends' ? 'Search friends by name or ID...' : 'Search rooms...'} 
                       aria-label="Search conversations" 
                     />
                     {searchQuery && (
@@ -579,13 +827,14 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter chats">
+            {/* Filter Tabs - Shown ONLY in Group Rooms section, NEVER in Friends section */}
+            {activeTab !== 'friends' && (
+              <div className="filter-tabs ui-scroll-tabs" role="tablist" aria-label="Filter group rooms">
                 <button 
-                  className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'explore') ? 'active' : ''}`} 
-                  onClick={() => setActiveTab('chats')} 
+                  className={`tab-item ui-tab-chip ${(activeTab === 'chats' || activeTab === 'joined' || activeTab === 'all') ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('joined')} 
                   role="tab" 
-                  aria-selected={activeTab === 'chats' || activeTab === 'explore'}
+                  aria-selected={activeTab === 'joined' || activeTab === 'chats'}
                 >
                   All
                 </button>
@@ -615,38 +864,10 @@ export default function Sidebar({
                 >
                   Joined
                 </button>
-            </div>
-
-            {/* Chat List Scrollable Roster using AnimatedList */}
-            {activeTab === 'chats' && filteredDMs.length > 0 && (
-              <div style={{
-                padding: '6px 14px 4px',
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--text-secondary, var(--theme-text-muted, #71717a))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <span>Direct Messages ({filteredDMs.length})</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('friends')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--color-primary, var(--theme-primary, #F0882C))',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Add
-                </button>
               </div>
             )}
+
+            {/* Chat List Scrollable Roster using AnimatedList */}
 
             {roomsLoading ? (
               <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
@@ -660,10 +881,16 @@ export default function Sidebar({
               <div className="chat-list" data-lenis-prevent role="listbox" aria-label="Conversations List">
                 <div className="empty-roster-state">
                   <svg className="icon icon-empty bi bi-chat-square-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0m4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0m3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg>
-                  <p className="empty-title">No conversations found</p>
+                  <p className="empty-title">{activeTab === "friends" ? "No friends found" : "No rooms found"}</p>
                   <p className="empty-subtitle">
-                    {activeTab === 'public' ? 'No public channels match your search.' : activeTab === 'private' ? 'No private rooms found.' : 'Click the + button to create a new channel or add friends.'}
-                  </p>
+    {activeTab === 'friends'
+      ? 'Tap the + button to add friends by their unique Public ID.'
+      : activeTab === 'public'
+      ? 'No public channels match your search.'
+      : activeTab === 'private'
+      ? 'No private rooms found.'
+      : 'Click the + button to create a new group channel.'}
+  </p>
                 </div>
               </div>
             ) : (
@@ -683,7 +910,7 @@ export default function Sidebar({
                 animation="pop"
                 stagger={0.02}
                 renderItem={(item) => {
-                  if (item.type === 'dm') {
+                  if (item.type === 'dm' || item.type === 'friend') {
                     const friend = item.friend || {};
                     const isOnline = item.isOnline;
                     return (
@@ -886,6 +1113,7 @@ Sidebar.propTypes = {
   activeRoom: PropTypes.object,
   directConversations: PropTypes.array,
   activeDirectConversation: PropTypes.object,
+  onSelectFriend: PropTypes.func,
   onSelectDirectConversation: PropTypes.func,
   onSelectRoom: PropTypes.func,
   searchQuery: PropTypes.string,

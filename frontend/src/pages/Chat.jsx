@@ -67,7 +67,7 @@ export default function Chat() {
     };
   }, [fetchConversations, activeDirectConversation]);
 
-  const [activeTab, setActiveTab] = useState('chats'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
+  const [activeTab, setActiveTab] = useState('joined'); // 'chats' | 'public' | 'private' | 'joined' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
   const selectedCategory = 'All';
 
@@ -289,7 +289,7 @@ export default function Chat() {
       if (res.conversation) {
         setActiveDirectConversation(res.conversation);
         setActiveRoom(null);
-        setActiveTab('chats');
+        setActiveTab('friends');
         if (window.innerWidth < 768) {
           openMobileChat();
         }
@@ -340,7 +340,7 @@ export default function Chat() {
           if (res.conversation) {
             setActiveDirectConversation(res.conversation);
             setActiveRoom(null);
-            setActiveTab('chats');
+            setActiveTab('friends');
             if (window.innerWidth < 768) openMobileChat();
           }
         }).catch(() => {
@@ -441,6 +441,7 @@ export default function Chat() {
           activeRoom={activeRoom}
           directConversations={directConversations}
           activeDirectConversation={activeDirectConversation}
+          onSelectFriend={handleStartDirectChatWithFriend}
           onSelectDirectConversation={handleSelectDirectConversation}
           onSelectRoom={handleSelectRoom}
           searchQuery={searchQuery}
@@ -463,7 +464,7 @@ export default function Chat() {
                 if (window.innerWidth < 768) {
                   closeMobileChat();
                 } else {
-                  setActiveTab('chats');
+                  setActiveTab('joined');
                 }
               }}
             />
