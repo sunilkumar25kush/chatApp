@@ -311,7 +311,8 @@ const getConversationMessages = async (req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(pageSize + 1)
         .populate('sender', 'publicId username avatar fullName')
-        .populate('recipient', 'publicId username avatar fullName');
+        .populate('recipient', 'publicId username avatar fullName')
+        .populate('reactions.users', 'username avatar publicId');
 
       const hasMore = messages.length > pageSize;
       if (hasMore) {
@@ -434,6 +435,7 @@ const sendDirectMessage = async (req, res, next) => {
 
       await message.populate('sender', 'publicId username avatar fullName');
       await message.populate('recipient', 'publicId username avatar fullName');
+      await message.populate('reactions.users', 'username avatar publicId');
 
       // Update Conversation lastMessage & unread count
       const currentUnread = conversation.unreadCounts?.get(recipientId) || 0;
@@ -487,6 +489,9 @@ const sendDirectMessage = async (req, res, next) => {
         content: content?.trim() || '',
         fileUrl: fileUrl || null,
         fileType: fileType || null,
+        fileName: fileName || null,
+        fileSize: fileSize || null,
+        reactions: [],
         isRead: false,
         createdAt: new Date().toISOString()
       };

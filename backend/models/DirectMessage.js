@@ -43,6 +43,12 @@ const directMessageSchema = new mongoose.Schema(
       type: Number,
       default: null
     },
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+      }
+    ],
     // Delivery & Read state receipts
     isDelivered: {
       type: Boolean,

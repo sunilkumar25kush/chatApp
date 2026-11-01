@@ -7,6 +7,8 @@ const Room = require('../models/Room');
 const CallHistory = require('../models/CallHistory');
 const { memoryMessages } = require('../controllers/messageController');
 const { memoryRooms } = require('../controllers/roomController');
+const DirectMessage = require('../models/DirectMessage');
+const { memoryDirectMessages } = require('../controllers/conversationController');
 const presenceHandler = require('./presenceHandler');
 const callHandler = require('./callHandler');
 const directMessageHandler = require('./directMessageHandler');
@@ -425,7 +427,7 @@ const initSocket = (server) => {
         const userIdStr = userId.toString();
 
         if (!isDBConnected() || !mongoose.Types.ObjectId.isValid(messageId) || String(messageId).startsWith('mem_msg_')) {
-          const msg = memoryMessages.get(messageId);
+          const msg = memoryMessages.get(messageId) || memoryDirectMessages.get(messageId);
           if (!msg) {
             if (typeof ack === 'function') ack({ ok: false, error: 'Message not found' });
             return;
@@ -462,7 +464,12 @@ const initSocket = (server) => {
           return;
         }
 
-        const message = await Message.findById(messageId);
+        let message = await Message.findById(messageId);
+        let isDirect = false;
+        if (!message) {
+          message = await DirectMessage.findById(messageId);
+          if (message) isDirect = true;
+        }
         if (!message) {
           if (typeof ack === 'function') ack({ ok: false, error: 'Message not found' });
           return;
@@ -497,6 +504,20 @@ const initSocket = (server) => {
         message.reactions = message.reactions.filter((r) => r.users && r.users.length > 0);
 
         await message.save();
+
+        if (isDirect) {
+          const populatedDM = await DirectMessage.findById(messageId)
+            .populate('sender', 'publicId username avatar fullName')
+            .populate('recipient', 'publicId username avatar fullName')
+            .populate('reactions.users', 'username avatar publicId');
+          const targetRoomId = (roomId || populatedDM.conversation)?.toString();
+          if (targetRoomId) {
+            io.to(targetRoomId).emit('message_reaction_updated', populatedDM);
+            io.to(`conv:${targetRoomId}`).emit('message_reaction_updated', populatedDM);
+          }
+          if (typeof ack === 'function') ack({ ok: true, message: populatedDM });
+          return;
+        }
 
         const populatedMessage = await Message.findById(messageId)
           .populate('sender', 'username email avatar customStatus')

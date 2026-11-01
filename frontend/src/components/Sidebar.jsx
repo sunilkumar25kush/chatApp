@@ -335,7 +335,7 @@ export default function Sidebar({
       isDanger: true,
       action: logout
     }
-  ], [user, logout]);
+  ], [user, logout, resolvedMode, toggleTheme]);
 
   const settingsMenuItems = useMemo(() => [
     {

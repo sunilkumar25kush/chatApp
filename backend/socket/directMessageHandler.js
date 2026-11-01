@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
 const DirectMessage = require('../models/DirectMessage');
 const Friendship = require('../models/Friendship');
+const { memoryDirectMessages } = require('../controllers/conversationController');
 const logger = require('../utils/logger');
 
 const isDBConnected = () => mongoose.connection.readyState === 1;
@@ -161,6 +162,7 @@ module.exports = (io, socket) => {
 
         await message.populate('sender', 'publicId username avatar fullName');
         await message.populate('recipient', 'publicId username avatar fullName');
+        await message.populate('reactions.users', 'username avatar publicId');
 
         // 2. Update Conversation state & unread count
         const unread = conversation.unreadCounts?.get(recipientId) || 0;
@@ -211,9 +213,14 @@ module.exports = (io, socket) => {
           sender: socket.user,
           content: content?.trim() || '',
           fileUrl: fileUrl || null,
+          fileType: fileType || null,
+          fileName: fileName || null,
+          fileSize: fileSize || null,
+          reactions: [],
           isRead: false,
           createdAt: new Date().toISOString()
         };
+        memoryDirectMessages.set(msg._id, msg);
         io.to(`conv:${conversationId}`).emit('direct_message_received', {
           conversationId,
           message: msg

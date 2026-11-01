@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
+const DirectMessage = require('../models/DirectMessage');
 const Room = require('../models/Room');
 const { checkRoomAccess } = require('../utils/roomAccess');
 const { memoryRooms } = require('./roomController');
@@ -379,7 +380,12 @@ const toggleReaction = async (req, res, next) => {
       return res.json(msg);
     }
 
-    const message = await Message.findById(messageId);
+    let message = await Message.findById(messageId);
+    let isDirect = false;
+    if (!message) {
+      message = await DirectMessage.findById(messageId);
+      if (message) isDirect = true;
+    }
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
     let reactionGroup = message.reactions.find((r) => r.emoji === emoji);
@@ -405,6 +411,20 @@ const toggleReaction = async (req, res, next) => {
     }
 
     await message.save();
+
+    if (isDirect) {
+      const populatedDM = await DirectMessage.findById(message._id)
+        .populate('sender', 'publicId username avatar fullName')
+        .populate('recipient', 'publicId username avatar fullName')
+        .populate('reactions.users', 'username avatar publicId');
+
+      const io = req.app?.get('io');
+      const targetRoomId = (roomId || populatedDM.conversation)?.toString();
+      if (io && targetRoomId) {
+        io.to(targetRoomId).emit('message_reaction_updated', populatedDM);
+      }
+      return res.json(populatedDM);
+    }
 
     const populatedMessage = await Message.findById(message._id)
       .populate('sender', 'username email avatar customStatus')
