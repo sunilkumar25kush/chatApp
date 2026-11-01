@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Room = require('../models/Room');
+const Conversation = require('../models/Conversation');
 const CallSession = require('../models/CallSession');
 const { generateCallToken } = require('../services/livekitService');
 const { memoryRooms } = require('./roomController');
@@ -31,6 +32,19 @@ const authorizeRoomAccess = async (roomId, user) => {
 
     const room = await Room.findById(roomId).select('isPrivate owner admins members name deleted').lean();
     if (!room || room.deleted) {
+      const conv = await Conversation.findById(roomId).select('participants deleted').lean();
+      if (conv && !conv.deleted) {
+        const isParticipant = (conv.participants || []).some((p) => p.toString() === userIdStr);
+        if (!isParticipant) {
+          return {
+            authorized: false,
+            error: 'Access Denied: You are not an authorized member of this direct conversation.',
+            statusCode: 403,
+            room: conv
+          };
+        }
+        return { authorized: true, room: conv };
+      }
       return { authorized: false, error: 'Room not found or has been deleted.', statusCode: 404 };
     }
 
@@ -55,6 +69,15 @@ const authorizeRoomAccess = async (roomId, user) => {
   // Memory mode fallback
   const room = memoryRooms.get(roomId);
   if (!room || room.deleted) {
+    const { memoryConversations } = require('./conversationController');
+    const conv = memoryConversations?.get(roomId);
+    if (conv && !conv.deleted) {
+      const isMember = (conv.participants || []).some((p) => (p._id || p.id || p).toString() === userIdStr);
+      if (!isMember) {
+        return { authorized: false, error: 'Access Denied: You are not an authorized member of this direct conversation.', statusCode: 403, room: conv };
+      }
+      return { authorized: true, room: conv };
+    }
     return { authorized: false, error: 'Room not found.', statusCode: 404 };
   }
 

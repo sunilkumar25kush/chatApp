@@ -596,7 +596,7 @@ const initSocket = (server) => {
       logger.socket(`Voice answer from ${socket.id} → ${toSocketId || toRoom}`);
 
       try {
-        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
+        if (isDBConnected() && toRoom) {
           const call = await CallHistory.findOne({ room: toRoom, status: 'missed', type: 'voice' }).sort({ createdAt: -1 });
           if (call) {
             call.status = 'ongoing';
@@ -631,7 +631,7 @@ const initSocket = (server) => {
       logger.socket(`Call ended in room ${toRoom} by ${socket.id}`);
 
       try {
-        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
+        if (isDBConnected() && toRoom) {
           const call = await CallHistory.findOne({ room: toRoom, type: 'voice' }).sort({ createdAt: -1 });
           if (call && (call.status === 'ongoing' || call.status === 'missed')) {
             if (call.status === 'ongoing') {
@@ -698,7 +698,7 @@ const initSocket = (server) => {
       logger.socket(`Video answer from ${socket.id} → ${toSocketId || toRoom}`);
 
       try {
-        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
+        if (isDBConnected() && toRoom) {
           const call = await CallHistory.findOne({ room: toRoom, status: 'missed', type: 'video' }).sort({ createdAt: -1 });
           if (call) {
             call.status = 'ongoing';
@@ -735,7 +735,7 @@ const initSocket = (server) => {
       logger.socket(`Video call ended in room ${toRoom}`);
 
       try {
-        if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
+        if (isDBConnected() && toRoom) {
           const call = await CallHistory.findOne({ room: toRoom, type: 'video' }).sort({ createdAt: -1 });
           if (call && (call.status === 'ongoing' || call.status === 'missed')) {
             if (call.status === 'ongoing') {
