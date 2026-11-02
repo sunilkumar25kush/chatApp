@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import notificationService from '../services/notificationService';
 import { toast } from '../utils/toast';
@@ -166,17 +167,17 @@ export default function NotificationsModal({
     return true;
   });
 
-  return (
+  return createPortal(
     <div
-      className="modal-overlay"
+      className="modal-overlay modal-overlay--centered"
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 10005,
         padding: 16
       }}
       onClick={onClose}
@@ -495,6 +496,8 @@ export default function NotificationsModal({
         </div>
       </div>
     </div>
+  ,
+    document.body
   );
 }
 
