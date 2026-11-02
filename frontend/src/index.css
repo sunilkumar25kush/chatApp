@@ -5982,13 +5982,13 @@ body.personality-gaming .msg-bubble {
     min-width: 100% !important;
     height: 56px !important;
     min-height: 56px !important;
-    padding: 0 16px !important;
+    padding: 0 !important;
     background: var(--bg-sidebar, #ECEAC9) !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     border-right: none !important;
     border-top: 1px solid var(--border-color, #CCCCCC) !important;
-    justify-content: space-between !important;
+    justify-content: space-evenly !important;
     align-items: center !important;
     z-index: 50 !important;
     flex-shrink: 0 !important;
@@ -6051,13 +6051,7 @@ body.personality-gaming .msg-bubble {
   }
 
   .gajim-sidebar-container .left-sidebar .sidebar-nav {
-    display: flex !important;
-    flex-direction: row !important;
-    flex: 1 !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 6px !important;
-    margin: 0 !important;
+    display: contents !important;
   }
 
   .gajim-sidebar-container .left-sidebar .avatar {
