@@ -6042,6 +6042,16 @@ body.personality-gaming .msg-bubble {
     padding-bottom: 0 !important;
     border-bottom: none !important;
     position: relative;
+    flex: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .gajim-sidebar-container .left-sidebar .sidebar-footer {
+    flex: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+    position: relative !important;
   }
 
   .gajim-sidebar-container .left-sidebar .presence-dropdown {
@@ -6068,8 +6078,7 @@ body.personality-gaming .msg-bubble {
     flex-shrink: 0 !important;
   }
 
-  .gajim-sidebar-container .left-sidebar .sidebar-bottom,
-  .gajim-sidebar-container .left-sidebar .sidebar-footer {
+  .gajim-sidebar-container .left-sidebar .sidebar-bottom {
     display: flex !important;
     flex-direction: row !important;
     margin-top: 0 !important;
