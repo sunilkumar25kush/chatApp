@@ -339,56 +339,9 @@ export default function Sidebar({
 
   const settingsMenuItems = useMemo(() => [
     {
-      id: 'settings-header',
-      type: 'header',
-      title: 'Settings',
-      description: 'Preferences & Themes'
-    },
-    {
-      id: 'theme-mode',
-      icon: resolvedMode === 'dark' ? '☀️' : '🌙',
-      title: 'Theme Mode',
-      description: `Current: ${resolvedMode === 'dark' ? 'Dark' : 'Light'} (tap to switch)`,
-      badge: resolvedMode === 'dark' ? 'Dark' : 'Light',
-      action: () => {
-        setShowSettingsMenu(false);
-        toggleTheme();
-      }
-    },
-    {
-      id: 'themes-studio',
-      icon: '🎨',
-      title: 'Themes & Styles',
-      description: 'Colors, backgrounds & fonts',
-      action: () => {
-        setShowSettingsMenu(false);
-        setShowThemeSettings(true);
-      }
-    },
-    {
-      id: 'personality-studio',
-      icon: 'âœ¨',
-      title: 'Personality Studio',
-      description: 'AI personalities & effects',
-      action: () => {
-        setShowSettingsMenu(false);
-        setShowPersonalityStudio(true);
-      }
-    },
-    {
-      id: 'profile',
-      icon: '👤',
-      title: 'My Profile',
-      description: 'View & edit details',
-      action: () => {
-        setShowSettingsMenu(false);
-        setShowProfile(true);
-      }
-    },
-    {
-      id: 'join-code',
+      id: 'join-room',
       icon: '🔑',
-      title: 'Join Room with Code',
+      title: 'Join Room',
       description: 'Enter room invite code',
       action: () => {
         setShowSettingsMenu(false);
@@ -396,13 +349,24 @@ export default function Sidebar({
       }
     },
     {
-      id: 'status',
-      icon: '💬',
-      title: 'Set Status',
-      description: 'Update presence status',
+      id: 'create-room',
+      icon: '➕',
+      title: 'Create Room',
+      description: 'Create a new room',
       action: () => {
         setShowSettingsMenu(false);
-        setShowStatusPicker(true);
+        onOpenCreateModal?.();
+      }
+    },
+    {
+      id: 'theme',
+      icon: '🎨',
+      title: 'Theme',
+      description: `Current: ${resolvedMode === 'dark' ? 'Dark' : 'Light'}`,
+      badge: resolvedMode === 'dark' ? 'Dark' : 'Light',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowThemeSettings(true);
       }
     },
     {
@@ -411,9 +375,12 @@ export default function Sidebar({
       title: 'Logout',
       description: 'Sign out of your account',
       isDanger: true,
-      action: logout
+      action: () => {
+        setShowSettingsMenu(false);
+        logout();
+      }
     }
-  ], [resolvedMode, toggleTheme, onOpenJoinModal, logout]);
+  ], [onOpenJoinModal, onOpenCreateModal, resolvedMode, logout]);
 
   const chatItems = useMemo(() => {
     const list = [];
@@ -566,7 +533,7 @@ export default function Sidebar({
                     onItemSelect={(item) => item?.action?.()}
                     theme="gajim"
                     width={230}
-                    maxHeight={360}
+                    maxHeight={220}
                     radius={10}
                     gap={2}
                     frame={false}
@@ -701,15 +668,6 @@ export default function Sidebar({
             {/* Bottom Utilities */}
             <div className="sidebar-footer" ref={settingsMenuRef} style={{ position: 'relative' }}>
                 <button
-                  className="nav-item"
-                  onClick={() => toggleTheme()}
-                  title={`Theme Mode: ${resolvedMode === 'dark' ? 'Dark' : 'Light'} (Click to toggle)`}
-                  aria-label="Toggle Theme Mode"
-                >
-                    <svg className="icon theme-icon-dark bi bi-moon-stars-fill" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/><path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.25 6.206l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/></svg>
-                    <span className="tooltip">Theme Mode: {resolvedMode === 'dark' ? 'Dark' : 'Light'}</span>
-                </button>
-                <button
                   className={`nav-item ${showSettingsMenu ? 'active' : ''}`}
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
                   title="Settings"
@@ -728,8 +686,8 @@ export default function Sidebar({
                     items={settingsMenuItems}
                     onItemSelect={(item) => item?.action?.()}
                     theme="gajim"
-                    width={235}
-                    maxHeight={360}
+                    width={215}
+                    maxHeight={220}
                     radius={10}
                     gap={2}
                     frame={false}
@@ -793,66 +751,6 @@ export default function Sidebar({
                     <span className="connection-status-pill connected" title="Connected">
                         <span className="status-dot"></span> JoyBoy
                     </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button 
-                    className="mobile-header-profile-btn" 
-                    onClick={() => setShowProfile(true)} 
-                    title="My Profile" 
-                    aria-label="Open My Profile"
-                  >
-                    <div className="avatar avatar-sm" style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--theme-primary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{getUserInitials(user?.username || 'User')}</span>
-                      )}
-                    </div>
-                  </button>
-                  <button 
-                    className="btn-icon btn-primary-soft" 
-                    onClick={() => setIsNotificationsOpen(true)} 
-                    title="Notifications" 
-                    aria-label="Open Notifications"
-                    style={{ position: 'relative' }}
-                  >
-                    <svg className="icon bi bi-bell-fill" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"/>
-                    </svg>
-                    {unreadNotificationsCount > 0 && (
-                      <span style={{
-                        position: 'absolute',
-                        top: -2,
-                        right: -2,
-                        background: '#ef4444',
-                        color: '#fff',
-                        fontSize: 9,
-                        fontWeight: 700,
-                        minWidth: 15,
-                        height: 15,
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 3px',
-                        border: '1.5px solid var(--theme-sidebar-bg, #1a1c23)'
-                      }}>
-                        {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                      </span>
-                    )}
-                  </button>
-                  {activeTab === 'friends' ? (
-                    <button className="btn-icon btn-primary-soft" onClick={() => setShowAddFriendModal(true)} title="Add Friend by Public ID" aria-label="Add Friend by Public ID">
-                      <svg className="icon bi bi-person-plus-fill" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
-                        <path fillRule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5"/>
-                      </svg>
-                    </button>
-                  ) : (
-                    <button className="btn-icon btn-primary-soft" onClick={onOpenCreateModal} title="Create Group Room" aria-label="Create Group Room">
-                      <svg className="icon bi bi-plus-lg" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>
-                    </button>
-                  )}
                 </div>
             </div>
 

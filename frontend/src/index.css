@@ -9141,3 +9141,12 @@ body.theme-light .empty-friends-card {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
 }
+
+/* Settings dropdown responsive positioning */
+@media (max-width: 640px) {
+  .gajim-sidebar-container .left-sidebar .settings-dropdown {
+    left: auto !important;
+    right: 8px !important;
+    bottom: 60px !important;
+  }
+}
