@@ -660,7 +660,7 @@ test('direct messages: non-friends cannot initiate conversation (403 FRIENDSHIP_
   });
   assert.equal(regC.status, 201);
   const userC = await regC.json();
-  const tokenC = userC.token;
+  const _tokenC = userC.token;
 
   // User A attempts to start direct conversation with unrelated User C
   const convRes = await jsonFetch('/api/conversations', {

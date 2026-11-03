@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
-const { generatePublicId, isValidPublicId, normalizePublicId, CHARSET } = require('../utils/publicId');
+const { generatePublicId, isValidPublicId, CHARSET } = require('../utils/publicId');
 const { backfillPublicIds } = require('../scripts/backfillPublicIds');
 const User = require('../models/User');
 

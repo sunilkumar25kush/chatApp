@@ -3,7 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const User = require('../models/User');
-const { generatePublicId, isValidPublicId } = require('../utils/publicId');
+const { generatePublicId } = require('../utils/publicId');
 const logger = require('../utils/logger');
 
 /**

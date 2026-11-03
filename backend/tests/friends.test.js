@@ -7,7 +7,6 @@ const fs = require('fs');
 const BACKEND_DIR = path.join(__dirname, '..');
 const Friendship = require('../models/Friendship');
 const User = require('../models/User');
-const { generatePublicId } = require('../utils/publicId');
 
 function testMongoUri() {
   const envPath = path.join(BACKEND_DIR, '.env');

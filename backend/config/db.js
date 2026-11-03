@@ -25,7 +25,7 @@ const connectDB = async () => {
     try {
       const { backfillPublicIds } = require("../scripts/backfillPublicIds");
       backfillPublicIds({ customLogger: logger }).catch(() => {});
-    } catch {}
+    } catch (_err) { /* ignore */ }
     return conn;
   } catch (primaryErr) {
     logger.warn(`[MongoDB Warning] Primary connection to Atlas failed: ${primaryErr.message}`);

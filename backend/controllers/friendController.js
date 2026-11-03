@@ -4,7 +4,6 @@ const User = require('../models/User');
 const { isValidPublicId, normalizePublicId } = require('../utils/publicId');
 const { memoryUsers } = require('./authController');
 const { createNotification } = require('./notificationController');
-const logger = require('../utils/logger');
 
 // In-memory fallback store when MongoDB is not connected
 const memoryFriendships = new Map();

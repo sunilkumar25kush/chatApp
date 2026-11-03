@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
-const User = require('../models/User');
 const logger = require('../utils/logger');
 
 const isDBConnected = () => mongoose.connection.readyState === 1;

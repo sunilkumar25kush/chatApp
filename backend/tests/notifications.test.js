@@ -3,11 +3,9 @@ const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
 
 const BACKEND_DIR = path.join(__dirname, '..');
 const Notification = require('../models/Notification');
-const User = require('../models/User');
 const { createNotification } = require('../controllers/notificationController');
 
 function testMongoUri() {

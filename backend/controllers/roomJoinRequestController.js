@@ -1,17 +1,14 @@
 const mongoose = require('mongoose');
 const RoomJoinRequest = require('../models/RoomJoinRequest');
 const Room = require('../models/Room');
-const User = require('../models/User');
 const {
   normalizeId,
   isPrivateRoom,
-  isRoomOwner,
   isRoomAdmin,
   isRoomMember
 } = require('../utils/roomAccess');
 const { memoryRooms } = require('./roomController');
 const { createNotification } = require('./notificationController');
-const logger = require('../utils/logger');
 
 // In-memory fallback store for join requests
 const memoryJoinRequests = new Map();

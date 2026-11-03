@@ -580,7 +580,7 @@ const updateRoomVisibility = async (req, res, next) => {
       }
       targetVisibility = visibility;
     } else if (isPrivate !== undefined) {
-      targetVisibility = Boolean(isPrivate) ? 'private' : 'public';
+      targetVisibility = isPrivate ? 'private' : 'public';
     } else {
       return res.status(400).json({ message: 'Must provide "visibility" or "isPrivate"' });
     }
@@ -820,7 +820,7 @@ const leaveRoom = async (req, res, next) => {
             }
           }
           io.to(id.toString()).emit('user_left', { roomId: id, userId });
-        } catch (e) {}
+        } catch (_e) { /* ignore */ }
       }
     }
     return res.json({ message: 'Successfully left room', roomId: id });
@@ -894,7 +894,7 @@ const deleteRoom = async (req, res, next) => {
             s.roomId = null;
           }
           io.emit('room_deleted', { roomId: id });
-        } catch (e) {}
+        } catch (_e) { /* ignore */ }
       }
     }
     return res.json({ message: 'Room deleted', roomId: id });
