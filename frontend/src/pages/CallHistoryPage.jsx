@@ -70,9 +70,9 @@ export default function CallHistoryPage() {
               minWidth: 42,
               minHeight: 42,
               borderRadius: 8,
-              background: '#222530',
-              border: '1px solid #3f4657',
-              color: '#f3f4f6',
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -82,7 +82,7 @@ export default function CallHistoryPage() {
           >
             ←
           </button>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#f3f4f6' }}>Call History</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>Call History</h1>
         </div>
         
         <div className="ui-scroll-tabs" role="tablist" aria-label="Filter call history">
@@ -103,7 +103,7 @@ export default function CallHistoryPage() {
 
       <div className="call-history-feed scrollzone">
         {filteredCalls.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#6b7280', marginTop: 40 }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>📞</div>
             <h3>No recent calls found</h3>
             <p style={{ fontSize: 13 }}>Make a voice or video call to see it here.</p>
@@ -126,9 +126,9 @@ export default function CallHistoryPage() {
               else statusColor = '#3b82f6'; // blue for incoming successful
               
               return (
-                <div key={call._id} className="call-history-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#222530', borderRadius: 12, border: '1px solid #2d3241', flexWrap: 'wrap', gap: '12px' }}>
+                <div key={call._id} className="call-history-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--bg-panel)', borderRadius: 12, border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 180px' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'var(--text-main)', overflow: 'hidden', flexShrink: 0 }}>
                       {otherUser?.avatar ? (
                          <img src={otherUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -136,10 +136,10 @@ export default function CallHistoryPage() {
                       )}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: isMissed ? '#ef4444' : '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: isMissed ? '#ef4444' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {otherName}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af', marginTop: 4, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)', marginTop: 4, flexWrap: 'wrap' }}>
                         <span style={{ color: statusColor, fontSize: 13 }}>
                           {isMissed ? '↙' : isOutgoing ? '↗' : '↙'}
                         </span>
@@ -152,10 +152,10 @@ export default function CallHistoryPage() {
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 'auto' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, color: '#d1d5db', fontWeight: 500 }}>{formatDuration(call.duration)}</div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>{call.status}</div>
+                      <div style={{ fontSize: 14, color: 'var(--text-main)', fontWeight: 500 }}>{formatDuration(call.duration)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{call.status}</div>
                     </div>
-                    <div style={{ fontSize: 20, color: '#9ca3af' }}>{icon}</div>
+                    <div style={{ fontSize: 20, color: 'var(--text-muted)' }}>{icon}</div>
                   </div>
                 </div>
               );

@@ -518,7 +518,7 @@ export default function DirectChatWindow({
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--theme-chat-bg, #181a20)',
-        color: '#f3f4f6',
+        color: 'var(--text-main, #f3f4f6)',
         position: 'relative',
         overflow: 'hidden'
       }}
@@ -558,7 +558,7 @@ export default function DirectChatWindow({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '12px 20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
           background: 'var(--theme-sidebar-bg, #1a1c23)',
           zIndex: 10,
           position: 'relative'
@@ -575,9 +575,9 @@ export default function DirectChatWindow({
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                background: '#222530',
-                border: '1px solid #3f4657',
-                color: '#f3f4f6',
+                background: 'var(--bg-input, #222530)',
+                border: '1px solid var(--border-color, #3f4657)',
+                color: 'var(--text-main, #f3f4f6)',
                 cursor: 'pointer'
               }}
             >
@@ -591,7 +591,7 @@ export default function DirectChatWindow({
               onClick={onToggleMobileSidebar}
               className="mobile-sidebar-toggle"
               aria-label="Toggle Menu"
-              style={{ display: 'none', background: 'none', border: 'none', color: '#fff', fontSize: 20 }}
+              style={{ display: 'none', background: 'none', border: 'none', color: 'var(--text-main, #fff)', fontSize: 20 }}
             >
               ☰
             </button>
@@ -612,7 +612,7 @@ export default function DirectChatWindow({
               <img
                 src={friend?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend?.username || 'Friend'}`}
                 alt={friend?.username || 'Friend'}
-                style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', background: '#2d3139' }}
+                style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', background: 'var(--bg-deep, #2d3139)' }}
               />
               <span
                 style={{
@@ -623,7 +623,7 @@ export default function DirectChatWindow({
                   height: 12,
                   borderRadius: '50%',
                   background: isFriendOnline ? '#10b981' : '#6b7280',
-                  border: '2px solid #1a1c23'
+                  border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
                 }}
                 title={isFriendOnline ? 'Online' : 'Offline'}
               />
@@ -632,16 +632,16 @@ export default function DirectChatWindow({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontWeight: 700, fontSize: 16 }}>{friend?.fullName || friend?.username}</span>
-                <span style={{ fontSize: 12, color: '#9ca3af' }}>@{friend?.username}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>@{friend?.username}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted, #9ca3af)', marginTop: 2 }}>
                 {friend?.publicId && (
                   <span style={{ fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', fontWeight: 600 }}>
                     ID: {friend.publicId}
                   </span>
                 )}
                 <span>•</span>
-                <span style={{ color: isFriendOnline ? '#10b981' : '#9ca3af' }}>
+                <span style={{ color: isFriendOnline ? '#10b981' : 'var(--text-muted, #9ca3af)' }}>
                   {isFriendOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
@@ -758,9 +758,9 @@ export default function DirectChatWindow({
               style={{
                 padding: '6px 16px',
                 borderRadius: 16,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#9ca3af',
+                background: 'var(--bg-input, rgba(255, 255, 255, 0.05))',
+                border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                color: 'var(--text-muted, #9ca3af)',
                 fontSize: 12,
                 cursor: 'pointer'
               }}
@@ -771,7 +771,7 @@ export default function DirectChatWindow({
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted, #9ca3af)' }}>
             Loading conversation...
           </div>
         ) : messages.length === 0 ? (
@@ -779,14 +779,14 @@ export default function DirectChatWindow({
             style={{
               textAlign: 'center',
               padding: '60px 20px',
-              color: '#9ca3af',
-              background: 'rgba(255,255,255,0.02)',
+              color: 'var(--text-muted, #9ca3af)',
+              background: 'var(--bg-input, rgba(255,255,255,0.02))',
               borderRadius: 16,
               margin: 'auto'
             }}
           >
             <div style={{ fontSize: 42, marginBottom: 12 }}>👋</div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f3f4f6', margin: '0 0 6px' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-main, #f3f4f6)', margin: '0 0 6px' }}>
               Say hello to {friend?.fullName || friend?.username}!
             </h3>
             <p style={{ fontSize: 13, margin: 0 }}>This is the beginning of your direct conversation.</p>
@@ -945,7 +945,7 @@ export default function DirectChatWindow({
                     <div
                       style={{
                         padding: '4px 10px',
-                        background: 'rgba(0, 0, 0, 0.25)',
+                        background: 'var(--bg-input, rgba(0, 0, 0, 0.25))',
                         borderLeft: '3px solid var(--theme-primary, #7c3aed)',
                         borderRadius: 6,
                         marginBottom: 4,
@@ -1001,7 +1001,7 @@ export default function DirectChatWindow({
                         width: 'fit-content',
                         borderRadius: 8,
                         border: '1px solid rgba(255, 255, 255, 0.1)',
-                        background: 'rgba(0, 0, 0, 0.25)',
+                        background: 'var(--bg-deep, rgba(0, 0, 0, 0.25))',
                         padding: '6px 12px',
                         display: 'flex',
                         alignItems: 'center',
@@ -1042,11 +1042,11 @@ export default function DirectChatWindow({
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         style={{
-                          background: 'rgba(0,0,0,0.3)',
-                          border: '1px solid rgba(255,255,255,0.2)',
+                          background: 'var(--bg-input, rgba(0,0,0,0.3))',
+                          border: '1px solid var(--border-color, rgba(255,255,255,0.2))',
                           borderRadius: 8,
                           padding: '8px 12px',
-                          color: '#fff',
+                          color: 'var(--text-main, #fff)',
                           fontSize: 14
                         }}
                         autoFocus
@@ -1074,8 +1074,8 @@ export default function DirectChatWindow({
                           style={{
                             padding: '4px 12px',
                             borderRadius: 6,
-                            background: 'rgba(255,255,255,0.2)',
-                            color: '#fff',
+                            background: 'var(--bg-hover, rgba(255,255,255,0.2))',
+                            color: 'var(--text-main, #fff)',
                             border: 'none',
                             fontSize: 12,
                             cursor: 'pointer'
@@ -1343,17 +1343,17 @@ export default function DirectChatWindow({
                       style={{
                         marginTop: 4,
                         padding: '8px 12px',
-                        background: 'rgba(0,0,0,0.4)',
+                        background: 'var(--bg-panel, rgba(0,0,0,0.4))',
                         borderRadius: 8,
                         fontSize: 12,
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        border: '1px solid var(--border-color, rgba(255,255,255,0.1))'
                       }}
                     >
-                      <div><strong style={{ color: '#fff' }}>From:</strong> {senderName}</div>
-                      <div><strong style={{ color: '#fff' }}>Sent:</strong> {new Date(msg.createdAt).toLocaleString()}</div>
-                      {msg.editedAt && <div><strong style={{ color: '#fff' }}>Edited:</strong> {new Date(msg.editedAt).toLocaleString()}</div>}
-                      {msg.fileType && <div><strong style={{ color: '#fff' }}>Type:</strong> {msg.fileType}</div>}
-                      <div style={{ wordBreak: 'break-all' }}><strong style={{ color: '#fff' }}>ID:</strong> {msg._id}</div>
+                      <div><strong style={{ color: 'var(--text-main, #fff)' }}>From:</strong> {senderName}</div>
+                      <div><strong style={{ color: 'var(--text-main, #fff)' }}>Sent:</strong> {new Date(msg.createdAt).toLocaleString()}</div>
+                      {msg.editedAt && <div><strong style={{ color: 'var(--text-main, #fff)' }}>Edited:</strong> {new Date(msg.editedAt).toLocaleString()}</div>}
+                      {msg.fileType && <div><strong style={{ color: 'var(--text-main, #fff)' }}>Type:</strong> {msg.fileType}</div>}
+                      <div style={{ wordBreak: 'break-all' }}><strong style={{ color: 'var(--text-main, #fff)' }}>ID:</strong> {msg._id}</div>
                     </div>
                   )}
 
@@ -1399,12 +1399,12 @@ export default function DirectChatWindow({
 
         {/* Friend Typing Indicator */}
         {friendTyping && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9ca3af', fontSize: 13, fontStyle: 'italic', margin: '4px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted, #9ca3af)', fontSize: 13, fontStyle: 'italic', margin: '4px 0' }}>
             <span>{friend?.username} is typing...</span>
             <div style={{ display: 'flex', gap: 2 }}>
-              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#9ca3af', animation: 'pulse 1s infinite' }} />
-              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#9ca3af', animation: 'pulse 1s infinite 0.2s' }} />
-              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#9ca3af', animation: 'pulse 1s infinite 0.4s' }} />
+              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted, #9ca3af)', animation: 'pulse 1s infinite' }} />
+              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted, #9ca3af)', animation: 'pulse 1s infinite 0.2s' }} />
+              <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted, #9ca3af)', animation: 'pulse 1s infinite 0.4s' }} />
             </div>
           </div>
         )}
@@ -1451,7 +1451,7 @@ export default function DirectChatWindow({
       <div
         style={{
           padding: '12px 18px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
           background: 'var(--theme-sidebar-bg, #1a1c23)',
           zIndex: 10,
           position: 'relative'
@@ -1475,7 +1475,7 @@ export default function DirectChatWindow({
             }}
           >
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Replying to <strong style={{ color: '#fff' }}>@{replyingTo.sender?.username || 'user'}</strong>: &quot;
+              Replying to <strong style={{ color: 'var(--text-main, #fff)' }}>@{replyingTo.sender?.username || 'user'}</strong>: &quot;
               {replyingTo.content || replyingTo.fileName || 'Attachment'}&quot;
             </span>
             <button
@@ -1515,15 +1515,15 @@ export default function DirectChatWindow({
               title="Send image or file"
               aria-label="Send image or file"
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-input, rgba(255, 255, 255, 0.06))',
+                border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
                 borderRadius: '50%',
                 width: 40,
                 height: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#9ca3af',
+                color: 'var(--text-muted, #9ca3af)',
                 cursor: uploadingFile ? 'not-allowed' : 'pointer'
               }}
             >
@@ -1597,11 +1597,11 @@ export default function DirectChatWindow({
               maxLength={4000}
               style={{
                 flex: 1,
-                background: 'rgba(0, 0, 0, 0.25)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
+                background: 'var(--bg-input, rgba(0, 0, 0, 0.25))',
+                border: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
                 borderRadius: 24,
                 padding: '12px 18px',
-                color: '#fff',
+                color: 'var(--text-main, #fff)',
                 fontSize: 14,
                 outline: 'none'
               }}

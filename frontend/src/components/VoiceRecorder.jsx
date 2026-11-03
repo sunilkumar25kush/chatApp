@@ -92,7 +92,7 @@ export default function VoiceRecorder({ onCancel, onSend }) {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', background: '#222530', borderRadius: 24, border: '1px solid #3f4657', flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px', background: 'var(--bg-input, #222530)', borderRadius: 24, border: '1px solid var(--border-color, #3f4657)', flex: 1 }}>
       {audioBlob ? (
         <>
           <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
@@ -106,8 +106,8 @@ export default function VoiceRecorder({ onCancel, onSend }) {
       ) : (
         <>
           <div style={{ color: '#ef4444', animation: 'pulse 1.5s infinite', width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
-          <span style={{ color: '#f3f4f6', fontSize: 14, flex: 1 }}>{formatDuration(duration)}</span>
-          <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer' }}>Cancel</button>
+          <span style={{ color: 'var(--text-main, #f3f4f6)', fontSize: 14, flex: 1 }}>{formatDuration(duration)}</span>
+          <button onClick={onCancel} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #6b7280)', cursor: 'pointer' }}>Cancel</button>
           <button onClick={stopRecording} style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 16, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
             Done
           </button>

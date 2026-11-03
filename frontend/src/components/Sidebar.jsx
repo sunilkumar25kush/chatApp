@@ -311,7 +311,7 @@ export default function Sidebar({
     },
     {
       id: 'personality',
-      icon: 'âœ¨',
+      icon: '✨',
       title: 'Personality Studio',
       description: 'AI chat personality settings',
       action: () => { setShowUserMenu(false); setShowPersonalityStudio(true); }
@@ -1074,7 +1074,7 @@ export default function Sidebar({
         >
           <div 
             className="modal-content"
-            style={{ width: '100%', maxWidth: 440, background: 'var(--theme-card-bg, #1e2029)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.4)', color: '#f3f4f6' }}
+            style={{ width: '100%', maxWidth: 440, background: 'var(--bg-panel, #1e2029)', border: '1px solid var(--border-color, rgba(255,255,255,0.1))', borderRadius: 16, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.4)', color: 'var(--text-main, #f3f4f6)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -1084,14 +1084,14 @@ export default function Sidebar({
               <button 
                 type="button" 
                 onClick={() => { setShowAddFriendModal(false); setAddFriendFoundUser(null); }}
-                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 20, cursor: 'pointer', padding: 4 }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #9ca3af)', fontSize: 20, cursor: 'pointer', padding: 4 }}
                 aria-label="Close"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px 0' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted, #9ca3af)', margin: '0 0 16px 0' }}>
               Enter a permanent Public ID (e.g. <code>SKY-3QYYR4</code>) or username to search and connect.
             </p>
 
@@ -1101,7 +1101,7 @@ export default function Sidebar({
                 value={addFriendInput}
                 onChange={(e) => setAddFriendInput(e.target.value)}
                 placeholder="Enter Public ID (SKY-XXXXXX) or username"
-                style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 14, outline: 'none' }}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'var(--bg-input, rgba(255,255,255,0.06))', border: '1px solid var(--border-color, rgba(255,255,255,0.12))', color: 'var(--text-main, #fff)', fontSize: 14, outline: 'none' }}
                 autoFocus
               />
               <button
@@ -1114,7 +1114,7 @@ export default function Sidebar({
             </form>
 
             {addFriendFoundUser && (
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, marginTop: 12 }}>
+              <div style={{ background: 'var(--bg-input, rgba(255,255,255,0.04))', border: '1px solid var(--border-color, rgba(255,255,255,0.08))', borderRadius: 12, padding: 16, marginTop: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <img
                     src={addFriendFoundUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${addFriendFoundUser.username}`}
@@ -1122,10 +1122,10 @@ export default function Sidebar({
                     style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main, #fff)' }}>
                       {addFriendFoundUser.fullName || addFriendFoundUser.username}
                     </div>
-                    <div style={{ fontSize: 12, color: '#9ca3af' }}>@{addFriendFoundUser.username}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>@{addFriendFoundUser.username}</div>
                     {addFriendFoundUser.publicId && (
                       <div style={{ fontSize: 11, color: 'var(--theme-primary, #a78bfa)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
                         ID: {addFriendFoundUser.publicId}
@@ -1135,7 +1135,7 @@ export default function Sidebar({
                 </div>
 
                 {addFriendFoundUser.bio && (
-                  <p style={{ fontSize: 12, color: '#d1d5db', margin: '0 0 14px 0', fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-main, #d1d5db)', margin: '0 0 14px 0', fontStyle: 'italic' }}>
                     &quot;{addFriendFoundUser.bio}&quot;
                   </p>
                 )}

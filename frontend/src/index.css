@@ -5394,16 +5394,16 @@ body.theme-light .btn-empty-action.secondary:hover {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #181a20;
-  color: #f3f4f6;
+  background: var(--bg-window);
+  color: var(--text-main);
   max-width: 100vw;
   overflow-x: hidden;
 }
 
 .call-history-header {
   padding: 24px 32px;
-  border-bottom: 1px solid #282c37;
-  background: #1c1f28;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-panel);
 }
 
 .call-history-feed {
@@ -9150,9 +9150,20 @@ body.theme-light .empty-friends-card {
   border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
+/* Settings dropdown opens upward from the bottom sidebar footer.
+   Without this the shared presence-dropdown rule (top: 48px) pushes it
+   below the viewport on desktop, so clicking Settings appears to do nothing. */
+.presence-dropdown.active.animated-list.settings-dropdown {
+  top: auto !important;
+  bottom: 60px !important;
+  left: 8px !important;
+  right: auto !important;
+  z-index: var(--z-dropdown, 2600) !important;
+}
+
 /* Settings dropdown responsive positioning */
 @media (max-width: 640px) {
-  .gajim-sidebar-container .left-sidebar .settings-dropdown {
+  .gajim-sidebar-container .left-sidebar .presence-dropdown.active.animated-list.settings-dropdown {
     left: auto !important;
     right: 8px !important;
     bottom: 60px !important;

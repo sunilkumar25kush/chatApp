@@ -57,16 +57,16 @@ export default function StatusPickerModal({ onClose }) {
   return (
     <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={modalStyle}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #282c37', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 17, color: '#f3f4f6', fontWeight: 700 }}>Set a custom status</h2>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color, #282c37)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <h2 style={{ margin: 0, fontSize: 17, color: 'var(--text-main, #f3f4f6)', fontWeight: 700 }}>Set a custom status</h2>
           <button
             onClick={onClose}
             aria-label="Close"
             type="button"
             style={{
-              background: 'rgba(255,255,255,0.06)',
+              background: 'var(--bg-input, rgba(255,255,255,0.06))',
               border: 'none',
-              color: '#9ca3af',
+              color: 'var(--text-muted, #9ca3af)',
               width: 38,
               height: 38,
               minWidth: 38,
@@ -86,24 +86,24 @@ export default function StatusPickerModal({ onClose }) {
         
         <div style={{ padding: 20 }}>
           {/* Input Area */}
-          <div style={{ display: 'flex', gap: 10, background: '#111216', padding: 10, borderRadius: 8, border: '1px solid #282c37', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, background: 'var(--bg-input, #111216)', padding: 10, borderRadius: 8, border: '1px solid var(--border-color, #282c37)', alignItems: 'center' }}>
             <div style={{ fontSize: 24, lineHeight: 1 }}>{selectedEmoji}</div>
             <input 
               type="text" 
               placeholder="What's on your mind?"
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: 14, outline: 'none' }}
+              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-main, #fff)', fontSize: 14, outline: 'none' }}
               maxLength={100}
             />
             {customText && (
-              <button onClick={() => setCustomText('')} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setCustomText('')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #9ca3af)', cursor: 'pointer', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             )}
           </div>
 
           {/* Presets (Wrapping Chips) */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', marginBottom: 10 }}>Presets</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 10 }}>Presets</div>
             <div className="ui-chip-group" style={{ gap: 8 }}>
               {STATUS_PRESETS.map((preset) => {
                 const isSelected = selectedEmoji === preset.emoji && customText === preset.text;
@@ -125,12 +125,12 @@ export default function StatusPickerModal({ onClose }) {
 
           {/* Duration Picker */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', marginBottom: 10 }}>Clear After</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 10 }}>Clear After</div>
             <select 
               value={duration === null ? '' : duration} 
               onChange={(e) => setDuration(e.target.value ? Number(e.target.value) : null)}
               className="form-control"
-              style={{ width: '100%', padding: '0 12px', borderRadius: 8, background: '#111216', border: '1px solid #282c37', color: '#e5e7eb', outline: 'none', minHeight: 42 }}
+              style={{ width: '100%', padding: '0 12px', borderRadius: 8, background: 'var(--bg-input, #111216)', border: '1px solid var(--border-color, #282c37)', color: 'var(--text-main, #e5e7eb)', outline: 'none', minHeight: 42 }}
             >
               {DURATIONS.map(d => (
                 <option key={d.label} value={d.value === null ? '' : d.value}>{d.label}</option>
@@ -140,7 +140,7 @@ export default function StatusPickerModal({ onClose }) {
         </div>
 
         {/* Footer (Stacked Buttons on Mobile) */}
-        <div className="modal-footer" style={{ padding: '14px 16px', background: '#181a20', borderTop: '1px solid #282c37', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+        <div className="modal-footer" style={{ padding: '14px 16px', background: 'var(--theme-sidebar-bg, #181a20)', borderTop: '1px solid var(--border-color, #282c37)', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
           <button type="button" onClick={handleClear} className="btn btn-secondary" style={{ color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.3)', minHeight: 44 }}>
             Clear Status
           </button>
@@ -158,5 +158,5 @@ const overlayStyle = {
   position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 'clamp(8px, 3vw, 20px)'
 };
 const modalStyle = {
-  width: '100%', maxWidth: 450, background: '#1c1f28', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', position: 'relative', maxHeight: '90vh', overflowY: 'auto'
+  width: '100%', maxWidth: 450, background: 'var(--bg-panel, #1c1f28)', color: 'var(--text-main, #f3f4f6)', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', position: 'relative', maxHeight: '90vh', overflowY: 'auto'
 };

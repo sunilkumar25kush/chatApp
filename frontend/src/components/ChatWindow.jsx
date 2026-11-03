@@ -50,7 +50,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       setRoomCodeCopied(true);
       setTimeout(() => setRoomCodeCopied(false), 1600);
     } catch {
-      /* clipboard unavailable â€” code is still visible to copy manually */
+      /* clipboard unavailable — code is still visible to copy manually */
     }
   };
 
@@ -61,7 +61,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   // Mobile More Dropdown State
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
 
-  // Mobile composer â‹® (attachment menu) state
+  // Mobile composer ⋮ (attachment menu) state
   const [isComposerMoreOpen, setIsComposerMoreOpen] = useState(false);
 
   // Real-Time Notifications State
@@ -184,8 +184,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     setLoadingOlder(true);
     try {
       const response = await api.get(`/messages/${roomId}?page=${nextPage}&limit=50`);
-      if (!isMountedRef.current) return; // unmounted mid-flight â†’ drop result
-      // Backend returns { messages: [...], page, limit, total, hasMore } â€” unwrap
+      if (!isMountedRef.current) return; // unmounted mid-flight → drop result
+      // Backend returns { messages: [...], page, limit, total, hasMore } — unwrap
       const payload = response.data;
       const newMsgs = Array.isArray(payload) ? payload : payload?.messages || [];
       if (newMsgs.length < 50) {
@@ -200,7 +200,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     }
   };
 
-  // â”€â”€ Message feature helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Message feature helpers ─────────────────────────────────────────
 
   const isNearBottom = () => {
     const el = chatFeedRef.current;
@@ -211,7 +211,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const scrollToMessage = (messageId) => {
     const el = messageRefs.current[messageId];
     if (!el) {
-      // Message not loaded yet â€” fetch page 1 and try again after render
+      // Message not loaded yet — fetch page 1 and try again after render
       fetchOlderMessages();
       return;
     }
@@ -296,7 +296,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     exitSelectionMode();
   };
 
-  // â”€â”€ Offline queue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Offline queue ──────────────────────────────────────────────────
 
   const queueMessage = (payload) => {
     const tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -367,14 +367,14 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
     setMessagesError(null);
     try {
       const response = await api.get(`/messages/${roomId}?page=1&limit=50`, { signal: controller.signal });
-      // Backend returns { messages: [...], page, limit, total, hasMore } â€” unwrap
+      // Backend returns { messages: [...], page, limit, total, hasMore } — unwrap
       const payload = response.data;
       const newMsgs = Array.isArray(payload) ? payload : payload?.messages || [];
       if (newMsgs.length < 50) setHasMore(false);
       setMessages(newMsgs);
       scrollTimerRef.current = setTimeout(scrollToBottom, 100);
     } catch (err) {
-      // Aborted (room switched / unmounted) â€” not an error, just skip
+      // Aborted (room switched / unmounted) — not an error, just skip
       if (err?.code === 'ERR_CANCELED' || err?.message === 'canceled') return;
       console.error('[Messages Error] Failed to fetch messages:', err);
       setMessagesError('Could not load messages. Check your connection and try again.');
@@ -631,9 +631,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       });
       setEditingMessage(null);
     } else if (!isSocketConnected()) {
-      // Offline â€” queue the message and deliver it on reconnect
+      // Offline — queue the message and deliver it on reconnect
       queueMessage({ roomId, content: inputText.trim(), replyToId: replyingTo ? replyingTo._id : null });
-      addNotification('Offline', 'Connection lost â€” your message is queued.', 'warning');
+      addNotification('Offline', 'Connection lost — your message is queued.', 'warning');
       setReplyingTo(null);
     } else {
       socket.emit('send_message', {
@@ -790,7 +790,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       const { url, fileType, fileName } = response.data;
 
       if (!isSocketConnected()) {
-        // Offline â€” queue the message with file info
+        // Offline — queue the message with file info
         queueMessage({
           roomId,
           content: inputText.trim(),
@@ -799,7 +799,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           fileName,
           replyToId: replyingTo ? replyingTo._id : null,
         });
-        addNotification('Offline', 'Connection lost â€” your file message is queued.', 'warning');
+        addNotification('Offline', 'Connection lost — your file message is queued.', 'warning');
       } else {
         socket.emit('send_message', {
           roomId,
@@ -836,7 +836,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       const { url } = res.data;
 
       if (!isSocketConnected()) {
-        // Offline â€” queue the voice note
+        // Offline — queue the voice note
         queueMessage({
           roomId,
           content: '',
@@ -845,7 +845,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           fileName: 'Voice Note',
           replyToId: replyingTo ? replyingTo._id : null,
         });
-        addNotification('Offline', 'Connection lost â€” your voice note is queued.', 'warning');
+        addNotification('Offline', 'Connection lost — your voice note is queued.', 'warning');
       } else {
         socket.emit('send_message', {
           roomId,
@@ -1020,7 +1020,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         title="Copy room code"
                         aria-label="Copy room code"
                       >
-                        {roomCodeCopied ? 'âœ“' : 'â§‰'}
+                        {roomCodeCopied ? '✓' : '⧉'}
                       </button>
                       <button
                         type="button"
@@ -1030,7 +1030,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         title="Hide room code"
                         aria-label="Hide room code"
                       >
-                        âœ•
+                        ✕
                       </button>
                     </span>
                   ) : (
@@ -1100,7 +1100,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           </button>
         </div>
 
-        {/* Mobile â‹® More Dropdown Menu */}
+        {/* Mobile ⋮ More Dropdown Menu */}
         {isMobileMoreOpen && (
           <div className="mobile-more-dropdown" onClick={(e) => e.stopPropagation()}>
             <button className="mobile-more-dropdown-item" onClick={() => { setIsPrivacyModalOpen(true); setIsMobileMoreOpen(false); }}>
@@ -1115,7 +1115,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               </button>
             )}
             <button className="mobile-more-dropdown-item" onClick={() => { setIsStudioOpen(true); setIsMobileMoreOpen(false); }}>
-              <span>âœ¨</span> Appearance Studio
+              <span>✨</span> Appearance Studio
             </button>
             <button className="mobile-more-dropdown-item mobile-menu-video-call" onClick={() => { handleStartVideoCall(); setIsMobileMoreOpen(false); }}>
               <span>📹</span> Start Video Call
@@ -1135,7 +1135,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         )}
       </header>
 
-      {/* â”€â”€â”€ Messages Feed Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Messages Feed Area ──────────────────────────────────────── */}
       <div
         ref={chatFeedRef}
         className="messages-history-container scrollzone"
@@ -1196,9 +1196,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <button
                 type="button"
                 className="starter-chip"
-                onClick={() => setInputText('âœ¨ Excited to be here!')}
+                onClick={() => setInputText('✨ Excited to be here!')}
               >
-                âœ¨ Say Hi
+                ✨ Say Hi
               </button>
             </div>
           </div>
@@ -1295,7 +1295,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                       <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>(edited)</span>
                     )}
                     {(msg.starredBy || []).includes(currentUserId) && (
-                      <span title="Starred by you">â­</span>
+                      <span title="Starred by you">⭐</span>
                     )}
                   </div>
 
@@ -1342,17 +1342,17 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         margin: isMe ? '4px 0 4px auto' : '4px auto 4px 0',
                         background: isMe
                           ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)'
-                          : 'rgba(255, 255, 255, 0.05)',
+                          : 'var(--bg-panel)',
                         border: isMe
                           ? '1px solid rgba(139, 92, 246, 0.35)'
-                          : '1px solid rgba(255, 255, 255, 0.1)',
+                          : '1px solid var(--border-color)',
                         borderRadius: 14,
                         padding: '10px 14px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 12,
                         marginTop: 4,
-                        boxShadow: isMe ? '0 4px 14px rgba(79, 70, 229, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
+                        boxShadow: isMe ? '0 4px 14px rgba(79, 70, 229, 0.2)' : 'var(--shadow-sm)',
                       }}
                     >
                       {(() => {
@@ -1393,7 +1393,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: isMe ? '#fff' : 'var(--text-main)' }}>
                                   {title}
                                 </div>
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
@@ -1417,9 +1417,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                 title={`Call back (${isVideo ? 'video' : 'voice'})`}
                                 style={{
                                   marginLeft: 8,
-                                  background: 'rgba(124, 58, 237, 0.15)',
-                                  border: '1px solid rgba(124, 58, 237, 0.35)',
-                                  color: '#c4b5fd',
+                                  background: 'var(--color-primary-light)',
+                                  border: '1px solid var(--color-primary-glow)',
+                                  color: 'var(--theme-primary, #7c3aed)',
                                   borderRadius: 8,
                                   padding: '4px 10px',
                                   fontSize: 11,
@@ -1688,13 +1688,13 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           });
         })()}
 
-        {/* Offline banner â€” shows queued messages while disconnected */}
+        {/* Offline banner — shows queued messages while disconnected */}
         {isOffline && (
           <div className="typing-indicator-inline offline-banner" role="status">
             <span>
               📡 {pendingQueue.length > 0
-                ? `Offline â€” ${pendingQueue.length} message${pendingQueue.length > 1 ? 's' : ''} queued, will send when back online`
-                : 'Offline â€” reconnectingâ€¦'}
+                ? `Offline — ${pendingQueue.length} message${pendingQueue.length > 1 ? 's' : ''} queued, will send when back online`
+                : 'Offline — reconnecting…'}
             </span>
           </div>
         )}
@@ -1745,7 +1745,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               onClick={() => { selectedIds.forEach((id) => { const m = messages.find((x) => x._id === id); if (m) toggleStar(m); }); }}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 8px' }}
             >
-              â˜… Star
+              ★ Star
             </button>
             <button
               onClick={deleteSelected}
@@ -1790,7 +1790,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               fontSize: 18,
             }}
           >
-            â†“
+            ↓
           </button>
         )}
 
@@ -1800,7 +1800,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
       {/* Hidden File Input */}
       <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept="image/*,.pdf,.doc,.docx,.txt,.zip" />
 
-      {/* â”€â”€â”€ Composer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Composer ──────────────────────────────────────────────── */}
       <footer className="chat-composer-container" style={{ position: 'relative', zIndex: 4 }}>
 
         {/* Emoji Picker Popover */}
@@ -1844,7 +1844,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
         {editingMessage && (
           <div style={{ padding: '4px 8px', background: 'rgba(147,51,234,0.15)', borderRadius: 6, border: '1px solid #9333ea', fontSize: 11, color: '#a855f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              âœï¸ Editing: &quot;{editingMessage.content}&quot;
+              ✏️ Editing: &quot;{editingMessage.content}&quot;
             </span>
             <button onClick={() => { setEditingMessage(null); setInputText(''); }} style={{ background: 'transparent', border: 'none', color: '#a855f7', cursor: 'pointer', flexShrink: 0 }}>&times;</button>
           </div>
@@ -1862,7 +1862,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <button type="button" className="btn-icon encryption-toggle-btn active composer-action-encryption" title="OMEMO Encryption: Enabled" aria-label="Toggle OMEMO Encryption">
                 <svg className="icon bi bi-shield-lock-fill" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.464 9.99a11.8 11.8 0 0 0 4.148 3.208c.188.086.376.12.547.12.171 0 .359-.034.547-.12a11.8 11.8 0 0 0 4.148-3.208c1.677-2.195 3.06-5.513 2.464-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" /></svg>
               </button>
-              {/* Mobile-only: â‹® opens the attachment menu (doc/img, voice, emoji) */}
+              {/* Mobile-only: ⋮ opens the attachment menu (doc/img, voice, emoji) */}
               <button type="button" className="btn-icon composer-action-more" onClick={() => setIsComposerMoreOpen(!isComposerMoreOpen)} title="More options" aria-label="More options">
                 <svg className="icon bi bi-three-dots" viewBox="0 0 16 16" fill="currentColor"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3" /></svg>
               </button>
@@ -1938,7 +1938,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           </form>
         )}
 
-        {/* Composer Bottom Info Bar â€” only rendered when someone is actively typing to save vertical space */}
+        {/* Composer Bottom Info Bar — only rendered when someone is actively typing to save vertical space */}
         {typingArray.length > 0 && (
           <div className="composer-footer-bar">
             <div className="typing-status-indicator" id="remote-typing-status">

@@ -33,11 +33,11 @@ export default function SavedThemesManager() {
           style={{
             flex: '1 1 180px',
             minWidth: 0,
-            background: '#1a1d25',
-            border: '1px solid #2d3241',
+            background: 'var(--bg-input, #1a1d25)',
+            border: '1px solid var(--border-color, #2d3241)',
             borderRadius: 8,
             padding: '8px 12px',
-            color: '#fff',
+            color: 'var(--text-main, #fff)',
             fontSize: 13,
             minHeight: 40,
             outline: 'none',
@@ -68,11 +68,11 @@ export default function SavedThemesManager() {
 
       {/* Saved Themes List */}
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#e5e7eb', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main, #e5e7eb)', marginBottom: 8 }}>
           Saved Personal Themes ({savedList.length})
         </div>
         {savedList.length === 0 ? (
-          <div style={{ fontSize: 12, color: '#6b7280', padding: '16px 0', textAlign: 'center', background: '#13151c', borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted, #6b7280)', padding: '16px 0', textAlign: 'center', background: 'var(--bg-deep, #13151c)', borderRadius: 8 }}>
             No saved themes yet. Customize your settings above and click &quot;Save Current&quot;!
           </div>
         ) : (
@@ -84,22 +84,22 @@ export default function SavedThemesManager() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  background: '#13151c',
-                  border: '1px solid #282c37',
+                  background: 'var(--bg-deep, #13151c)',
+                  border: '1px solid var(--border-color, #282c37)',
                   borderRadius: 8,
                   padding: '8px 12px',
                   gap: 8,
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
-                  <div style={{ fontSize: 10, color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Preset: {t.activeThemeId}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main, #f3f4f6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Preset: {t.activeThemeId}</div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button
                     onClick={() => handleApplySaved(t)}
-                    style={{ background: '#222530', border: '1px solid #2d3241', color: '#38bdf8', borderRadius: 6, padding: '6px 12px', minHeight: 36, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                    style={{ background: 'var(--bg-input, #222530)', border: '1px solid var(--border-color, #2d3241)', color: '#38bdf8', borderRadius: 6, padding: '6px 12px', minHeight: 36, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                   >
                     Apply
                   </button>

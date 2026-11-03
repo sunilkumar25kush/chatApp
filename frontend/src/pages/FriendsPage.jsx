@@ -240,10 +240,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
   const pendingTotal = incomingRequests.length + outgoingRequests.length;
 
   return (
-    <div className="friends-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--theme-chat-bg, #181a20)', color: '#f3f4f6', overflowY: 'auto' }}>
+    <div className="friends-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--theme-chat-bg, #181a20)', color: 'var(--text-main, #f3f4f6)', overflowY: 'auto' }}>
       
       {/* Header */}
-      <div className="friends-header" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: 'var(--theme-sidebar-bg, #1a1c23)' }}>
+      <div className="friends-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))', background: 'var(--theme-sidebar-bg, #1a1c23)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {onBack && (
@@ -252,7 +252,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                 onClick={onBack}
                 aria-label="Back"
                 className="btn-icon"
-                style={{ width: 38, height: 38, borderRadius: 8, background: '#222530', border: '1px solid #3f4657', color: '#f3f4f6', cursor: 'pointer' }}
+                style={{ width: 38, height: 38, borderRadius: 8, background: 'var(--bg-input, #222530)', border: '1px solid var(--border-color, #3f4657)', color: 'var(--text-main, #f3f4f6)', cursor: 'pointer' }}
               >
                 ←
               </button>
@@ -264,7 +264,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                   {friends.length}
                 </span>
               </h1>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>
+              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted, #9ca3af)' }}>
                 Connect with contacts using permanent Public IDs
               </p>
             </div>
@@ -311,15 +311,15 @@ export default function FriendsPage({ onStartChat, onBack }) {
         {subTab === 'all' && (
           <div>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
-                <div className="spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--theme-primary, #a78bfa)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted, #9ca3af)' }}>
+                <div className="spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, border: '3px solid var(--border-color, rgba(255,255,255,0.1))', borderTopColor: 'var(--theme-primary, #a78bfa)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 Loading your friends...
               </div>
             ) : friends.length === 0 ? (
-              <div className="empty-friends-card" style={{ textAlign: 'center', padding: '60px 20px', background: 'rgba(255, 255, 255, 0.02)', border: '1px dashed rgba(255, 255, 255, 0.1)', borderRadius: 16 }}>
+              <div className="empty-friends-card" style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-input, rgba(255, 255, 255, 0.02))', border: '1px dashed var(--border-color, rgba(255, 255, 255, 0.1))', borderRadius: 16 }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>👋</div>
                 <h3 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>No Friends Yet</h3>
-                <p style={{ color: '#9ca3af', fontSize: 14, maxWidth: 360, margin: '0 auto 20px' }}>
+                <p style={{ color: 'var(--text-muted, #9ca3af)', fontSize: 14, maxWidth: 360, margin: '0 auto 20px' }}>
                   Share your Public ID with others or add friends using their unique ID to start chatting!
                 </p>
                 <button
@@ -341,8 +341,8 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       className="friend-card"
                       style={{
                         padding: 16,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: 'var(--bg-input, rgba(255, 255, 255, 0.03))',
+                        border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
                         borderRadius: 14,
                         display: 'flex',
                         flexDirection: 'column',
@@ -366,7 +366,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                               height: 12,
                               borderRadius: '50%',
                               background: isOnline ? '#10b981' : '#6b7280',
-                              border: '2px solid #181a20'
+                              border: '2px solid var(--theme-chat-bg, #181a20)'
                             }}
                             title={isOnline ? 'Online' : 'Offline'}
                           />
@@ -375,13 +375,13 @@ export default function FriendsPage({ onStartChat, onBack }) {
                           <div style={{ fontWeight: 600, fontSize: 15, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {friend.fullName || friend.username}
                           </div>
-                          <div style={{ fontSize: 12, color: '#9ca3af' }}>@{friend.username}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>@{friend.username}</div>
                         </div>
                       </div>
 
                       {/* Public ID Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0, 0, 0, 0.25)', padding: '6px 10px', borderRadius: 8, fontSize: 12 }}>
-                        <span style={{ color: '#9ca3af' }}>ID:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-deep, rgba(0, 0, 0, 0.25))', padding: '6px 10px', borderRadius: 8, fontSize: 12 }}>
+                        <span style={{ color: 'var(--text-muted, #9ca3af)' }}>ID:</span>
                         <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--theme-primary, #a78bfa)' }}>
                           {friend.publicId}
                         </span>
@@ -389,7 +389,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                           type="button"
                           onClick={() => handleCopyId(friend.publicId)}
                           title="Copy Public ID"
-                          style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 2 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted, #9ca3af)', cursor: 'pointer', padding: 2 }}
                         >
                           {copiedId === friend.publicId ? '✓' : '📋'}
                         </button>
@@ -397,13 +397,13 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
                       {/* Status / Bio */}
                       {friend.bio && (
-                        <div style={{ fontSize: 12, color: '#d1d5db', fontStyle: 'italic', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-main, #d1d5db)', fontStyle: 'italic', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                           &quot;{friend.bio}&quot;
                         </div>
                       )}
 
                       {/* Card Actions */}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.05))' }}>
                         {onStartChat && (
                           <button
                             type="button"
@@ -456,12 +456,12 @@ export default function FriendsPage({ onStartChat, onBack }) {
             
             {/* Incoming Requests */}
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8, color: '#f3f4f6' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main, #f3f4f6)' }}>
                 📥 Incoming Requests ({incomingRequests.length})
               </h2>
 
               {incomingRequests.length === 0 ? (
-                <div style={{ padding: '24px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 12, color: '#9ca3af', textAlign: 'center', fontSize: 14 }}>
+                <div style={{ padding: '24px', background: 'var(--bg-input, rgba(255, 255, 255, 0.02))', borderRadius: 12, color: 'var(--text-muted, #9ca3af)', textAlign: 'center', fontSize: 14 }}>
                   No incoming requests waiting.
                 </div>
               ) : (
@@ -471,8 +471,8 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       key={req._id}
                       style={{
                         padding: 16,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: 'var(--bg-input, rgba(255, 255, 255, 0.03))',
+                        border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
                         borderRadius: 12,
                         display: 'flex',
                         alignItems: 'center',
@@ -491,7 +491,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
                             {req.requester.fullName || req.requester.username}
                           </div>
-                          <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)', display: 'flex', gap: 8, alignItems: 'center' }}>
                             <span>@{req.requester.username}</span>
                             <span>•</span>
                             <span style={{ fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', fontWeight: 600 }}>
@@ -526,9 +526,9 @@ export default function FriendsPage({ onStartChat, onBack }) {
                           style={{
                             padding: '8px 16px',
                             borderRadius: 8,
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            color: '#9ca3af',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: 'var(--bg-input, rgba(255, 255, 255, 0.05))',
+                            color: 'var(--text-muted, #9ca3af)',
+                            border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
                             fontWeight: 600,
                             fontSize: 13,
                             cursor: 'pointer'
@@ -545,12 +545,12 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
             {/* Outgoing Requests */}
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8, color: '#f3f4f6' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main, #f3f4f6)' }}>
                 📤 Outgoing Requests ({outgoingRequests.length})
               </h2>
 
               {outgoingRequests.length === 0 ? (
-                <div style={{ padding: '24px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 12, color: '#9ca3af', textAlign: 'center', fontSize: 14 }}>
+                <div style={{ padding: '24px', background: 'var(--bg-input, rgba(255, 255, 255, 0.02))', borderRadius: 12, color: 'var(--text-muted, #9ca3af)', textAlign: 'center', fontSize: 14 }}>
                   No pending outgoing requests.
                 </div>
               ) : (
@@ -560,8 +560,8 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       key={req._id}
                       style={{
                         padding: 16,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: 'var(--bg-input, rgba(255, 255, 255, 0.03))',
+                        border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
                         borderRadius: 12,
                         display: 'flex',
                         alignItems: 'center',
@@ -580,7 +580,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
                             {req.recipient.fullName || req.recipient.username}
                           </div>
-                          <div style={{ fontSize: 12, color: '#9ca3af', display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)', display: 'flex', gap: 8, alignItems: 'center' }}>
                             <span>@{req.recipient.username}</span>
                             <span>•</span>
                             <span style={{ fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', fontWeight: 600 }}>
@@ -624,11 +624,11 @@ export default function FriendsPage({ onStartChat, onBack }) {
         {/* TAB 3: ADD FRIEND BY PUBLIC ID */}
         {subTab === 'add' && (
           <div style={{ maxWidth: 560, margin: '0 auto' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 16, padding: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#f3f4f6' }}>
+            <div style={{ background: 'var(--bg-input, rgba(255, 255, 255, 0.03))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))', borderRadius: 16, padding: 24 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: 'var(--text-main, #f3f4f6)' }}>
                 Add Friend by Public ID
               </h2>
-              <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 20px', lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--text-muted, #9ca3af)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.5 }}>
                 Enter your friend&apos;s permanent Public ID (e.g. <code style={{ color: 'var(--theme-primary, #a78bfa)', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4 }}>SKY-XXXXXX</code>) to inspect their public profile and send a request.
               </p>
 
@@ -643,7 +643,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                   style={{
                     flex: 1,
                     background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    border: '1px solid var(--border-color, rgba(255, 255, 255, 0.15))',
                     borderRadius: 10,
                     padding: '12px 16px',
                     color: '#fff',
@@ -673,7 +673,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
               {/* User Profile Preview Card */}
               {searchResult && (
-                <div style={{ background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: 12, padding: 20 }}>
+                <div style={{ background: 'var(--bg-deep, rgba(0, 0, 0, 0.25))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))', borderRadius: 12, padding: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
                     <img
                       src={searchResult.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${searchResult.username}`}
@@ -681,10 +681,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#2d3139' }}
                     />
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 16, color: '#f3f4f6' }}>
+                      <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main, #f3f4f6)' }}>
                         {searchResult.fullName || searchResult.username}
                       </div>
-                      <div style={{ fontSize: 13, color: '#9ca3af' }}>@{searchResult.username}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted, #9ca3af)' }}>@{searchResult.username}</div>
                       <div style={{ marginTop: 4 }}>
                         <span style={{ fontSize: 11, fontFamily: 'monospace', background: 'rgba(124, 58, 237, 0.2)', color: 'var(--theme-primary, #a78bfa)', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                           {searchResult.publicId}
@@ -694,7 +694,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                   </div>
 
                   {searchResult.bio && (
-                    <div style={{ fontSize: 13, color: '#d1d5db', marginBottom: 16, padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text-main, #d1d5db)', marginBottom: 16, padding: '8px 12px', background: 'var(--bg-input, rgba(255,255,255,0.02))', borderRadius: 8 }}>
                       &quot;{searchResult.bio}&quot;
                     </div>
                   )}
@@ -702,7 +702,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                   {/* Contextual Action Button based on Relationship Status */}
                   <div>
                     {relationshipStatus?.status === 'self' ? (
-                      <div style={{ padding: '10px', textAlign: 'center', background: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, color: '#9ca3af', fontSize: 13 }}>
+                      <div style={{ padding: '10px', textAlign: 'center', background: 'var(--bg-input, rgba(255, 255, 255, 0.05))', borderRadius: 8, color: 'var(--text-muted, #9ca3af)', fontSize: 13 }}>
                         ℹ️ This is your own Public ID
                       </div>
                     ) : relationshipStatus?.status === 'accepted' ? (

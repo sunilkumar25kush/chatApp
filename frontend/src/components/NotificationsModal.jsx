@@ -194,8 +194,8 @@ export default function NotificationsModal({
           width: '100%',
           maxWidth: 480,
           maxHeight: '85vh',
-          background: 'var(--theme-modal-bg, #1a1c23)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'var(--bg-panel, #1a1c23)',
+          border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
           borderRadius: 16,
           display: 'flex',
           flexDirection: 'column',
@@ -207,11 +207,11 @@ export default function NotificationsModal({
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.02)'
+            background: 'var(--bg-input, rgba(255, 255, 255, 0.02))'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -222,7 +222,7 @@ export default function NotificationsModal({
                 fontSize: 18,
                 fontWeight: 700,
                 margin: 0,
-                color: 'var(--theme-text, #f3f4f6)'
+                color: 'var(--text-main, #f3f4f6)'
               }}
             >
               Notifications
@@ -271,9 +271,9 @@ export default function NotificationsModal({
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: 'rgba(255, 255, 255, 0.06)',
+                background: 'var(--bg-input, rgba(255, 255, 255, 0.06))',
                 border: 'none',
-                color: '#9ca3af',
+                color: 'var(--text-muted, #9ca3af)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -287,12 +287,12 @@ export default function NotificationsModal({
         </div>
 
         {/* LineSidebar Category Filter */}
-        <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(0, 0, 0, 0.15)' }}>
+        <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))', background: 'var(--bg-deep, rgba(0, 0, 0, 0.15))' }}>
           <LineSidebar
             items={categoryFilters}
             accentColor="#A855F7"
-            textColor="#c4c4c4"
-            markerColor="#6c6c6c"
+            textColor="var(--text-muted, #c4c4c4)"
+            markerColor="var(--text-muted, #6c6c6c)"
             showIndex={false}
             showMarker={true}
             proximityRadius={100}
@@ -320,12 +320,12 @@ export default function NotificationsModal({
           }}
         >
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted, #9ca3af)' }}>
               <div
                 style={{
                   width: 28,
                   height: 28,
-                  border: '3px solid rgba(255,255,255,0.1)',
+                  border: '3px solid var(--border-color, rgba(255,255,255,0.1))',
                   borderTopColor: 'var(--theme-primary, #a78bfa)',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
@@ -339,11 +339,11 @@ export default function NotificationsModal({
               style={{
                 textAlign: 'center',
                 padding: '48px 16px',
-                color: '#9ca3af'
+                color: 'var(--text-muted, #9ca3af)'
               }}
             >
               <div style={{ fontSize: 36, marginBottom: 12 }}>📭</div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px', color: '#f3f4f6' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px', color: 'var(--text-main, #f3f4f6)' }}>
                 No notifications
               </h3>
               <p style={{ fontSize: 13, margin: 0 }}>
@@ -377,10 +377,10 @@ export default function NotificationsModal({
                       padding: '12px 14px',
                       borderRadius: 12,
                       background: notif.isRead
-                        ? 'rgba(255, 255, 255, 0.02)'
+                        ? 'var(--bg-input, rgba(255, 255, 255, 0.02))'
                         : 'rgba(124, 58, 237, 0.08)',
                       border: notif.isRead
-                        ? '1px solid rgba(255, 255, 255, 0.05)'
+                        ? '1px solid var(--border-color, rgba(255, 255, 255, 0.05))'
                         : '1px solid rgba(124, 58, 237, 0.25)',
                       cursor: 'pointer',
                       transition: 'background 0.2s',
@@ -394,7 +394,7 @@ export default function NotificationsModal({
                         height: 36,
                         borderRadius: '50%',
                         background: notif.isRead
-                          ? 'rgba(255, 255, 255, 0.05)'
+                          ? 'var(--bg-deep, rgba(255, 255, 255, 0.05))'
                           : 'rgba(124, 58, 237, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
@@ -421,7 +421,7 @@ export default function NotificationsModal({
                           style={{
                             fontWeight: notif.isRead ? 600 : 700,
                             fontSize: 14,
-                            color: notif.isRead ? '#e5e7eb' : '#fff',
+                            color: 'var(--text-main, #fff)',
                             textOverflow: 'ellipsis',
                             overflow: 'hidden',
                             whiteSpace: 'nowrap'
@@ -429,7 +429,7 @@ export default function NotificationsModal({
                         >
                           {notif.title}
                         </span>
-                        <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted, #9ca3af)', flexShrink: 0 }}>
                           {formatTime(notif.createdAt)}
                         </span>
                       </div>
@@ -437,7 +437,7 @@ export default function NotificationsModal({
                       <p
                         style={{
                           fontSize: 13,
-                          color: '#9ca3af',
+                          color: 'var(--text-muted, #9ca3af)',
                           margin: 0,
                           lineHeight: 1.4,
                           display: '-webkit-box',
@@ -480,7 +480,7 @@ export default function NotificationsModal({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#6b7280',
+                          color: 'var(--text-muted, #6b7280)',
                           cursor: 'pointer',
                           padding: 2,
                           fontSize: 12
