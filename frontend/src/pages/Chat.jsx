@@ -139,8 +139,11 @@ export default function Chat() {
   }, []);
 
   const showToast = useCallback((msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 2400);
+    if (typeof msg === 'string' && msg.toLowerCase().startsWith('error')) {
+      toast.error(msg);
+    } else {
+      toast.success(msg);
+    }
   }, []);
 
   // Fetch all rooms from backend API

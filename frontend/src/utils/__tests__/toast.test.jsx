@@ -4,11 +4,11 @@ import toast, { TOAST_ICONS } from '../toast';
 import NotificationToast from '../../components/NotificationToast';
 
 vi.mock('goey-toast', () => {
-  const mockGooeyToast = vi.fn((title, opts) => 'toast-1');
-  mockGooeyToast.success = vi.fn((title, opts) => 'toast-success');
-  mockGooeyToast.error = vi.fn((title, opts) => 'toast-error');
-  mockGooeyToast.warning = vi.fn((title, opts) => 'toast-warning');
-  mockGooeyToast.info = vi.fn((title, opts) => 'toast-info');
+  const mockGooeyToast = vi.fn(() => 'toast-1');
+  mockGooeyToast.success = vi.fn(() => 'toast-success');
+  mockGooeyToast.error = vi.fn(() => 'toast-error');
+  mockGooeyToast.warning = vi.fn(() => 'toast-warning');
+  mockGooeyToast.info = vi.fn(() => 'toast-info');
   mockGooeyToast.promise = vi.fn();
   mockGooeyToast.dismiss = vi.fn();
   mockGooeyToast.update = vi.fn();

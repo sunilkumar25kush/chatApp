@@ -37,6 +37,7 @@ export default function NotificationsModal({
     if (isOpen) {
       fetchNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // ESC key listener

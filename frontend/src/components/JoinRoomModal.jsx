@@ -103,7 +103,7 @@ export default function JoinRoomModal({ isOpen, onClose, onJoinRoom, roomName, o
                     textDecoration: 'underline'
                   }}
                 >
-                  Don't have a code? Preview & Request to Join
+                  Don&apos;t have a code? Preview &amp; Request to Join
                 </button>
               </div>
             )}

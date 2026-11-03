@@ -815,8 +815,7 @@ export default function DirectChatWindow({
             const isEditing = editingMessageId === msg._id;
             const isHovered = hoveredMessageId === msg._id;
 
-            const senderUser = isMe ? currentUser : friend;
-            const senderName = isMe
+                        const senderName = isMe
               ? (currentUser?.fullName || currentUser?.username || 'You')
               : (friend?.fullName || friend?.username || 'Friend');
             const senderAvatar = isMe ? currentUser?.avatar : friend?.avatar;

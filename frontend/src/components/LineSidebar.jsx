@@ -59,8 +59,7 @@ export default function LineSidebar({
 
   const handlePointerMove = useCallback((e) => {
     if (!containerRef.current || !items.length) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const mouseY = e.clientY;
+        const mouseY = e.clientY;
 
     const newShifts = itemRefs.current.map((el) => {
       if (!el) return { shiftX: 0, scale: 1 };

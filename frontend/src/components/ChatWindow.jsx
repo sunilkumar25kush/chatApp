@@ -1169,7 +1169,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
           <SkeletonMessageList count={6} />
         ) : messagesError ? (
           <div className="messages-error" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ fontSize: 28 }} aria-hidden="true">âš ï¸</span>
+            <span style={{ fontSize: 28 }} aria-hidden="true">⚠️</span>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', maxWidth: 320 }}>{messagesError}</p>
             <button className="btn btn-primary" onClick={loadMessages} type="button">Retry</button>
           </div>

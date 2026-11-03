@@ -22,7 +22,6 @@ export default function Sidebar({
   setActiveTab,
   onOpenCreateModal,
   onOpenJoinModal,
-  recentRooms = [],
   rooms = [],
   activeRoom,
   directConversations = [],
@@ -271,18 +270,8 @@ export default function Sidebar({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  const currentRoomsList = rooms || [];
+  const currentRoomsList = useMemo(() => rooms || [], [rooms]);
 
-  const filteredDMs = (directConversations || []).filter((conv) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    const f = conv.friend || {};
-    return (
-      (f.username && f.username.toLowerCase().includes(q)) ||
-      (f.fullName && f.fullName.toLowerCase().includes(q)) ||
-      (f.publicId && f.publicId.toLowerCase().includes(q))
-    );
-  });
 
   const presenceMenuItems = useMemo(() => [
     {
@@ -863,7 +852,7 @@ export default function Sidebar({
                           setShowAddFriendModal(true);
                         }}
                       >
-                        🔍 Find & Add "{searchQuery}"
+                        🔍 Find &amp; Add &quot;{searchQuery}&quot;
                       </button>
                     </div>
                   )}
@@ -1147,7 +1136,7 @@ export default function Sidebar({
 
                 {addFriendFoundUser.bio && (
                   <p style={{ fontSize: 12, color: '#d1d5db', margin: '0 0 14px 0', fontStyle: 'italic' }}>
-                    "{addFriendFoundUser.bio}"
+                    &quot;{addFriendFoundUser.bio}&quot;
                   </p>
                 )}
 

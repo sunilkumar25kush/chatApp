@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import friendService from '../services/friendService';
 import { socket } from '../services/socket';
-import { useAuth } from '../context/useAuth';
 import { toast } from '../utils/toast';
 
 export default function FriendsPage({ onStartChat, onBack }) {
-  const { user: currentUser } = useAuth();
 
   // Active sub-tab: 'all' | 'pending' | 'add'
   const [subTab, setSubTab] = useState('all');
@@ -400,7 +398,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       {/* Status / Bio */}
                       {friend.bio && (
                         <div style={{ fontSize: 12, color: '#d1d5db', fontStyle: 'italic', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                          "{friend.bio}"
+                          &quot;{friend.bio}&quot;
                         </div>
                       )}
 
@@ -631,7 +629,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                 Add Friend by Public ID
               </h2>
               <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 20px', lineHeight: 1.5 }}>
-                Enter your friend's permanent Public ID (e.g. <code style={{ color: 'var(--theme-primary, #a78bfa)', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4 }}>SKY-XXXXXX</code>) to inspect their public profile and send a request.
+                Enter your friend&apos;s permanent Public ID (e.g. <code style={{ color: 'var(--theme-primary, #a78bfa)', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4 }}>SKY-XXXXXX</code>) to inspect their public profile and send a request.
               </p>
 
               {/* Search Form */}
@@ -697,7 +695,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
                   {searchResult.bio && (
                     <div style={{ fontSize: 13, color: '#d1d5db', marginBottom: 16, padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                      "{searchResult.bio}"
+                      &quot;{searchResult.bio}&quot;
                     </div>
                   )}
 

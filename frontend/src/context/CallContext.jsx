@@ -543,11 +543,11 @@ export function CallProvider({ children }) {
       const localStream = new MediaStream();
       if (localAudio && !senders.some((s) => s.track && s.track.kind === 'audio')) {
         localStream.addTrack(localAudio);
-        try { pc.addTrack(localAudio, localStream); } catch (_) {}
+        try { pc.addTrack(localAudio, localStream); } catch (_) { /* ignore */ }
       }
       if (localVideo && !senders.some((s) => s.track && s.track.kind === 'video')) {
         localStream.addTrack(localVideo);
-        try { pc.addTrack(localVideo, localStream); } catch (_) {}
+        try { pc.addTrack(localVideo, localStream); } catch (_) { /* ignore */ }
       }
       return pc;
     }
@@ -842,10 +842,10 @@ export function CallProvider({ children }) {
           if (peerConn && peerConn.signalingState !== 'closed') {
             const senders = peerConn.getSenders();
             if (curAudio && !senders.some((s) => s.track && s.track.kind === 'audio')) {
-              try { peerConn.addTrack(curAudio, curStream); } catch (_) {}
+              try { peerConn.addTrack(curAudio, curStream); } catch (_) { /* ignore */ }
             }
             if (curVideo && !senders.some((s) => s.track && s.track.kind === 'video')) {
-              try { peerConn.addTrack(curVideo, curStream); } catch (_) {}
+              try { peerConn.addTrack(curVideo, curStream); } catch (_) { /* ignore */ }
             }
           }
         });
