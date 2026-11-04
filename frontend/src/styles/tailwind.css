@@ -1,0 +1,80 @@
+/*
+ * Tailwind is intentionally scoped to the auth UI (`.auth-ui-root`).
+ * Preflight is disabled in tailwind.config.js so the legacy design system in
+ * src/index.css keeps working everywhere else.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Auth UI design tokens (light) ---- */
+.auth-ui-root {
+  --auth-background: 247 241 227; /* cream */
+  --auth-foreground: 28 28 28;
+  --auth-muted: 236 234 201;
+  --auth-muted-foreground: 122 122 122;
+  --auth-primary: 240 136 44; /* citrus */
+  --auth-primary-foreground: 255 255 255;
+  --auth-secondary: 236 234 201;
+  --auth-secondary-foreground: 28 28 28;
+  --auth-accent: 228 225 188;
+  --auth-accent-foreground: 28 28 28;
+  --auth-destructive: 225 29 72;
+  --auth-destructive-foreground: 255 255 255;
+  --auth-border: 204 204 204;
+  --auth-input: 204 204 204;
+  --auth-ring: 240 136 44;
+  --auth-radius: 1rem;
+}
+
+/* ---- Auth UI design tokens (dark / galaxy) ---- */
+.theme-dark .auth-ui-root,
+.theme-galaxy .auth-ui-root,
+.dark .auth-ui-root {
+  --auth-background: 9 10 22;
+  --auth-foreground: 241 245 249;
+  --auth-muted: 15 16 38;
+  --auth-muted-foreground: 148 163 184;
+  --auth-primary: 139 92 246;
+  --auth-primary-foreground: 255 255 255;
+  --auth-secondary: 15 16 38;
+  --auth-secondary-foreground: 241 245 249;
+  --auth-accent: 30 27 75;
+  --auth-accent-foreground: 241 245 249;
+  --auth-destructive: 244 63 94;
+  --auth-destructive-foreground: 255 255 255;
+  --auth-border: 51 65 85;
+  --auth-input: 51 65 85;
+  --auth-ring: 139 92 246;
+}
+
+/* ---- Auth page presentation ---- */
+.auth-ui-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.05) 40%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+.auth-ui-media blockquote {
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+}
+
+.auth-ui-root .google-auth-wrapper > div {
+  width: 100%;
+}
+
+/* Smooth, readable form column on very small screens */
+@media (max-width: 360px) {
+  .auth-ui-root .auth-ui-form-column {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

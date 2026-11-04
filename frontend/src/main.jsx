@@ -5,6 +5,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
+// Scoped Tailwind utilities for the shadcn-style auth UI (src/components/ui).
+import './styles/tailwind.css';
 import './pwa-register';
 
 // Google OAuth client ID.
