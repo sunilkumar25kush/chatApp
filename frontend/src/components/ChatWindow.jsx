@@ -27,6 +27,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const { getActiveWallpaperForRoom, appearanceState } = useAppearance();
   const themeContext = useTheme();
   const resolvedMode = themeContext?.resolvedMode || 'dark';
+  const isLightMode = resolvedMode === 'light' || (typeof document !== 'undefined' && (
+    document.body?.classList.contains('theme-light') ||
+    document.documentElement?.classList.contains('theme-light') ||
+    document.body?.classList.contains('theme-cream-citrus')
+  ));
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -1344,15 +1349,19 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
                         margin: isMe ? '4px 0 4px auto' : '4px auto 4px 0',
                         background: isMe
-                          ? (resolvedMode === 'light'
+                          ? (isLightMode
                               ? '#fff7ed'
                               : 'linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)')
-                          : 'var(--bg-panel)',
+                          : (isLightMode
+                              ? '#ffffff'
+                              : 'var(--bg-panel)'),
                         border: isMe
-                          ? (resolvedMode === 'light'
+                          ? (isLightMode
                               ? '1px solid rgba(240, 136, 44, 0.35)'
                               : '1px solid rgba(139, 92, 246, 0.35)')
-                          : '1px solid var(--border-color)',
+                          : (isLightMode
+                              ? '1px solid rgba(0, 0, 0, 0.12)'
+                              : '1px solid var(--border-color)'),
                         borderRadius: 14,
                         padding: '10px 14px',
                         display: 'inline-flex',
@@ -1360,7 +1369,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         gap: 12,
                         marginTop: 4,
                         boxShadow: isMe
-                          ? (resolvedMode === 'light' ? '0 2px 8px rgba(240, 136, 44, 0.12)' : '0 4px 14px rgba(79, 70, 229, 0.2)')
+                          ? (isLightMode ? '0 2px 8px rgba(240, 136, 44, 0.12)' : '0 4px 14px rgba(79, 70, 229, 0.2)')
                           : 'var(--shadow-sm)',
                       }}
                     >
@@ -1405,17 +1414,17 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                 <div style={{
                                   fontSize: 13,
                                   fontWeight: 700,
-                                  color: isMe
-                                    ? (resolvedMode === 'light' ? '#1c1917' : '#ffffff')
-                                    : 'var(--text-main)'
+                                  color: isLightMode
+                                    ? '#0f172a'
+                                    : (isMe ? '#ffffff' : 'var(--text-main, #ffffff)')
                                 }}>
                                   {title}
                                 </div>
                                 <div style={{
                                   fontSize: 11,
-                                  color: isMe
-                                    ? (resolvedMode === 'light' ? '#78716c' : 'rgba(255, 255, 255, 0.75)')
-                                    : 'var(--text-muted)'
+                                  color: isLightMode
+                                    ? '#475569'
+                                    : (isMe ? 'rgba(255, 255, 255, 0.75)' : 'var(--text-muted, #94a3b8)')
                                 }}>
                                   {isMissed
                                     ? 'No answer'
@@ -1437,9 +1446,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                 title={`Call back (${isVideo ? 'video' : 'voice'})`}
                                 style={{
                                   marginLeft: 8,
-                                  background: resolvedMode === 'light' ? '#F0882C' : 'var(--color-primary-light)',
-                                  border: resolvedMode === 'light' ? '1px solid #D9721A' : '1px solid var(--color-primary-glow)',
-                                  color: resolvedMode === 'light' ? '#ffffff' : 'var(--theme-primary, #7c3aed)',
+                                  background: isLightMode ? '#F0882C' : 'var(--color-primary, #7c3aed)',
+                                  border: isLightMode ? '1px solid #D9721A' : '1px solid var(--color-primary-glow, #6d28d9)',
+                                  color: '#ffffff',
                                   borderRadius: 8,
                                   padding: '5px 11px',
                                   fontSize: 11,
@@ -1448,7 +1457,7 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  boxShadow: resolvedMode === 'light' ? '0 1px 3px rgba(240, 136, 44, 0.25)' : 'none'
+                                  boxShadow: isLightMode ? '0 1px 3px rgba(240, 136, 44, 0.25)' : 'none'
                                 }}
                               >
                                 <span>{isVideo ? '📹' : '📞'}</span> <span>Call back</span>

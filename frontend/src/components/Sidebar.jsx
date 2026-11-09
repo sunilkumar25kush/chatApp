@@ -39,6 +39,11 @@ export default function Sidebar({
 }) {
   const { user, logout } = useAuth();
   const { resolvedMode, toggleTheme } = useTheme();
+  const isLight = resolvedMode === 'light' || (typeof document !== 'undefined' && (
+    document.body?.classList.contains('theme-light') ||
+    document.documentElement?.classList.contains('theme-light') ||
+    document.body?.classList.contains('theme-cream-citrus')
+  ));
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
@@ -350,6 +355,16 @@ export default function Sidebar({
       }
     },
     {
+      id: 'profile',
+      icon: '👤',
+      title: 'Profile Settings',
+      description: 'View & edit profile details',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowProfile(true);
+      }
+    },
+    {
       id: 'join-room',
       icon: '🔑',
       title: 'Join Room',
@@ -536,7 +551,7 @@ export default function Sidebar({
                     className="presence-dropdown active"
                     items={presenceMenuItems}
                     onItemSelect={(item) => item?.action?.()}
-                    theme="gajim"
+                    theme={isLight ? 'light' : 'dark'}
                     width={230}
                     maxHeight={220}
                     radius={10}
@@ -690,7 +705,7 @@ export default function Sidebar({
                     className="presence-dropdown active settings-dropdown"
                     items={settingsMenuItems}
                     onItemSelect={(item) => item?.action?.()}
-                    theme="gajim"
+                    theme={isLight ? 'light' : 'dark'}
                     width={230}
                     maxHeight={260}
                     radius={12}

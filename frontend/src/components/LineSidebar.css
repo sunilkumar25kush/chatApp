@@ -35,8 +35,18 @@
   background-color: rgba(255, 255, 255, 0.04);
 }
 
+body.theme-light .line-sidebar-item:hover,
+body.theme-cream-citrus .line-sidebar-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
 .line-sidebar-item.is-active {
   background-color: rgba(168, 85, 247, 0.08);
+}
+
+body.theme-light .line-sidebar-item.is-active,
+body.theme-cream-citrus .line-sidebar-item.is-active {
+  background-color: rgba(240, 136, 44, 0.12);
 }
 
 .line-sidebar-marker-wrapper {

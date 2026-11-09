@@ -188,7 +188,7 @@ export default function LineSidebar({
                   <span
                     className="line-sidebar-badge"
                     style={{
-                      backgroundColor: isActive ? accentColor : 'rgba(255, 255, 255, 0.1)',
+                      backgroundColor: isActive ? accentColor : 'var(--bg-input, rgba(0, 0, 0, 0.08))',
                       color: isActive ? '#fff' : textColor
                     }}
                   >

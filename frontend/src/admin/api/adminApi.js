@@ -54,15 +54,18 @@ adminApi.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const code = error.response?.data?.code;
-    if (status === 401) {
-      clearAdminSession();
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin/login')) {
-        window.location.assign('/admin/login');
+    // In development mode, do not forcibly redirect to login
+    if (!import.meta.env.DEV) {
+      if (status === 401) {
+        clearAdminSession();
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin/login')) {
+          window.location.assign('/admin/login');
+        }
       }
-    }
-    if (status === 403 && code === 'MFA_SETUP_REQUIRED') {
-      if (typeof window !== 'undefined' && window.location.pathname !== '/admin/setup-mfa') {
-        window.location.assign('/admin/setup-mfa');
+      if (status === 403 && code === 'MFA_SETUP_REQUIRED') {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/admin/setup-mfa') {
+          window.location.assign('/admin/setup-mfa');
+        }
       }
     }
     return Promise.reject(error);

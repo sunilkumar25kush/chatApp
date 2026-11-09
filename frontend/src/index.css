@@ -8403,10 +8403,21 @@ body.theme-light .no-published-box {
   flex-direction: column;
 }
 
-body.theme-light .user-profile-modal {
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+body.theme-light .user-profile-modal,
+body.theme-cream-citrus .user-profile-modal,
+:root.theme-light .user-profile-modal {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18) !important;
+  color: #0f172a !important;
+}
+
+body.theme-light .spotlight-card.user-profile-scroll-area,
+body.theme-cream-citrus .spotlight-card.user-profile-scroll-area,
+:root.theme-light .spotlight-card.user-profile-scroll-area {
+  background: #ffffff !important;
+  --spotlight-card-surface: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .user-profile-drag-handle {
@@ -8771,109 +8782,8 @@ body.theme-light .btn-user-id-action.copied {
   font-weight: 500;
 }
 
-body.theme-light /* Unique User ID Card & Actions */
-.profile-user-id-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  padding: 8px 12px;
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.25);
-  border-radius: 12px;
-  flex-wrap: wrap;
-}
-
-body.theme-light .profile-user-id-container {
-  background: rgba(124, 58, 237, 0.05);
-  border-color: rgba(124, 58, 237, 0.2);
-}
-
-.profile-user-id-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.profile-user-id-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #7c3aed;
-  color: #ffffff;
-}
-
-.profile-user-id-value {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: #a78bfa;
-  letter-spacing: 0.05em;
-}
-
-body.theme-light .profile-user-id-value {
-  color: #6d28d9;
-}
-
-.profile-user-id-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-user-id-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-body.theme-light .btn-user-id-action {
-  background: #ffffff;
-  color: #334155;
-  border-color: #cbd5e1;
-}
-
-.btn-user-id-action:hover {
-  background: rgba(255, 255, 255, 0.16);
-  transform: translateY(-1px);
-}
-
-body.theme-light .btn-user-id-action:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.btn-user-id-action:active {
-  transform: scale(0.97);
-}
-
-.btn-user-id-action.copied {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
-}
-
-body.theme-light .btn-user-id-action.copied {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #059669;
-}
-
-.profile-status-pill {
+body.theme-light .profile-status-pill,
+body.theme-cream-citrus .profile-status-pill {
   background: #f8fafc;
   border-color: #e2e8f0;
   color: #334155;

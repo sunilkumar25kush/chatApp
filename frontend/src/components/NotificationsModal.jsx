@@ -13,7 +13,11 @@ export default function NotificationsModal({
   onUnreadCountChange
 }) {
   const { resolvedMode } = useTheme();
-  const isLight = resolvedMode === 'light';
+  const isLight = resolvedMode === 'light' || (typeof document !== 'undefined' && (
+    document.body?.classList.contains('theme-light') ||
+    document.documentElement?.classList.contains('theme-light') ||
+    document.body?.classList.contains('theme-cream-citrus')
+  ));
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);

@@ -361,6 +361,24 @@
   color: var(--text-main, #f3f4f6) !important;
 }
 
+/* Settings Dropdown: pops upward & right of the 56px sidebar footer */
+.presence-dropdown.active.animated-list.settings-dropdown {
+  top: auto !important;
+  bottom: 8px !important;
+  left: calc(var(--left-sidebar-width, 56px) + 8px) !important;
+  right: auto !important;
+  z-index: 5000 !important;
+}
+
+:root.theme-light .presence-dropdown.active.animated-list.settings-dropdown,
+body.theme-light .presence-dropdown.active.animated-list.settings-dropdown,
+body.theme-cream-citrus .presence-dropdown.active.animated-list.settings-dropdown {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #1c1c1c !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.16), 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+
 .presence-dropdown.active.animated-list .animated-list__frame-rim {
   display: none !important;
 }

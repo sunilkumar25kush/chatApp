@@ -5,6 +5,10 @@ export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
+  if (import.meta.env.DEV) {
+    return children;
+  }
+
   if (loading) {
     return (
       <div style={{

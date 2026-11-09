@@ -13,7 +13,11 @@ import '../SpotlightCard.css';
 export default function UserProfileModal({ targetUserId, onClose }) {
   const { user: currentUser, updateLocalUser } = useAuth();
   const { resolvedMode } = useTheme();
-  const isLight = resolvedMode === 'light';
+  const isLight = resolvedMode === 'light' || (typeof document !== 'undefined' && (
+    document.body?.classList.contains('theme-light') ||
+    document.documentElement?.classList.contains('theme-light') ||
+    document.body?.classList.contains('theme-cream-citrus')
+  ));
   const modalCardRef = useRef(null);
   
   const [profileData, setProfileData] = useState(null);
