@@ -30,42 +30,42 @@ export default function App() {
                 <SmoothScrollProvider>
                   <CallContainer />
                   <Routes>
-                {/* Admin Panel */}
-                <Route path="/admin/*" element={<AdminApp />} />
+                    {/* Admin Panel */}
+                    <Route path="/admin/*" element={<AdminApp />} />
 
-                {/* Full-screen Gajim Desktop Messenger route */}
-                <Route
-                  path="/chat"
-                  element={
-                    <ProtectedRoute>
-                      <Chat />
-                    </ProtectedRoute>
-                  }
-                />
+                    {/* Full-screen Gajim Desktop Messenger route */}
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <Chat />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                {/* Standard Website Pages with Top Navbar */}
-                <Route
-                  path="/*"
-                  element={
-                    <div className="app-container">
-                      <Navbar />
-                      <main style={{ minHeight: 'calc(100vh - 70px)' }}>
-                        <Routes>
-                          <Route path="/" element={<Home />} />
-                          <Route path="/login" element={<Login />} />
-                          <Route path="/register" element={<Register />} />
-                        </Routes>
-                      </main>
-                    </div>
-                  }
-                />
-              </Routes>
+                    {/* Standard Website Pages with Top Navbar */}
+                    <Route
+                      path="/*"
+                      element={
+                        <div className="app-container">
+                          <Navbar />
+                          <main style={{ minHeight: 'calc(100vh - 70px)' }}>
+                            <Routes>
+                              <Route path="/" element={<Home />} />
+                              <Route path="/login" element={<Login />} />
+                              <Route path="/register" element={<Register />} />
+                            </Routes>
+                          </main>
+                        </div>
+                      }
+                    />
+                  </Routes>
                 </SmoothScrollProvider>
-            </AppearanceProvider>
-          </WallpaperProvider>
-        </ThemeProvider>
-      </PresenceProvider>
-    </CallProvider>
-  </AuthProvider>
+              </AppearanceProvider>
+            </WallpaperProvider>
+          </ThemeProvider>
+        </PresenceProvider>
+      </CallProvider>
+    </AuthProvider>
   );
 }
