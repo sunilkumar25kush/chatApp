@@ -55,6 +55,7 @@ export default function Sidebar({
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [userAvatarError, setUserAvatarError] = useState(false);
 
   useEffect(() => {
     const fetchNotifsCount = async () => {
@@ -328,6 +329,27 @@ export default function Sidebar({
 
   const settingsMenuItems = useMemo(() => [
     {
+      id: 'studio',
+      icon: '✨',
+      title: 'Appearance Studio',
+      description: 'Wallpapers, fonts & audio fx',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowPersonalityStudio(true);
+      }
+    },
+    {
+      id: 'theme',
+      icon: '🎨',
+      title: 'Theme Settings',
+      description: `Current: ${resolvedMode === 'dark' ? 'Dark' : 'Light'}`,
+      badge: resolvedMode === 'dark' ? 'Dark' : 'Light',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowThemeSettings(true);
+      }
+    },
+    {
       id: 'join-room',
       icon: '🔑',
       title: 'Join Room',
@@ -345,17 +367,6 @@ export default function Sidebar({
       action: () => {
         setShowSettingsMenu(false);
         onOpenCreateModal?.();
-      }
-    },
-    {
-      id: 'theme',
-      icon: '🎨',
-      title: 'Theme',
-      description: `Current: ${resolvedMode === 'dark' ? 'Dark' : 'Light'}`,
-      badge: resolvedMode === 'dark' ? 'Dark' : 'Light',
-      action: () => {
-        setShowSettingsMenu(false);
-        setShowThemeSettings(true);
       }
     },
     {
@@ -500,8 +511,13 @@ export default function Sidebar({
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
                     <div className="avatar avatar-md" style={{ background: 'var(--theme-primary)' }}>
-                        {user?.avatar ? (
-                          <img src={user.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        {user?.avatar && !userAvatarError ? (
+                          <img
+                            src={user.avatar}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            onError={() => setUserAvatarError(true)}
+                          />
                         ) : (
                           <svg viewBox="0 0 100 100" className="avatar-svg" aria-hidden="true">
                               <rect width="100" height="100" rx="50" fill="transparent" />
@@ -675,20 +691,14 @@ export default function Sidebar({
                     items={settingsMenuItems}
                     onItemSelect={(item) => item?.action?.()}
                     theme="gajim"
-                    width={215}
-                    maxHeight={220}
-                    radius={10}
+                    width={230}
+                    maxHeight={260}
+                    radius={12}
                     gap={2}
                     frame={false}
                     showGradients={false}
                     animation="pop"
                     stagger={0.03}
-                    style={{
-                      position: 'absolute',
-                      bottom: '54px',
-                      left: '8px',
-                      top: 'auto'
-                    }}
                     renderItem={(item) => (
                       item.type === 'header' ? (
                         <div className="presence-header" style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', cursor: 'default', position: 'relative', zIndex: 2 }}>

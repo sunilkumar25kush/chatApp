@@ -81,7 +81,12 @@ export default function Home() {
             aria-label={isDark ? "Switch to Cream & Citrus (Light)" : "Switch to Galaxy (Dark)"}
           >
             <span>{isDark ? '🌙 Galaxy Dark' : '🍊 Cream & Citrus'}</span>
-            <span className="hero-theme-switch-hint">Switch Theme ⇄</span>
+            <span className="hero-theme-switch-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Switch Theme
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12H3M21 6H8M3 18h13M18 9l3-3-3-3M6 15l-3 3 3 3"/>
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -95,8 +100,11 @@ export default function Home() {
 
         <div className="home-hero-actions">
           {isAuthenticated ? (
-            <Link to="/chat" className="hero-action-btn primary">
-              <span>Open Chat Dashboard →</span>
+            <Link to="/chat" className="hero-action-btn primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span>Open Chat Dashboard</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
             </Link>
           ) : (
             <>
@@ -112,8 +120,12 @@ export default function Home() {
             type="button"
             onClick={handleScrollToFeatures}
             className="hero-action-btn tertiary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <span>Explore Features ↓</span>
+            <span>Explore Features</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
           </button>
         </div>
 

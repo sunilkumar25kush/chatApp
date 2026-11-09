@@ -296,9 +296,12 @@ export default function PrivateRoomPreviewModal({ isOpen, onClose, roomId, onEnt
                 onClose();
                 onEnterRoom?.(preview);
               }}
-              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              Enter Room →
+              <span>Enter Room</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
             </button>
           ) : isPending ? (
             <button

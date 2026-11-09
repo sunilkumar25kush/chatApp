@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import api from '../../services/api';
 import friendService from '../../services/friendService';
 import { useAuth } from '../../context/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import ImageCropperModal from './ImageCropperModal';
 import { animateModalEnter } from '../../utils/animations';
 import toast from '../../utils/toast';
@@ -11,6 +12,8 @@ import '../SpotlightCard.css';
 
 export default function UserProfileModal({ targetUserId, onClose }) {
   const { user: currentUser, updateLocalUser } = useAuth();
+  const { resolvedMode } = useTheme();
+  const isLight = resolvedMode === 'light';
   const modalCardRef = useRef(null);
   
   const [profileData, setProfileData] = useState(null);
@@ -19,6 +22,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [relationshipStatus, setRelationshipStatus] = useState(null);
   const [sendingFriendReq, setSendingFriendReq] = useState(false);
 
@@ -323,9 +327,9 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         <SpotlightCard
           className="user-profile-scroll-area"
           data-lenis-prevent
-          theme="dark"
-          spotlightColor="#ffffff"
-          intensity={0.15}
+          theme={isLight ? 'light' : 'dark'}
+          spotlightColor={isLight ? '#F0882C' : '#ffffff'}
+          intensity={isLight ? 0.08 : 0.15}
           spotlightSize={240}
           softness={0.7}
           shape="circle"
@@ -367,8 +371,13 @@ export default function UserProfileModal({ targetUserId, onClose }) {
           <div className="profile-header-row">
             <div className="profile-avatar-wrapper">
               <div className="profile-avatar-inner">
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {avatarSrc && !avatarLoadError ? (
+                  <img
+                    src={avatarSrc}
+                    alt="Avatar"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={() => setAvatarLoadError(true)}
+                  />
                 ) : (
                   getInitials(displayName)
                 )}

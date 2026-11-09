@@ -207,7 +207,12 @@ export default function AppearanceStudioModal({ isOpen, onClose, targetRoomId, r
                   <span>👁️</span>
                   <span>View Full Chat Live Preview</span>
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Preview →</span>
+                <span style={{ fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  Preview
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                </span>
               </div>
             </div>
 

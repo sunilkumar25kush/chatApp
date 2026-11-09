@@ -456,8 +456,11 @@ export default function RoomInfoModal({
               </div>
             </div>
             {adminId && (
-              <span style={{ fontSize: 12, color: 'var(--color-primary, #a78bfa)', fontWeight: 600 }}>
-                Profile →
+              <span style={{ fontSize: 12, color: 'var(--color-primary, #a78bfa)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                Profile
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
               </span>
             )}
           </div>

@@ -254,7 +254,9 @@ export default function FriendsPage({ onStartChat, onBack }) {
                 className="btn-icon"
                 style={{ width: 38, height: 38, borderRadius: 8, background: 'var(--bg-input, #222530)', border: '1px solid var(--border-color, #3f4657)', color: 'var(--text-main, #f3f4f6)', cursor: 'pointer' }}
               >
-                ←
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
               </button>
             )}
             <div>

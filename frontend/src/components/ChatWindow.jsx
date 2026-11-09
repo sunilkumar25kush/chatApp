@@ -4,6 +4,7 @@ import { socket, onSocketStatusChange, isSocketConnected, registerActiveRoom, un
 import { useAuth } from '../context/useAuth';
 import { useCall } from '../context/CallContext';
 import { useAppearance } from '../context/AppearanceContext';
+import { useTheme } from '../context/ThemeContext';
 import { themeSoundManager } from '../utils/themeSoundManager';
 import api from '../services/api';
 import NotificationToast from './NotificationToast';
@@ -24,6 +25,8 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
   const { user } = useAuth();
   const { startCall } = useCall();
   const { getActiveWallpaperForRoom, appearanceState } = useAppearance();
+  const themeContext = useTheme();
+  const resolvedMode = themeContext?.resolvedMode || 'dark';
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -1341,10 +1344,14 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
                         margin: isMe ? '4px 0 4px auto' : '4px auto 4px 0',
                         background: isMe
-                          ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)'
+                          ? (resolvedMode === 'light'
+                              ? '#fff7ed'
+                              : 'linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)')
                           : 'var(--bg-panel)',
                         border: isMe
-                          ? '1px solid rgba(139, 92, 246, 0.35)'
+                          ? (resolvedMode === 'light'
+                              ? '1px solid rgba(240, 136, 44, 0.35)'
+                              : '1px solid rgba(139, 92, 246, 0.35)')
                           : '1px solid var(--border-color)',
                         borderRadius: 14,
                         padding: '10px 14px',
@@ -1352,7 +1359,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                         alignItems: 'center',
                         gap: 12,
                         marginTop: 4,
-                        boxShadow: isMe ? '0 4px 14px rgba(79, 70, 229, 0.2)' : 'var(--shadow-sm)',
+                        boxShadow: isMe
+                          ? (resolvedMode === 'light' ? '0 2px 8px rgba(240, 136, 44, 0.12)' : '0 4px 14px rgba(79, 70, 229, 0.2)')
+                          : 'var(--shadow-sm)',
                       }}
                     >
                       {(() => {
@@ -1393,10 +1402,21 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: isMe ? '#fff' : 'var(--text-main)' }}>
+                                <div style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: isMe
+                                    ? (resolvedMode === 'light' ? '#1c1917' : '#ffffff')
+                                    : 'var(--text-main)'
+                                }}>
                                   {title}
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                <div style={{
+                                  fontSize: 11,
+                                  color: isMe
+                                    ? (resolvedMode === 'light' ? '#78716c' : 'rgba(255, 255, 255, 0.75)')
+                                    : 'var(--text-muted)'
+                                }}>
                                   {isMissed
                                     ? 'No answer'
                                     : isDeclined
@@ -1417,17 +1437,18 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                                 title={`Call back (${isVideo ? 'video' : 'voice'})`}
                                 style={{
                                   marginLeft: 8,
-                                  background: 'var(--color-primary-light)',
-                                  border: '1px solid var(--color-primary-glow)',
-                                  color: 'var(--theme-primary, #7c3aed)',
+                                  background: resolvedMode === 'light' ? '#F0882C' : 'var(--color-primary-light)',
+                                  border: resolvedMode === 'light' ? '1px solid #D9721A' : '1px solid var(--color-primary-glow)',
+                                  color: resolvedMode === 'light' ? '#ffffff' : 'var(--theme-primary, #7c3aed)',
                                   borderRadius: 8,
-                                  padding: '4px 10px',
+                                  padding: '5px 11px',
                                   fontSize: 11,
-                                  fontWeight: 600,
+                                  fontWeight: 700,
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
+                                  boxShadow: resolvedMode === 'light' ? '0 1px 3px rgba(240, 136, 44, 0.25)' : 'none'
                                 }}
                               >
                                 <span>{isVideo ? '📹' : '📞'}</span> <span>Call back</span>
@@ -1790,7 +1811,9 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               fontSize: 18,
             }}
           >
-            ↓
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
           </button>
         )}
 
