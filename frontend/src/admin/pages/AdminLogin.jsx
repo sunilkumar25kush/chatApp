@@ -41,7 +41,7 @@ export default function AdminLogin() {
         adminToast.info('Enter the code from your authenticator app');
       } else {
         adminToast.success('Welcome back');
-        navigate(result.admin?.mfaEnabled ? destination : '/admin/setup-mfa', { replace: true });
+        navigate(destination, { replace: true });
       }
     } catch (requestError) {
       const message = getApiErrorMessage(requestError, 'Unable to sign in');
@@ -59,7 +59,7 @@ export default function AdminLogin() {
     try {
       const result = await verifyMfa(challengeToken, code.trim());
       adminToast.success('Signed in');
-      navigate(result.mfaEnabled ? destination : '/admin/setup-mfa', { replace: true });
+      navigate(destination, { replace: true });
     } catch (requestError) {
       const message = getApiErrorMessage(requestError, 'Invalid authentication code');
       setError(message);

@@ -20,9 +20,5 @@ export default function AdminProtectedRoute({ children }) {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (!admin.mfaEnabled && location.pathname !== '/admin/setup-mfa') {
-    return <Navigate to="/admin/setup-mfa" replace />;
-  }
-
   return children;
 }

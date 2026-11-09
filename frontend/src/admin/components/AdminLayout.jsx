@@ -1,44 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, MessagesSquare, MessageSquareWarning, Flag, UserRoundCheck,
-  PhoneCall, Megaphone, BarChart3, ShieldCheck, ScrollText, Settings, Menu, PanelLeftClose,
-  PanelLeftOpen, Sun, Moon, LogOut, ExternalLink, ShieldAlert, X
+  Menu, PanelLeftClose, PanelLeftOpen, Sun, Moon, LogOut,
+  ExternalLink, ShieldAlert, Search, Command
 } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useAdminTheme } from '../context/AdminThemeContext';
 import { roleLabel } from '../utils/format';
 import { adminToast } from './AdminToaster';
-
-const NAV_ITEMS = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard.view', exact: true, group: 'Overview' },
-  { to: '/admin/users', label: 'Users', icon: Users, permission: 'users.view', group: 'Community' },
-  { to: '/admin/rooms', label: 'Rooms', icon: MessagesSquare, permission: 'rooms.view', group: 'Community' },
-  { to: '/admin/messages', label: 'Messages', icon: MessageSquareWarning, permission: 'messages.view', group: 'Community' },
-  { to: '/admin/reports', label: 'Reports', icon: Flag, permission: 'reports.view', group: 'Community' },
-  { to: '/admin/friends', label: 'Friend Management', icon: UserRoundCheck, permission: 'friends.view', group: 'Community' },
-  { to: '/admin/calls', label: 'Calls', icon: PhoneCall, permission: 'calls.view', group: 'Operations' },
-  { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, permission: 'announcements.view', group: 'Operations' },
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3, permission: 'analytics.view', group: 'Operations' },
-  { to: '/admin/roles', label: 'Admin Roles & Permissions', icon: ShieldCheck, permission: 'roles.view', group: 'Administration' },
-  { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'audit.view', group: 'Administration' },
-  { to: '/admin/settings', label: 'System Settings', icon: Settings, permission: 'settings.view', group: 'Administration' }
-];
+import AdminSidebar from './AdminSidebar';
+import AdminCommandPalette, { recordRecentAdminPage } from './AdminCommandPalette';
 
 const TITLE_MAP = [
-  ['/admin/setup-mfa', 'Enable two-factor authentication', 'Secure your administrator account'],
-  ['/admin/users', 'Users', 'Account status, moderation and activity'],
-  ['/admin/rooms', 'Rooms', 'Room metadata and moderation'],
-  ['/admin/messages', 'Reported messages', 'Review and moderate reported content'],
-  ['/admin/reports', 'Reports', 'Triage and resolve community reports'],
-  ['/admin/friends', 'Friend management', 'Connection metadata and request health'],
-  ['/admin/calls', 'Calls', 'Live call monitoring and history'],
-  ['/admin/announcements', 'Announcements', 'Platform-wide communications'],
-  ['/admin/analytics', 'Analytics', 'Growth, engagement and moderation trends'],
-  ['/admin/roles', 'Admin roles & permissions', 'Roles, granular permissions and admin accounts'],
-  ['/admin/audit-logs', 'Audit logs', 'Append-only administrative audit trail'],
-  ['/admin/settings', 'System settings', 'Platform configuration and feature flags'],
-  ['/admin', 'Dashboard', 'Platform health at a glance']
+  ['/admin/setup-mfa', 'Two-Factor Authentication', 'Secure your administrator account with TOTP'],
+  ['/admin/users', 'User Management', 'Account status, moderation, mutes and activity'],
+  ['/admin/rooms', 'Room Management', 'Public & private room metadata and moderation'],
+  ['/admin/messages', 'Message Moderation', 'Review and moderate flagged/reported content'],
+  ['/admin/reports', 'Reports Center', 'Triage and resolve community abuse reports'],
+  ['/admin/friends', 'Friend Management', 'Connection metadata, friendships and request health'],
+  ['/admin/calls', 'Call Monitoring', 'Live audio/video rooms, sessions and WebRTC metrics'],
+  ['/admin/announcements', 'Announcements', 'Platform-wide broadcasts, banners and system notices'],
+  ['/admin/analytics', 'Analytics & Insights', 'Growth, engagement, retention and moderation trends'],
+  ['/admin/roles', 'Roles & Permissions', 'RBAC permissions, roles and admin user accounts'],
+  ['/admin/audit-logs', 'Audit Logs', 'Append-only immutable administrative audit trail'],
+  ['/admin/settings', 'System Settings', 'Platform configuration, feature flags and system health'],
+  ['/admin', 'Overview', 'Real-time platform metrics & health at a glance']
 ];
 
 const getTitle = (pathname) => {
@@ -55,25 +41,19 @@ const readCollapsed = () => {
 };
 
 export default function AdminLayout() {
-  const { admin, logout, hasPermission } = useAdminAuth();
+  const { admin, logout } = useAdminAuth();
   const { theme, toggleTheme } = useAdminTheme();
   const location = useLocation();
   const navigate = useNavigate();
+
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const title = getTitle(location.pathname);
-  const navItems = useMemo(() => NAV_ITEMS.filter((item) => hasPermission(item.permission)), [hasPermission]);
-  const groups = useMemo(() => {
-    const map = new Map();
-    navItems.forEach((item) => {
-      if (!map.has(item.group)) map.set(item.group, []);
-      map.get(item.group).push(item);
-    });
-    return Array.from(map.entries());
-  }, [navItems]);
 
+  // Persist sidebar collapsed state
   useEffect(() => {
     try {
       localStorage.setItem('chatroom_admin_sidebar', collapsed ? 'collapsed' : 'expanded');
@@ -82,11 +62,24 @@ export default function AdminLayout() {
     }
   }, [collapsed]);
 
+  // Record recent page visit
+  useEffect(() => {
+    recordRecentAdminPage(location.pathname, title[1], title[1]);
+  }, [location.pathname, title]);
+
+  // Close mobile drawer on navigation
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = async () => {
+  // Custom event listener for opening command palette
+  useEffect(() => {
+    const handleOpenCommandPalette = () => setCommandPaletteOpen(true);
+    window.addEventListener('open-admin-command-palette', handleOpenCommandPalette);
+    return () => window.removeEventListener('open-admin-command-palette', handleOpenCommandPalette);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
     setLoggingOut(true);
     try {
       await logout();
@@ -95,116 +88,137 @@ export default function AdminLayout() {
     } finally {
       setLoggingOut(false);
     }
-  };
+  }, [logout, navigate]);
 
   return (
     <div
       className={`admin-root admin-shell ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
       data-theme={theme}
     >
-      <div className="admin-mobile-overlay" role="presentation" onClick={() => setMobileOpen(false)} />
+      {/* ── Collapsible & Mobile-Ready Premium Sidebar ─────────────────── */}
+      <AdminSidebar
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed((v) => !v)}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+      />
 
-      <aside className="admin-sidebar" aria-label="Admin navigation">
-        <div className="admin-sidebar__brand">
-          <span className="admin-brand-mark">CR</span>
-          <div className="admin-brand-copy">
-            <strong>ChatRoom</strong>
-            <span>Super Admin</span>
-          </div>
-        </div>
-
-        <nav className="admin-sidebar__nav">
-          {groups.map(([group, items]) => (
-            <div key={group}>
-              <div className="admin-nav-group-label">{group}</div>
-              {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.exact}
-                    className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon />
-                    <span className="admin-nav-link__label">{item.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        <div className="admin-sidebar__footer">
-          <div className="admin-sidebar-user">
-            <span className="admin-avatar">{String(admin?.username || admin?.email || 'A').slice(0, 2)}</span>
-            <div className="admin-sidebar-user__meta">
-              <strong>{admin?.username || 'Administrator'}</strong>
-              <span>{roleLabel(admin?.role)}</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
+      {/* ── Main Viewport Area ─────────────────────────────────────────── */}
       <div className="admin-main">
+        {/* Topbar */}
         <header className="admin-topbar">
-          <button
-            type="button"
-            className="admin-icon-btn admin-mobile-menu"
-            onClick={() => setMobileOpen((open) => !open)}
-            aria-label="Toggle navigation"
-          >
-            {mobileOpen ? <X /> : <Menu />}
-          </button>
-          <button
-            type="button"
-            className="admin-icon-btn admin-desktop-collapse"
-            onClick={() => setCollapsed((value) => !value)}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-          </button>
+          <div className="admin-topbar__left">
+            <button
+              type="button"
+              className="admin-icon-btn admin-mobile-menu"
+              onClick={() => setMobileOpen((open) => !open)}
+              aria-label="Toggle navigation drawer"
+            >
+              <Menu size={18} />
+            </button>
 
-          <div className="admin-topbar__title">
-            <h1>{title[0]}</h1>
-            <span>{title[1]}</span>
+            <button
+              type="button"
+              className="admin-icon-btn admin-desktop-collapse"
+              onClick={() => setCollapsed((value) => !value)}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+
+            <div className="admin-topbar__title">
+              <h1>{title[1]}</h1>
+              <span>{title[2]}</span>
+            </div>
           </div>
 
-          <div className="admin-topbar__spacer" />
+          {/* Quick Search pill in topbar */}
+          <div className="admin-topbar__center">
+            <button
+              type="button"
+              className="admin-topbar-search-trigger"
+              onClick={() => setCommandPaletteOpen(true)}
+              aria-label="Search pages and admin actions (Ctrl+K)"
+            >
+              <Search size={14} className="admin-topbar-search-icon" />
+              <span className="admin-topbar-search-text">Search or jump to...</span>
+              <kbd className="admin-topbar-search-kbd">
+                <Command size={11} /> K
+              </kbd>
+            </button>
+          </div>
 
+          {/* Actions & Utilities */}
           <div className="admin-topbar__actions">
-            {admin?.role ? <span className="admin-role-pill"><ShieldAlert size={14} /> {roleLabel(admin.role)}</span> : null}
+            {admin?.role && (
+              <span className="admin-role-pill" title={`Logged in as ${admin.username}`}>
+                <ShieldAlert size={14} /> {roleLabel(admin.role)}
+              </span>
+            )}
+
             <button
               type="button"
               className="admin-icon-btn"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {theme === 'dark' ? <Sun /> : <Moon />}
+              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
-            <a className="admin-icon-btn" href="/" target="_blank" rel="noreferrer" aria-label="Open user app">
-              <ExternalLink />
+
+            <a
+              className="admin-icon-btn"
+              href="/chat"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open chat application"
+              title="Open Chat App in new tab"
+            >
+              <ExternalLink size={17} />
             </a>
-            <button type="button" className="admin-icon-btn" onClick={handleLogout} disabled={loggingOut} aria-label="Sign out">
-              {loggingOut ? <span className="admin-spinner" /> : <LogOut />}
+
+            <button
+              type="button"
+              className="admin-icon-btn logout"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              aria-label="Sign out"
+              title="Sign Out"
+            >
+              {loggingOut ? <span className="admin-spinner" /> : <LogOut size={17} />}
             </button>
           </div>
         </header>
 
+        {/* Content Body */}
         <main className="admin-content">
-          {!admin?.mfaEnabled && location.pathname !== '/admin/setup-mfa' ? (
+          {!admin?.mfaEnabled && location.pathname !== '/admin/setup-mfa' && (
             <div className="admin-alert admin-alert--warning" style={{ marginBottom: 16 }}>
               <ShieldAlert size={18} />
               <div>
                 <strong>Two-factor authentication is not enabled.</strong>
-                <div>Enable MFA before using operational admin tools. <a href="/admin/setup-mfa" style={{ textDecoration: 'underline' }}>Set it up now</a>.</div>
+                <div>
+                  Enable MFA to secure sensitive moderation and system administration actions.{' '}
+                  <a href="/admin/setup-mfa" style={{ textDecoration: 'underline' }}>
+                    Set it up now
+                  </a>.
+                </div>
               </div>
             </div>
-          ) : null}
+          )}
           <Outlet />
         </main>
       </div>
+
+      {/* ── Command Palette (Ctrl+K) ─────────────────────────────────── */}
+      <AdminCommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onToggleSidebar={() => setCollapsed((v) => !v)}
+        sidebarCollapsed={collapsed}
+      />
     </div>
   );
 }

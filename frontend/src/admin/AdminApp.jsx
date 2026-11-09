@@ -45,6 +45,7 @@ export default function AdminApp() {
             )}
           >
             <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Navigate to="/admin" replace />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="messages" element={<MessagesPage />} />
@@ -55,6 +56,7 @@ export default function AdminApp() {
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="roles" element={<RolesPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
+            <Route path="audit" element={<Navigate to="/admin/audit-logs" replace />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
