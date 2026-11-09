@@ -77,7 +77,19 @@ const messageSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
       }
-    ]
+    ],
+    // Admin moderation metadata (restorable soft-removal)
+    moderation: {
+      removedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      removedAt: { type: Date, default: null },
+      reason: { type: String, default: '' },
+      originalContent: { type: String, default: null, select: false },
+      originalFileUrl: { type: String, default: null, select: false },
+      originalFileType: { type: String, default: null, select: false },
+      originalFileName: { type: String, default: null, select: false },
+      restoredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      restoredAt: { type: Date, default: null }
+    }
   },
   {
     timestamps: true
@@ -91,6 +103,7 @@ messageSchema.index({ room: 1, isDeleted: 1, createdAt: -1 });
 messageSchema.index({ sender: 1, createdAt: -1 });
 // Text index for message search
 messageSchema.index({ content: 'text' });
+messageSchema.index({ createdAt: -1 });
 
 const Message = mongoose.model('Message', messageSchema);
 

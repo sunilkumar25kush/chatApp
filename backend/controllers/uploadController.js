@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const { verifyMagicBytes } = require('../middleware/uploadMiddleware');
 const Room = require('../models/Room');
 const { checkRoomAccess } = require('../utils/roomAccess');
+const { getSettings } = require('../services/settingsService');
 
 // Configure Cloudinary if credentials present
 if (process.env.CLOUDINARY_CLOUD_NAME) {
@@ -66,6 +67,24 @@ const uploadFile = async (req, res, next) => {
       return res.status(400).json({ message: 'Uploaded file is empty' });
     }
 
+    // System settings govern upload availability, size and accepted formats.
+    const settings = await getSettings();
+    if (settings.featureFlags?.fileUploads === false) {
+      cleanupTempFile(localPath);
+      return res.status(403).json({ message: 'File uploads are currently disabled.' });
+    }
+    const maxBytes = (settings.maxFileSizeMB || 25) * 1024 * 1024;
+    if (req.file.size > maxBytes) {
+      cleanupTempFile(localPath);
+      return res.status(413).json({ message: `File exceeds the ${settings.maxFileSizeMB || 25}MB limit.` });
+    }
+    const requestedExt = path.extname(req.file.originalname || '').toLowerCase().replace('.', '');
+    const allowedFormats = (settings.allowedUploadFormats || []).map((item) => String(item).toLowerCase());
+    if (allowedFormats.length && !allowedFormats.includes(requestedExt)) {
+      cleanupTempFile(localPath);
+      return res.status(400).json({ message: 'This file type is not allowed.' });
+    }
+
     // Magic-byte validation: reject extension-spoofed files
     const ext = path.extname(req.file.originalname || '').toLowerCase().replace('.', '');
     const contentValid = await verifyMagicBytes(req.file.path, ext);
@@ -80,6 +99,10 @@ const uploadFile = async (req, res, next) => {
     if (roomId && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(roomId)) {
       const room = await Room.findById(roomId);
       if (room) {
+        if (room.isSuspended) {
+          cleanupTempFile(localPath);
+          return res.status(403).json({ message: 'This room has been suspended by an administrator.' });
+        }
         const access = checkRoomAccess(room, userId);
         if (!access.allowed) {
           cleanupTempFile(localPath);

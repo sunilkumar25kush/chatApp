@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { isValidPublicId, normalizePublicId } = require('../utils/publicId');
 const { memoryUsers } = require('./authController');
 const { createNotification } = require('./notificationController');
+const { getSettings } = require('../services/settingsService');
 
 // In-memory fallback store when MongoDB is not connected
 const memoryFriendships = new Map();
@@ -41,6 +42,11 @@ const sendFriendRequest = async (req, res, next) => {
     const currentUserId = getUserId(req);
     if (!currentUserId) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const settings = await getSettings();
+    if (settings.friendRequestsEnabled === false) {
+      return res.status(403).json({ success: false, message: 'Friend requests are currently disabled.' });
     }
 
     const { publicId, targetUserId } = req.body;

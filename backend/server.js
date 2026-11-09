@@ -11,6 +11,7 @@ const connectDB = require('./config/db');
 const { initSocket } = require('./socket/socket');
 const apiRoutes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorMiddleware');
+const { startAnnouncementScheduler, stopAnnouncementScheduler } = require('./services/announcementScheduler');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -122,35 +123,60 @@ const callLimiter = rateLimit({
 app.use('/api', apiRoutes);
 app.use('/api/calls', callLimiter, callRoutes);
 
-// Periodic cleanup of abandoned or inactive call sessions (every 10 minutes)
-setInterval(() => {
-  cleanupInactiveCallSessions().catch(() => {});
-}, 10 * 60 * 1000);
-
 // 404 for unknown API routes (must be before the error handler)
 app.use('/api', notFoundHandler);
 
 // Error Middleware
 app.use(errorHandler);
 
-// Initialize Socket.io
-const io = initSocket(server);
-app.set('io', io);
-
-// Start Server & Connect Database
 const PORT = process.env.PORT || 5000;
 let isShuttingDown = false;
+let cleanupTimer = null;
 
-server.listen(PORT, () => {
-  logger.info(`[Server] ChatRoom Backend running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
-  connectDB();
-});
+/**
+ * Boot HTTP + Socket.IO + background workers.
+ * Exported so integration tests can start an isolated instance.
+ */
+const startServer = async ({ port = PORT, withDatabase = true } = {}) => {
+  const io = initSocket(server);
+  app.set('io', io);
 
-// Graceful shutdown for production (SIGTERM from PM2/Docker/k8s, SIGINT from Ctrl+C)
+  cleanupTimer = setInterval(() => {
+    cleanupInactiveCallSessions().catch(() => {});
+  }, 10 * 60 * 1000);
+  if (typeof cleanupTimer.unref === 'function') cleanupTimer.unref();
+
+  await new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off('listening', onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      resolve();
+    };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port);
+  });
+
+  logger.info(`[Server] ChatRoom Backend running on port ${port} (${process.env.NODE_ENV || 'development'})`);
+
+  if (withDatabase) {
+    await connectDB();
+    startAnnouncementScheduler();
+  }
+
+  return { app, server, io };
+};
+
 const shutdown = (signal) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   logger.warn(`[Server] ${signal} received — shutting down gracefully...`);
+
+  stopAnnouncementScheduler();
+  if (cleanupTimer) clearInterval(cleanupTimer);
 
   server.close(async () => {
     logger.info('[Server] HTTP server closed.');
@@ -166,14 +192,23 @@ const shutdown = (signal) => {
   });
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+if (require.main === module) {
+  startServer().catch((error) => {
+    logger.error(`[Server] Failed to start: ${error.message}`);
+    process.exit(1);
+  });
 
-// Unhandled rejection / exception guards (log, don't crash silently)
-process.on('unhandledRejection', (reason) => {
-  logger.error(`[Server] Unhandled Rejection: ${reason instanceof Error ? reason.stack : reason}`);
-});
-process.on('uncaughtException', (err) => {
-  logger.error(`[Server] Uncaught Exception: ${err.stack}`);
-  shutdown('uncaughtException');
-});
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  // Unhandled rejection / exception guards (log, don't crash silently)
+  process.on('unhandledRejection', (reason) => {
+    logger.error(`[Server] Unhandled Rejection: ${reason instanceof Error ? reason.stack : reason}`);
+  });
+  process.on('uncaughtException', (err) => {
+    logger.error(`[Server] Uncaught Exception: ${err.stack}`);
+    shutdown('uncaughtException');
+  });
+}
+
+module.exports = { app, server, startServer };

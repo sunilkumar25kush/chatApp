@@ -89,8 +89,13 @@ const callSessionSchema = new mongoose.Schema(
     },
     endedReason: {
       type: String,
-      enum: ['completed', 'missed', 'declined', 'busy', 'cancelled', 'host_ended', 'abandoned', null],
+      enum: ['completed', 'missed', 'declined', 'busy', 'cancelled', 'host_ended', 'abandoned', 'admin_terminated', null],
       default: null
+    },
+    adminTermination: {
+      by: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      at: { type: Date, default: null },
+      reason: { type: String, default: '' }
     },
     sfuRoomName: {
       type: String,

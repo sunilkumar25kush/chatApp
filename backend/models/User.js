@@ -62,6 +62,28 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now
     },
+    // ── Admin / moderation fields ────────────────────────────────
+    accountStatus: {
+      type: String,
+      enum: ['active', 'suspended', 'banned', 'deleted'],
+      default: 'active',
+      index: true
+    },
+    suspendedUntil: { type: Date, default: null },
+    moderation: {
+      action: { type: String, enum: ['none', 'suspend', 'ban', 'restore', 'delete', null], default: null },
+      reason: { type: String, default: '' },
+      note: { type: String, default: '' },
+      by: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      at: { type: Date, default: null }
+    },
+    // Token version enables immediate session revocation on suspend/ban.
+    tokenVersion: { type: Number, default: 0 },
+    lastLoginAt: { type: Date, default: null },
+    lastLoginIp: { type: String, default: '' },
+    registrationIp: { type: String, default: '' },
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
     // Privacy & notification preferences (Gajim-style account settings)
     privacy: {
       showOnline: { type: Boolean, default: true },
@@ -160,6 +182,10 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   }
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+userSchema.index({ accountStatus: 1, createdAt: -1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ lastSeen: -1 });
 
 const User = mongoose.model('User', userSchema);
 

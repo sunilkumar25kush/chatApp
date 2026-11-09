@@ -19,6 +19,7 @@ const getSocketIO = () => {
   }
 };
 const logger = require('../utils/logger');
+const { getSettings } = require('../services/settingsService');
 
 // In-memory rooms fallback store
 const memoryRooms = new Map();
@@ -129,6 +130,14 @@ const createRoom = async (req, res, next) => {
     const userId = getUserId(req);
     const resolvedVisibility = visibility ? visibility : (isPrivate ? 'private' : 'public');
     const resolvedIsPrivate = resolvedVisibility === 'private';
+
+    const settings = await getSettings();
+    if (resolvedIsPrivate && settings.privateRoomCreationEnabled === false) {
+      return res.status(403).json({ message: 'Private room creation is currently disabled.' });
+    }
+    if (!resolvedIsPrivate && settings.publicRoomCreationEnabled === false) {
+      return res.status(403).json({ message: 'Public room creation is currently disabled.' });
+    }
 
     if (isDBConnected()) {
       // Ensure unique room code (retry on collision)

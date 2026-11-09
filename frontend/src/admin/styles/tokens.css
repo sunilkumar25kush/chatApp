@@ -1,0 +1,273 @@
+/**
+ * ============================================================================
+ * CHATROOM SUPER ADMIN — DESIGN SYSTEM TOKENS
+ * Premium Dark SaaS Visual Architecture
+ * ============================================================================
+ * Specifications:
+ * - Visual Style: Deep charcoal/near-black with layered dark gray surfaces.
+ * - Accent: Elegant violet/indigo with subtle luminescence.
+ * - Glassmorphism: Controlled frosted glass (backdrop blur, soft specular highlight).
+ * - Ergonomics: High-contrast typography, balanced spacing, fluid responsive grid.
+ * ============================================================================
+ */
+
+:root {
+  /* --------------------------------------------------------------------------
+     1. COLOR PALETTE — DARK MODE (DEFAULT & PRIMARY FOR SAAS)
+     -------------------------------------------------------------------------- */
+  /* Background layers (depth from near-black to elevated canvas) */
+  --admin-bg-base: #07090e;
+  --admin-bg-subtle: #0b0e17;
+  --admin-bg-elevated: #0f131f;
+  --admin-bg-overlay: rgba(7, 9, 14, 0.78);
+
+  /* Layered surfaces (depth 1 -> 2 -> 3) */
+  --admin-surface-1: #101522;
+  --admin-surface-2: #141b2b;
+  --admin-surface-3: #1a2236;
+  --admin-surface-hover: #171f32;
+  --admin-surface-active: #1e2840;
+  --admin-surface-card: #101522;
+  --admin-surface-card-hover: #131a2a;
+  --admin-surface-glass: rgba(16, 21, 34, 0.75);
+  --admin-surface-glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Primary Accent: Elegant Indigo/Violet */
+  --admin-accent-primary: #6366f1;
+  --admin-accent-hover: #4f46e5;
+  --admin-accent-active: #4338ca;
+  --admin-accent-light: #818cf8;
+  --admin-accent-subtle: rgba(99, 102, 241, 0.12);
+  --admin-accent-border: rgba(99, 102, 241, 0.32);
+  --admin-accent-glow: rgba(99, 102, 241, 0.24);
+  --admin-accent-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --admin-accent-gradient-hover: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  --admin-accent-gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(79, 70, 229, 0.04) 100%);
+
+  /* Status & Semantic Signals */
+  --admin-success: #10b981;
+  --admin-success-hover: #059669;
+  --admin-success-soft: rgba(16, 185, 129, 0.14);
+  --admin-success-border: rgba(16, 185, 129, 0.3);
+
+  --admin-warning: #f59e0b;
+  --admin-warning-hover: #d97706;
+  --admin-warning-soft: rgba(245, 158, 11, 0.14);
+  --admin-warning-border: rgba(245, 158, 11, 0.3);
+
+  --admin-danger: #f43f5e;
+  --admin-danger-hover: #e11d48;
+  --admin-danger-soft: rgba(244, 63, 94, 0.14);
+  --admin-danger-border: rgba(244, 63, 94, 0.3);
+
+  --admin-info: #38bdf8;
+  --admin-info-hover: #0284c7;
+  --admin-info-soft: rgba(56, 189, 248, 0.14);
+  --admin-info-border: rgba(56, 189, 248, 0.3);
+
+  /* Typography / Text hierarchy */
+  --admin-text-primary: #f8fafc;
+  --admin-text-secondary: #cbd5e1;
+  --admin-text-muted: #8492a6;
+  --admin-text-disabled: #475569;
+  --admin-text-inverse: #07090e;
+
+  /* Borders & Dividers */
+  --admin-border-subtle: rgba(255, 255, 255, 0.06);
+  --admin-border-default: rgba(255, 255, 255, 0.09);
+  --admin-border-strong: rgba(255, 255, 255, 0.16);
+  --admin-border-focus: #6366f1;
+
+  /* Sidebar Tokens */
+  --admin-sidebar-bg: #070a10;
+  --admin-sidebar-surface: #0c1018;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.07);
+  --admin-sidebar-text: #8e9bb0;
+  --admin-sidebar-text-active: #ffffff;
+  --admin-sidebar-active-bg: rgba(99, 102, 241, 0.14);
+  --admin-sidebar-active-indicator: #6366f1;
+  --admin-sidebar-width: 264px;
+  --admin-sidebar-collapsed: 76px;
+
+  /* --------------------------------------------------------------------------
+     2. TYPOGRAPHY
+     -------------------------------------------------------------------------- */
+  --admin-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --admin-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Font sizes & line heights */
+  --admin-text-2xs: 11px;
+  --admin-text-xs: 12px;
+  --admin-text-sm: 13px;
+  --admin-text-base: 14px;
+  --admin-text-md: 16px;
+  --admin-text-lg: 18px;
+  --admin-text-xl: 20px;
+  --admin-text-2xl: 24px;
+  --admin-text-3xl: 30px;
+
+  --admin-leading-none: 1;
+  --admin-leading-tight: 1.25;
+  --admin-leading-snug: 1.375;
+  --admin-leading-normal: 1.5;
+  --admin-leading-relaxed: 1.625;
+
+  --admin-weight-regular: 400;
+  --admin-weight-medium: 500;
+  --admin-weight-semibold: 600;
+  --admin-weight-bold: 700;
+  --admin-weight-extrabold: 800;
+
+  /* --------------------------------------------------------------------------
+     3. SPACING & SIZING TOKENS
+     -------------------------------------------------------------------------- */
+  --admin-space-2xs: 4px;
+  --admin-space-xs: 6px;
+  --admin-space-sm: 8px;
+  --admin-space-md: 12px;
+  --admin-space-lg: 16px;
+  --admin-space-xl: 20px;
+  --admin-space-2xl: 24px;
+  --admin-space-3xl: 32px;
+  --admin-space-4xl: 40px;
+  --admin-space-5xl: 48px;
+
+  /* --------------------------------------------------------------------------
+     4. BORDER RADIUS
+     -------------------------------------------------------------------------- */
+  --admin-radius-2xs: 4px;
+  --admin-radius-xs: 6px;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-radius-xl: 20px;
+  --admin-radius-2xl: 24px;
+  --admin-radius-full: 9999px;
+
+  /* --------------------------------------------------------------------------
+     5. SHADOWS & ELEVATION
+     -------------------------------------------------------------------------- */
+  --admin-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --admin-shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.55), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
+  --admin-shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  --admin-shadow-xl: 0 24px 56px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --admin-shadow-glow: 0 0 28px rgba(99, 102, 241, 0.22);
+  --admin-shadow-glow-sm: 0 0 16px rgba(99, 102, 241, 0.16);
+  --admin-shadow-inner: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+
+  /* --------------------------------------------------------------------------
+     6. TRANSITIONS & ANIMATIONS
+     -------------------------------------------------------------------------- */
+  --admin-duration-instant: 100ms;
+  --admin-duration-fast: 150ms;
+  --admin-duration-normal: 220ms;
+  --admin-duration-slow: 350ms;
+
+  --admin-ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --admin-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --admin-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --------------------------------------------------------------------------
+     7. Z-INDEX LAYERS
+     -------------------------------------------------------------------------- */
+  --admin-z-base: 1;
+  --admin-z-elevated: 10;
+  --admin-z-sticky: 100;
+  --admin-z-header: 200;
+  --admin-z-drawer-backdrop: 490;
+  --admin-z-drawer: 500;
+  --admin-z-dropdown: 1000;
+  --admin-z-modal-backdrop: 1990;
+  --admin-z-modal: 2000;
+  --admin-z-toast: 3000;
+  --admin-z-tooltip: 4000;
+}
+
+/* ----------------------------------------------------------------------------
+   LIGHT MODE PALETTE OVERRIDES (Preserved for accessibility & toggle)
+   ---------------------------------------------------------------------------- */
+.admin-root[data-theme='light'] {
+  --admin-bg-base: #f7f8fc;
+  --admin-bg-subtle: #edf0f7;
+  --admin-bg-elevated: #ffffff;
+  --admin-bg-overlay: rgba(15, 23, 42, 0.45);
+
+  --admin-surface-1: #ffffff;
+  --admin-surface-2: #f1f4f9;
+  --admin-surface-3: #e6ebf4;
+  --admin-surface-hover: #f5f7fb;
+  --admin-surface-active: #ebeff7;
+  --admin-surface-card: #ffffff;
+  --admin-surface-card-hover: #f8fafc;
+  --admin-surface-glass: rgba(255, 255, 255, 0.82);
+  --admin-surface-glass-border: rgba(15, 23, 42, 0.08);
+
+  --admin-accent-primary: #4f46e5;
+  --admin-accent-hover: #4338ca;
+  --admin-accent-active: #3730a3;
+  --admin-accent-light: #6366f1;
+  --admin-accent-subtle: rgba(79, 70, 229, 0.1);
+  --admin-accent-border: rgba(79, 70, 229, 0.25);
+  --admin-accent-glow: rgba(79, 70, 229, 0.15);
+
+  --admin-text-primary: #0f172a;
+  --admin-text-secondary: #334155;
+  --admin-text-muted: #64748b;
+  --admin-text-disabled: #94a3b8;
+  --admin-text-inverse: #ffffff;
+
+  --admin-border-subtle: rgba(15, 23, 42, 0.06);
+  --admin-border-default: rgba(15, 23, 42, 0.1);
+  --admin-border-strong: rgba(15, 23, 42, 0.18);
+
+  --admin-sidebar-bg: #0f141f;
+  --admin-sidebar-surface: #151c2a;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.08);
+  --admin-sidebar-text: #94a3b8;
+  --admin-sidebar-text-active: #ffffff;
+
+  --admin-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --admin-shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --admin-shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  --admin-shadow-xl: 0 24px 56px -12px rgba(15, 23, 42, 0.18);
+}
+
+/* ----------------------------------------------------------------------------
+   BACKWARD COMPATIBILITY ALIAS MAPPINGS
+   Ensures all existing components, pages and scripts continue to work 100%
+   ---------------------------------------------------------------------------- */
+.admin-root,
+.admin-root[data-theme='dark'],
+.admin-root[data-theme='light'] {
+  --a-bg: var(--admin-bg-base);
+  --a-surface: var(--admin-surface-1);
+  --a-surface-2: var(--admin-surface-2);
+  --a-surface-3: var(--admin-surface-3);
+  --a-border: var(--admin-border-default);
+  --a-border-strong: var(--admin-border-strong);
+  --a-text: var(--admin-text-primary);
+  --a-text-2: var(--admin-text-secondary);
+  --a-muted: var(--admin-text-muted);
+  --a-primary: var(--admin-accent-primary);
+  --a-primary-strong: var(--admin-accent-hover);
+  --a-primary-soft: var(--admin-accent-subtle);
+  --a-success: var(--admin-success);
+  --a-success-soft: var(--admin-success-soft);
+  --a-warning: var(--admin-warning);
+  --a-warning-soft: var(--admin-warning-soft);
+  --a-danger: var(--admin-danger);
+  --a-danger-soft: var(--admin-danger-soft);
+  --a-info: var(--admin-info);
+  --a-info-soft: var(--admin-info-soft);
+  --a-sidebar: var(--admin-sidebar-bg);
+  --a-sidebar-2: var(--admin-sidebar-surface);
+  --a-sidebar-text: var(--admin-sidebar-text);
+  --a-sidebar-active: var(--admin-sidebar-text-active);
+  --a-sidebar-border: var(--admin-sidebar-border);
+  --a-shadow: var(--admin-shadow-md);
+  --a-shadow-lg: var(--admin-shadow-xl);
+  --a-radius: var(--admin-radius-md);
+  --a-radius-sm: var(--admin-radius-sm);
+  --a-sidebar-width: var(--admin-sidebar-width);
+  --a-sidebar-collapsed: var(--admin-sidebar-collapsed);
+}

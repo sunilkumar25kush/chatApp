@@ -96,6 +96,18 @@ const directMessageSchema = new mongoose.Schema(
       type: String,
       default: null,
       sparse: true
+    },
+    // Admin moderation metadata (only accessed through an audited workflow)
+    moderation: {
+      removedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      removedAt: { type: Date, default: null },
+      reason: { type: String, default: '' },
+      originalContent: { type: String, default: null, select: false },
+      originalFileUrl: { type: String, default: null, select: false },
+      originalFileType: { type: String, default: null, select: false },
+      originalFileName: { type: String, default: null, select: false },
+      restoredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      restoredAt: { type: Date, default: null }
     }
   },
   {
@@ -106,6 +118,8 @@ const directMessageSchema = new mongoose.Schema(
 // Compound index for cursor-based paginated history retrieval
 directMessageSchema.index({ conversation: 1, createdAt: -1 });
 directMessageSchema.index({ conversation: 1, isRead: 1 });
+directMessageSchema.index({ createdAt: -1 });
+directMessageSchema.index({ sender: 1, createdAt: -1 });
 
 const DirectMessage = mongoose.model('DirectMessage', directMessageSchema);
 

@@ -13,6 +13,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Chat from './pages/Chat';
+import AdminApp from './admin/AdminApp';
 import { AppGooeyToaster } from './utils/toast';
 // Global Gajim design system — loaded once, available everywhere
 import './styles/gajim/gajim-provided.css';
@@ -29,6 +30,9 @@ export default function App() {
                 <SmoothScrollProvider>
                   <CallContainer />
                   <Routes>
+                {/* Admin Panel */}
+                <Route path="/admin/*" element={<AdminApp />} />
+
                 {/* Full-screen Gajim Desktop Messenger route */}
                 <Route
                   path="/chat"

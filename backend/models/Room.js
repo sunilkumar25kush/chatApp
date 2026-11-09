@@ -80,6 +80,20 @@ const roomSchema = new mongoose.Schema(
     deletedAt: {
       type: Date,
       default: null
+    },
+    // ── Admin / moderation fields ────────────────────────────────
+    isSuspended: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    suspendedAt: { type: Date, default: null },
+    suspendedReason: { type: String, default: '' },
+    moderation: {
+      action: { type: String, enum: ['none', 'suspend', 'restore', 'delete', 'transfer', null], default: null },
+      reason: { type: String, default: '' },
+      by: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+      at: { type: Date, default: null }
     }
   },
   {
@@ -111,6 +125,9 @@ roomSchema.index({ visibility: 1, category: 1, createdAt: -1 });
 roomSchema.index({ isPrivate: 1, category: 1, createdAt: -1 });
 roomSchema.index({ members: 1 });
 roomSchema.index({ name: 'text', description: 'text' });
+roomSchema.index({ isSuspended: 1, isDeleted: 1, createdAt: -1 });
+roomSchema.index({ owner: 1, createdAt: -1 });
+roomSchema.index({ createdAt: -1 });
 
 const Room = mongoose.model('Room', roomSchema);
 

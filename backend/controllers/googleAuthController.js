@@ -4,6 +4,9 @@ const generateToken = require('../utils/generateToken');
 const { generatePublicId } = require('../utils/publicId');
 const oauth2Client = require('../config/google');
 const { memoryUsers } = require('./authController');
+const { getSettings } = require('../services/settingsService');
+const { enforceAccountAccess } = require('../services/accountStatusService');
+const { getClientIp } = require('../utils/adminValidation');
 
 /**
  * POST /api/auth/google
@@ -16,6 +19,11 @@ const googleLogin = async (req, res, next) => {
 
     if (!idToken) {
       return res.status(400).json({ message: 'ID token is required' });
+    }
+
+    const settings = await getSettings();
+    if (settings.featureFlags?.googleAuth === false) {
+      return res.status(403).json({ message: 'Google sign-in is currently disabled.' });
     }
 
     // Verify ID token with Google
@@ -50,6 +58,11 @@ const googleLogin = async (req, res, next) => {
       }
 
       if (user) {
+        const access = await enforceAccountAccess(user);
+        if (!access.allowed) {
+          return res.status(403).json({ message: access.message });
+        }
+
         let changed = false;
         // If user exists but has no googleId, link it
         if (!user.googleId) {
@@ -66,11 +79,15 @@ const googleLogin = async (req, res, next) => {
           changed = true;
         }
 
+        user.lastLoginAt = new Date();
+        user.lastLoginIp = getClientIp(req);
+        changed = true;
+
         if (changed) {
           await user.save();
         }
 
-        const token = generateToken(user._id.toString());
+        const token = generateToken(user._id.toString(), user.tokenVersion || 0);
         res.cookie('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -88,6 +105,9 @@ const googleLogin = async (req, res, next) => {
       }
 
       // Create new user
+      if (settings.registrationEnabled === false) {
+        return res.status(403).json({ message: 'New registrations are currently disabled.' });
+      }
       let baseUsername = deriveUsername(name || email);
       let username = baseUsername;
       let suffix = 0;
@@ -108,7 +128,10 @@ const googleLogin = async (req, res, next) => {
             provider: 'google',
             googleId,
             emailVerified,
-            publicId: generatePublicId()
+            publicId: generatePublicId(),
+            registrationIp: getClientIp(req),
+            lastLoginIp: getClientIp(req),
+            lastLoginAt: new Date()
           });
           break;
         } catch (createErr) {
@@ -123,7 +146,7 @@ const googleLogin = async (req, res, next) => {
         }
       }
 
-      const token = generateToken(newUser._id.toString());
+      const token = generateToken(newUser._id.toString(), newUser.tokenVersion || 0);
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',

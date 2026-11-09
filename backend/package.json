@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "lint": "eslint .",
     "migrate:public-ids": "node scripts/backfillPublicIds.js",
+    "admin:bootstrap": "node scripts/bootstrapAdmin.js",
     "test": "node --test --test-concurrency=1 --test-timeout=30000"
   },
   "dependencies": {

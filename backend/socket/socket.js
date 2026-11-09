@@ -13,6 +13,8 @@ const presenceHandler = require('./presenceHandler');
 const callHandler = require('./callHandler');
 const directMessageHandler = require('./directMessageHandler');
 const { checkRoomAccess } = require('../utils/roomAccess');
+const { enforceAccountAccess } = require('../services/accountStatusService');
+const { getSettings } = require('../services/settingsService');
 const logger = require('../utils/logger');
 
 let io;
@@ -101,6 +103,14 @@ const initSocket = (server) => {
       if (isDBConnected() && mongoose.Types.ObjectId.isValid(decoded.id)) {
         const user = await User.findById(decoded.id).select('-password');
         if (user) {
+          // Reject revoked sessions and blocked accounts before allowing realtime access.
+          if ((Number(decoded.tv) || 0) !== (Number(user.tokenVersion) || 0)) {
+            return next(new Error('Session has been revoked'));
+          }
+          const access = await enforceAccountAccess(user);
+          if (!access.allowed) {
+            return next(new Error(access.message || 'Account access denied'));
+          }
           socket.user = user;
           return next();
         }
@@ -159,7 +169,11 @@ const initSocket = (server) => {
       
       // Validate room access (public vs private)
       if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_')) {
-        const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted').lean();
+        const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted isSuspended suspension').lean();
+        if (room?.isSuspended) {
+          socket.emit('room_access_denied', { roomId, message: 'This room has been suspended by an administrator.' });
+          return;
+        }
         const access = checkRoomAccess(room, userId);
         if (!access.allowed) {
           logger.socket(`Room access denied: ${user?.username} (${userId}) denied for ${roomId}: ${access.reason}`);
@@ -227,7 +241,11 @@ const initSocket = (server) => {
 
         // Validate sender authorization before saving & broadcasting
         if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_')) {
-          const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted').lean();
+          const room = await Room.findById(roomId).select('isPrivate visibility members owner admins isDeleted isSuspended').lean();
+          if (room?.isSuspended) {
+            if (typeof ack === 'function') ack({ ok: false, error: 'This room has been suspended by an administrator.' });
+            return;
+          }
           const access = checkRoomAccess(room, senderId);
           if (!access.allowed) {
             socket.emit('room_access_denied', { roomId, message: access.reason || 'Access denied' });
@@ -247,12 +265,14 @@ const initSocket = (server) => {
         }
 
         let msgObj;
+        const settings = await getSettings();
+        const maxMessageLength = settings.maxMessageLength || 2000;
 
         if (isDBConnected() && mongoose.Types.ObjectId.isValid(roomId) && !String(roomId).startsWith('mem_room_') && mongoose.Types.ObjectId.isValid(senderId)) {
           const created = await Message.create({
             room: roomId,
             sender: senderId,
-            content: typeof content === 'string' ? content.slice(0, 2000) : '',
+            content: typeof content === 'string' ? content.slice(0, maxMessageLength) : '',
             fileUrl: fileUrl || null,
             fileType: fileType || null,
             fileName: fileName ? String(fileName).slice(0, 255) : null,
@@ -290,7 +310,7 @@ const initSocket = (server) => {
               email: sender.email,
               avatar: sender.avatar
             },
-            content: typeof content === 'string' ? content.slice(0, 2000) : '',
+            content: typeof content === 'string' ? content.slice(0, maxMessageLength) : '',
             fileUrl: fileUrl || null,
             fileType: fileType || null,
             fileName: fileName || null,
@@ -321,11 +341,13 @@ const initSocket = (server) => {
         if (!senderId) return;
 
         if (isDBConnected() && mongoose.Types.ObjectId.isValid(messageId)) {
-          const msg = await Message.findById(messageId);
+          const msg = await Message.findById(messageId).select('+moderation.removedBy');
           if (!msg || msg.sender.toString() !== senderId) return; // not owner → ignore
+          if (msg.moderation?.removedBy) return; // moderated content cannot be re-edited
+          const settings = await getSettings();
           const updated = await Message.findByIdAndUpdate(
             messageId,
-            { content: String(newContent || '').slice(0, 2000), isEdited: true },
+            { content: String(newContent || '').slice(0, settings.maxMessageLength || 2000), isEdited: true },
             { new: true }
           ).populate('sender', 'username email avatar');
 
@@ -333,7 +355,8 @@ const initSocket = (server) => {
         } else {
           const msg = memoryMessages.get(messageId);
           if (msg && (msg.sender._id === senderId || msg.sender.id === senderId)) {
-            msg.content = String(newContent || '').slice(0, 2000);
+            const settings = await getSettings();
+            msg.content = String(newContent || '').slice(0, settings.maxMessageLength || 2000);
             msg.isEdited = true;
             io.to(roomId).emit('message_edited', msg);
           }

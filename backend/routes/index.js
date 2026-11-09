@@ -11,6 +11,10 @@ const roomJoinRequestRoutes = require('./roomJoinRequestRoutes');
 const messageRoutes = require('./messageRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const adminRoutes = require('./adminRoutes');
+const reportRoutes = require('./reportRoutes');
+const { getPublicSettings } = require('../controllers/adminDashboardController');
+const { getSettings } = require('../services/settingsService');
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -21,6 +25,29 @@ router.get('/health', (req, res) => {
     message: 'ChatRoom Backend API is operational',
     timestamp: new Date().toISOString()
   });
+});
+
+// Public, safe settings subset (used by the client for maintenance/banner state).
+router.get('/settings/public', getPublicSettings);
+
+// Admin routes are mounted before maintenance mode so the panel can switch it off.
+router.use('/admin', adminRoutes);
+
+// Maintenance mode gate for all regular API routes.
+router.use(async (req, res, next) => {
+  try {
+    const settings = await getSettings();
+    if (settings.maintenanceMode) {
+      return res.status(503).json({
+        success: false,
+        maintenance: true,
+        message: settings.maintenanceMessage || 'ChatRoom is temporarily under maintenance.'
+      });
+    }
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 });
 
 // Authentication routes
@@ -46,6 +73,9 @@ router.use('/room-requests', roomJoinRequestRoutes);
 
 // Message routes
 router.use('/messages', messageRoutes);
+
+// User-submitted moderation reports
+router.use('/reports', reportRoutes);
 
 // File Upload routes
 router.use('/upload', uploadRoutes);

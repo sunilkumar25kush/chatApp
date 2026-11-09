@@ -90,3 +90,8 @@ module.exports = (io, socket) => {
     }
   }
 };
+
+// Read-only presence helpers used by the admin dashboard.
+module.exports.getOnlineUserIds = () => Array.from(onlineUsers.keys());
+module.exports.getOnlineCount = () => onlineUsers.size;
+module.exports.isUserOnline = (userId) => onlineUsers.has(String(userId));

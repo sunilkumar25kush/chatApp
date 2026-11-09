@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { memoryUsers } = require('../controllers/authController');
+const { enforceAccountAccess } = require('../services/accountStatusService');
 const logger = require('../utils/logger');
 
 const getJwtSecret = () => {
@@ -52,16 +53,19 @@ const protect = async (req, res, next) => {
       user = memoryUsers.get(decoded.id) || null;
     }
 
-    // 3. In-memory dev fallback: create a session record for memory-mode users
-    if (!user && mongoose.connection.readyState !== 1 && decoded.id) {
-      user = memoryUsers.get(decoded.id);
-      if (!user) {
-        return res.status(401).json({ message: 'Not authorized, user not found' });
-      }
-    }
-
     if (!user) {
       return res.status(401).json({ message: 'Not authorized, user not found' });
+    }
+
+    // 3. Revoked sessions (suspend/ban/password/forced logout)
+    if ((Number(decoded.tv) || 0) !== (Number(user.tokenVersion) || 0)) {
+      return res.status(401).json({ message: 'Session has been revoked. Please sign in again.' });
+    }
+
+    // 4. Account status gate
+    const access = await enforceAccountAccess(user);
+    if (!access.allowed) {
+      return res.status(403).json({ message: access.message });
     }
 
     req.user = user;
@@ -72,4 +76,4 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+module.exports = { protect, enforceAccountAccess };

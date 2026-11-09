@@ -3,6 +3,9 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { generatePublicId } = require('../utils/publicId');
+const { getSettings } = require('../services/settingsService');
+const { getClientIp } = require('../utils/adminValidation');
+const { enforceAccountAccess } = require('../services/accountStatusService');
 
 // In-memory fallback store when MongoDB is not connected yet
 const memoryUsers = new Map();
@@ -30,7 +33,13 @@ const registerUser = async (req, res, next) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters long' });
     }
 
+    const settings = await getSettings();
+    if (settings.registrationEnabled === false) {
+      return res.status(403).json({ message: 'New registrations are currently disabled.' });
+    }
+
     const normalizedEmail = email.toLowerCase();
+    const registrationIp = getClientIp(req);
     const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`;
 
     if (isDBConnected()) {
@@ -56,7 +65,10 @@ const registerUser = async (req, res, next) => {
             email: normalizedEmail,
             password,
             avatar,
-            publicId: generatePublicId()
+            publicId: generatePublicId(),
+            registrationIp,
+            lastLoginIp: registrationIp,
+            lastLoginAt: new Date()
           });
           break;
         } catch (createErr) {
@@ -71,7 +83,7 @@ const registerUser = async (req, res, next) => {
         }
       }
 
-      const token = generateToken(user._id.toString());
+      const token = generateToken(user._id.toString(), user.tokenVersion || 0);
       // Set HTTP-only cookie
       res.cookie('token', token, {
         httpOnly: true,
@@ -159,13 +171,20 @@ const loginUser = async (req, res, next) => {
     if (isDBConnected()) {
       const user = await User.findOne({ email: normalizedEmail });
       if (user && (await user.matchPassword(password))) {
+        const access = await enforceAccountAccess(user);
+        if (!access.allowed) {
+          return res.status(403).json({ message: access.message });
+        }
+
         // Backfill publicId if missing on legacy user
         if (!user.publicId) {
           user.publicId = generatePublicId();
-          await user.save();
         }
+        user.lastLoginAt = new Date();
+        user.lastLoginIp = getClientIp(req);
+        await user.save();
 
-        const token = generateToken(user._id.toString());
+        const token = generateToken(user._id.toString(), user.tokenVersion || 0);
         res.cookie('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
