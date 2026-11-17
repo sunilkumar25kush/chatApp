@@ -12,7 +12,8 @@ export default function NotificationsModal({
   onNavigate,
   onUnreadCountChange
 }) {
-  const { resolvedMode } = useTheme();
+  const themeContext = useTheme();
+  const resolvedMode = themeContext?.resolvedMode;
   const isLight = resolvedMode === 'light' || (typeof document !== 'undefined' && (
     document.body?.classList.contains('theme-light') ||
     document.documentElement?.classList.contains('theme-light') ||

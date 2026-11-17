@@ -143,11 +143,14 @@ export default function FriendsPage({ onStartChat, onBack }) {
   const handleAcceptRequest = async (requestId) => {
     try {
       setActionLoading(true);
+      // Optimistic update
+      setIncomingRequests((prev) => prev.filter((r) => r._id !== requestId));
       await friendService.acceptRequest(requestId);
       toast.success('Friend request accepted!');
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to accept request');
+      fetchData();
     } finally {
       setActionLoading(false);
     }
@@ -157,11 +160,14 @@ export default function FriendsPage({ onStartChat, onBack }) {
   const handleRejectRequest = async (requestId) => {
     try {
       setActionLoading(true);
+      // Optimistic update
+      setIncomingRequests((prev) => prev.filter((r) => r._id !== requestId));
       await friendService.rejectRequest(requestId);
       toast.info('Friend request rejected');
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to reject request');
+      fetchData();
     } finally {
       setActionLoading(false);
     }
@@ -171,11 +177,14 @@ export default function FriendsPage({ onStartChat, onBack }) {
   const handleCancelRequest = async (requestId) => {
     try {
       setActionLoading(true);
+      // Optimistic update
+      setOutgoingRequests((prev) => prev.filter((r) => r._id !== requestId));
       await friendService.cancelRequest(requestId);
       toast.info('Friend request cancelled');
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to cancel request');
+      fetchData();
     } finally {
       setActionLoading(false);
     }
@@ -189,12 +198,23 @@ export default function FriendsPage({ onStartChat, onBack }) {
 
     try {
       setActionLoading(true);
+      // Optimistically remove from state immediately
+      setFriends((prev) => prev.filter((f) => 
+        f.friendshipId !== friendId && 
+        f.friend?.publicId !== friendId && 
+        f.friend?._id !== friendId
+      ));
       await friendService.removeFriend(friendId);
       toast.success(`${friendName} removed from friends`);
-      fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to remove friend');
+      const errMsg = err.response?.data?.message || '';
+      if (err.response?.status === 404 || errMsg.includes('already removed') || errMsg.includes('not found')) {
+        toast.info(`${friendName} was already removed.`);
+      } else {
+        toast.error(errMsg || 'Failed to remove friend');
+      }
     } finally {
+      fetchData();
       setActionLoading(false);
     }
   };
@@ -312,6 +332,124 @@ export default function FriendsPage({ onStartChat, onBack }) {
         {/* TAB 1: ALL FRIENDS */}
         {subTab === 'all' && (
           <div>
+            {/* Prominent Incoming Requests Banner */}
+            {incomingRequests.length > 0 && (
+              <div
+                className="incoming-requests-banner"
+                style={{
+                  marginBottom: 24,
+                  padding: '16px 20px',
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>📥</span>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-main, #f3f4f6)' }}>
+                      Friend Requests Waiting for You
+                    </h3>
+                    <span style={{ background: '#10b981', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>
+                      {incomingRequests.length}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('pending')}
+                    style={{ background: 'none', border: 'none', color: 'var(--theme-primary, #a78bfa)', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Manage all pending →
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {incomingRequests.map((req) => (
+                    <div
+                      key={req._id}
+                      style={{
+                        padding: '12px 16px',
+                        background: 'var(--bg-card, rgba(255, 255, 255, 0.04))',
+                        border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+                        borderRadius: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 12
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img
+                          src={req.requester?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${req.requester?.username}`}
+                          alt={req.requester?.username}
+                          style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 15 }}>
+                            {req.requester?.fullName || req.requester?.username}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted, #9ca3af)', display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <span>@{req.requester?.username}</span>
+                            <span>•</span>
+                            <span style={{ fontFamily: 'monospace', color: 'var(--theme-primary, #a78bfa)', fontWeight: 600 }}>
+                              {req.requester?.publicId}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => handleAcceptRequest(req._id)}
+                          style={{
+                            padding: '8px 18px',
+                            borderRadius: 8,
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
+                          }}
+                        >
+                          <span>✓</span>
+                          <span>Accept</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => handleRejectRequest(req._id)}
+                          style={{
+                            padding: '8px 18px',
+                            borderRadius: 8,
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
+                          }}
+                        >
+                          <span>✕</span>
+                          <span>Decline</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted, #9ca3af)' }}>
                 <div className="spinner" style={{ margin: '0 auto 16px', width: 32, height: 32, border: '3px solid var(--border-color, rgba(255,255,255,0.1))', borderTopColor: 'var(--theme-primary, #a78bfa)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -428,7 +566,7 @@ export default function FriendsPage({ onStartChat, onBack }) {
                         <button
                           type="button"
                           disabled={actionLoading}
-                          onClick={() => handleRemoveFriend(friend.publicId || friend._id, friend.username)}
+                          onClick={() => handleRemoveFriend(friendshipId || friend.publicId || friend._id, friend.username)}
                           title="Remove Friend"
                           style={{
                             padding: '8px 12px',

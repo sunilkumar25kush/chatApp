@@ -113,7 +113,13 @@ const sendFriendRequest = async (req, res, next) => {
 
     // Database mode
     if (isDBConnected()) {
-      let existing = await Friendship.findOne({ pairKey });
+      let existing = await Friendship.findOne({
+        $or: [
+          { pairKey },
+          { requester: currentUserId, recipient: resolvedTargetId },
+          { requester: resolvedTargetId, recipient: currentUserId }
+        ]
+      });
 
       if (existing) {
         if (existing.status === 'accepted') {
@@ -723,15 +729,41 @@ const removeFriend = async (req, res, next) => {
       if (mongoose.Types.ObjectId.isValid(friendId)) {
         friendship = await Friendship.findOne({
           _id: friendId,
-          $or: [{ requester: currentUserId }, { recipient: currentUserId }],
-          status: 'accepted'
+          $or: [{ requester: currentUserId }, { recipient: currentUserId }]
         });
       }
 
-      // 2. Try resolving by pairKey with targetUserId
+      // 2. Try resolving by pairKey or requester/recipient with targetUserId
       if (!friendship && mongoose.Types.ObjectId.isValid(targetUserId)) {
         const pairKey = Friendship.makePairKey(currentUserId, targetUserId);
-        friendship = await Friendship.findOne({ pairKey, status: 'accepted' });
+        friendship = await Friendship.findOne({
+          $or: [
+            { pairKey },
+            { requester: currentUserId, recipient: targetUserId },
+            { requester: targetUserId, recipient: currentUserId }
+          ]
+        });
+      }
+
+      // 3. Fallback: try searching user by publicId (case-insensitive) or username
+      if (!friendship && typeof friendId === 'string') {
+        const u = await User.findOne({
+          $or: [
+            { publicId: friendId.toUpperCase().trim() },
+            { username: friendId.toLowerCase().trim() }
+          ]
+        }).select('_id');
+        if (u) {
+          const tId = u._id.toString();
+          const pairKey = Friendship.makePairKey(currentUserId, tId);
+          friendship = await Friendship.findOne({
+            $or: [
+              { pairKey },
+              { requester: currentUserId, recipient: tId },
+              { requester: tId, recipient: currentUserId }
+            ]
+          });
+        }
       }
 
       if (!friendship) {
@@ -769,9 +801,8 @@ const removeFriend = async (req, res, next) => {
         const reqId = rel.requester?._id || rel.requester;
         const recId = rel.recipient?._id || rel.recipient;
         if (
-          (rel._id === friendId || reqId === friendId || recId === friendId) &&
-          (reqId === currentUserId || recId === currentUserId) &&
-          rel.status === 'accepted'
+          (rel._id === friendId || reqId === friendId || recId === friendId || rel.friendshipId === friendId) &&
+          (reqId === currentUserId || recId === currentUserId)
         ) {
           foundKey = key;
           otherId = reqId === currentUserId ? recId : reqId;
@@ -779,13 +810,14 @@ const removeFriend = async (req, res, next) => {
         }
       }
       if (!foundKey) {
-        return res.status(404).json({ success: false, message: 'Friend relationship not found' });
+        return res.status(404).json({ success: false, message: 'Friend relationship not found or already removed' });
       }
       memoryFriendships.delete(foundKey);
 
       const io = req.app.get('io');
       if (io && otherId) {
         io.to(`user:${otherId}`).emit('friend_removed', { friendId: currentUserId });
+        io.to(`user:${currentUserId}`).emit('friend_removed', { friendId: otherId });
       }
 
       return res.json({ success: true, message: 'Friend removed successfully' });
@@ -872,7 +904,13 @@ const getRelationshipStatus = async (req, res, next) => {
     const pairKey = Friendship.makePairKey(currentUserId, resolvedTargetId);
 
     if (isDBConnected()) {
-      const rel = await Friendship.findOne({ pairKey });
+      const rel = await Friendship.findOne({
+        $or: [
+          { pairKey },
+          { requester: currentUserId, recipient: resolvedTargetId },
+          { requester: resolvedTargetId, recipient: currentUserId }
+        ]
+      });
 
       if (!rel) {
         return res.json({

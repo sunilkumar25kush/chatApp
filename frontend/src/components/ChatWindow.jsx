@@ -35,32 +35,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  // Room code stays hidden until the user explicitly clicks "Show code"
-  const [showRoomId, setShowRoomId] = useState(false);
-  const [roomCodeCopied, setRoomCodeCopied] = useState(false);
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-
-  // Re-hide the room code whenever the user switches rooms
-  useEffect(() => {
-    setShowRoomId(false);
-    setRoomCodeCopied(false);
-  }, [room?._id, room?.id]);
-
-  const handleCopyRoomCode = async (e) => {
-    e.stopPropagation();
-    if (!room?.code) return;
-    try {
-      await navigator.clipboard.writeText(room.code);
-      setRoomCodeCopied(true);
-      setTimeout(() => setRoomCodeCopied(false), 1600);
-    } catch {
-      /* clipboard unavailable — code is still visible to copy manually */
-    }
-  };
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -1014,47 +993,6 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
               <span className="room-created-by" title={`Created by ${getRoomCreatorLabel(room, user)}`}>
                 Created by <strong>{getRoomCreatorLabel(room, user)}</strong>
               </span>
-              {room.code && (isRoomMember(room, user) || isRoomCreator(room, user)) && (
-                <>
-                  <span className="room-meta-sep" aria-hidden="true">·</span>
-                  {showRoomId ? (
-                    <span className="room-code-revealed">
-                      <code className="room-code-chip" id="header-room-code">{room.code}</code>
-                      <button
-                        type="button"
-                        className="room-code-action"
-                        id="header-copy-room-code"
-                        onClick={handleCopyRoomCode}
-                        title="Copy room code"
-                        aria-label="Copy room code"
-                      >
-                        {roomCodeCopied ? '✓' : '⧉'}
-                      </button>
-                      <button
-                        type="button"
-                        className="room-code-action"
-                        id="header-hide-room-code"
-                        onClick={(e) => { e.stopPropagation(); setShowRoomId(false); }}
-                        title="Hide room code"
-                        aria-label="Hide room code"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="room-code-reveal"
-                      id="header-show-room-code"
-                      onClick={(e) => { e.stopPropagation(); setShowRoomId(true); }}
-                      title="Show room code"
-                    >
-                      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" /><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" /></svg>
-                      <span>Show code</span>
-                    </button>
-                  )}
-                </>
-              )}
             </div>
           </div>
         </div>

@@ -414,7 +414,7 @@ export default function Chat() {
       const createdRoom = response.data;
       setRooms((prev) => [createdRoom, ...prev]);
       handleSelectRoom(createdRoom);
-      showToast(`Room "${createdRoom.name}" created! Tap "Show code" in the header to share it.`);
+      showToast(`Room "${createdRoom.name}" created successfully!`);
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to create room';
       showToast(`Error: ${msg}`);
