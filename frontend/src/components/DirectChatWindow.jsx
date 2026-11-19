@@ -15,6 +15,7 @@ import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import UserAvatar from './common/UserAvatar';
 
 export default function DirectChatWindow({
   conversation,
@@ -610,26 +611,13 @@ export default function DirectChatWindow({
               if (e.key === 'Enter' || e.key === ' ') setTargetProfileId(friend?._id || friend?.id);
             }}
           >
-            <div style={{ position: 'relative' }}>
-              <img
-                src={friend?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend?.username || 'Friend'}`}
-                alt={friend?.username || 'Friend'}
-                style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', background: 'var(--bg-deep, #2d3139)' }}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  background: isFriendOnline ? '#10b981' : '#6b7280',
-                  border: '2px solid var(--theme-sidebar-bg, #1a1c23)'
-                }}
-                title={isFriendOnline ? 'Online' : 'Offline'}
-              />
-            </div>
+            <UserAvatar
+              src={friend?.avatar}
+              name={friend?.fullName || friend?.username || 'Friend'}
+              size={44}
+              showStatus={true}
+              isOnline={isFriendOnline}
+            />
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -864,31 +852,11 @@ export default function DirectChatWindow({
                   title={`View ${senderName}'s profile`}
                 >
                   <PresenceBadge userId={senderId}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        background: isMe ? '#6366f1' : '#d97706',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {senderAvatar ? (
-                        <img
-                          src={senderAvatar}
-                          alt={senderName}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        getUserInitials(senderName)
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={senderAvatar}
+                      name={senderName}
+                      size={36}
+                    />
                   </PresenceBadge>
                 </div>
 

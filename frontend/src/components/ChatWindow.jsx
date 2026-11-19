@@ -20,6 +20,7 @@ import WallpaperEffectsLayer from './appearance/WallpaperEffectsLayer';
 import { SkeletonMessageList } from './SkeletonLoaders';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { getRoomCreatorLabel } from '../utils/roomUtils';
+import UserAvatar from './common/UserAvatar';
 
 export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSidebar, onRoomUpdated }) {
   const { user } = useAuth();
@@ -1220,11 +1221,11 @@ export default function ChatWindow({ room, onLeaveRoom, onBack, onToggleMobileSi
                 {/* Avatar */}
                 <div style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => setTargetProfileId(msg.sender?._id || msg.sender?.id)}>
                   <PresenceBadge userId={msg.sender?._id || msg.sender?.id}>
-                    <div style={{ width: 34, height: 34, borderRadius: 6, background: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, overflow: 'hidden' }}>
-                      {msg.sender?.avatar ? (
-                        <img src={msg.sender.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : initials}
-                    </div>
+                    <UserAvatar
+                      src={msg.sender?.avatar}
+                      name={senderName}
+                      size={34}
+                    />
                   </PresenceBadge>
                 </div>
 

@@ -318,6 +318,7 @@
 .avatar-circle {
   width: 34px;
   height: 34px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: var(--color-amber);
   display: flex;
@@ -328,6 +329,35 @@
   font-weight: 700;
   flex-shrink: 0;
   position: relative;
+}
+
+.user-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  user-select: none;
+}
+
+.user-avatar-circle {
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar-circle img {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  display: block !important;
 }
 
 /* ============================================================

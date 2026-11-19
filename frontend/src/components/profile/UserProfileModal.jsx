@@ -29,6 +29,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [relationshipStatus, setRelationshipStatus] = useState(null);
   const [sendingFriendReq, setSendingFriendReq] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Image Upload States
   const [cropTarget, setCropTarget] = useState(null); // 'avatar' or 'bannerImage'
@@ -77,9 +78,16 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   useEffect(() => {
     const identifier = profileData?.publicId || profileData?._id || targetUserId;
     if (!isMe && identifier) {
-      friendService.getRelationshipStatus(identifier)
-        .then((res) => setRelationshipStatus(res.relationship))
-        .catch(() => setRelationshipStatus('none'));
+      try {
+        const resPromise = friendService.getRelationshipStatus(identifier);
+        if (resPromise && typeof resPromise.then === 'function') {
+          resPromise
+            .then((res) => setRelationshipStatus(res?.relationship || res))
+            .catch(() => setRelationshipStatus({ status: 'none' }));
+        }
+      } catch {
+        setRelationshipStatus({ status: 'none' });
+      }
     }
   }, [isMe, profileData?.publicId, profileData?._id, targetUserId]);
 
@@ -94,7 +102,7 @@ export default function UserProfileModal({ targetUserId, onClose }) {
         publicId: pubId || undefined,
         targetUserId: uid || undefined
       });
-      setRelationshipStatus('pending_sent');
+      setRelationshipStatus({ status: 'pending_outgoing' });
       toast.success('Friend Request Sent!', {
         description: `Sent friend request to @${profileData?.username || 'User'}`
       });
@@ -103,6 +111,55 @@ export default function UserProfileModal({ targetUserId, onClose }) {
       toast.error(msg);
     } finally {
       setSendingFriendReq(false);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    setActionLoading(true);
+    try {
+      const friendshipId = typeof relationshipStatus === 'object' ? relationshipStatus?.friendshipId : null;
+      const targetId = friendshipId || profileData?.publicId || profileData?._id || targetUserId;
+      await friendService.acceptRequest(targetId);
+      setRelationshipStatus({ status: 'accepted', friendshipId });
+      toast.success('Friend Request Accepted!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to accept friend request');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    setActionLoading(true);
+    try {
+      const friendshipId = typeof relationshipStatus === 'object' ? relationshipStatus?.friendshipId : null;
+      const targetId = friendshipId || profileData?.publicId || profileData?._id || targetUserId;
+      await friendService.rejectRequest(targetId);
+      setRelationshipStatus({ status: 'none' });
+      toast.info('Friend Request Declined');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to decline friend request');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    const friendName = profileData?.fullName || profileData?.username || 'this user';
+    if (!window.confirm(`Are you sure you want to remove ${friendName} from your friends?`)) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const friendshipId = typeof relationshipStatus === 'object' ? relationshipStatus?.friendshipId : null;
+      const targetId = friendshipId || profileData?.publicId || profileData?._id || targetUserId;
+      await friendService.removeFriend(targetId);
+      setRelationshipStatus({ status: 'none' });
+      toast.success(`${friendName} removed from friends`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove friend');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -322,6 +379,14 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const bannerSrc = (isEditing ? editForm.bannerImage : profileData.bannerImage) || 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=1200&auto=format&fit=crop';
   const displayName = profileData.fullName || profileData.username;
 
+  // Normalized relationship status
+  const relStatus = typeof relationshipStatus === 'object' && relationshipStatus !== null
+    ? (relationshipStatus.status || 'none')
+    : (relationshipStatus || 'none');
+  const isAcceptedFriend = relStatus === 'accepted';
+  const isPendingSent = relStatus === 'pending_outgoing' || relStatus === 'pending_sent';
+  const isPendingReceived = relStatus === 'pending_incoming' || relStatus === 'pending_received';
+
   return (
     <div className="user-profile-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="user-profile-modal" ref={modalCardRef} onClick={(e) => e.stopPropagation()}>
@@ -378,8 +443,9 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 {avatarSrc && !avatarLoadError ? (
                   <img
                     src={avatarSrc}
-                    alt="Avatar"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     onError={() => setAvatarLoadError(true)}
                   />
                 ) : (
@@ -431,36 +497,139 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                 )}
               </div>
             ) : (
-              <div className="profile-header-actions">
-                <button
-                  type="button"
-                  onClick={handleSendFriendRequest}
-                  disabled={sendingFriendReq || relationshipStatus === 'pending_sent' || relationshipStatus === 'accepted'}
-                  className="btn-profile-primary btn-add-friend"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 16px',
-                    borderRadius: 8,
-                    background: relationshipStatus === 'accepted' ? '#10b981' : relationshipStatus === 'pending_sent' ? 'rgba(255,255,255,0.1)' : 'var(--theme-primary, #7c3aed)',
-                    color: '#fff',
-                    border: 'none',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: (relationshipStatus === 'pending_sent' || relationshipStatus === 'accepted' || sendingFriendReq) ? 'default' : 'pointer'
-                  }}
-                >
-                  {relationshipStatus === 'accepted' ? (
-                    <><span>👥</span><span>Friends</span></>
-                  ) : relationshipStatus === 'pending_sent' ? (
-                    <><span>⏳</span><span>Request Sent</span></>
-                  ) : relationshipStatus === 'pending_received' ? (
-                    <><span>✓</span><span>Accept Request</span></>
-                  ) : (
-                    <><span>➕</span><span>{sendingFriendReq ? 'Sending...' : 'Add Friend'}</span></>
-                  )}
-                </button>
+              <div className="profile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isAcceptedFriend ? (
+                  <>
+                    <span
+                      className="badge-friends-status"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        color: '#10b981',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        userSelect: 'none'
+                      }}
+                    >
+                      <span>✓</span>
+                      <span>Friends</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFriend}
+                      disabled={actionLoading}
+                      title="Remove from Friends"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        fontWeight: 600,
+                        fontSize: 12,
+                        cursor: actionLoading ? 'wait' : 'pointer'
+                      }}
+                    >
+                      <span>✕</span>
+                      <span>Remove</span>
+                    </button>
+                  </>
+                ) : isPendingSent ? (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      color: 'var(--text-muted, #9ca3af)',
+                      border: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      userSelect: 'none'
+                    }}
+                  >
+                    <span>⏳</span>
+                    <span>Request Sent</span>
+                  </span>
+                ) : isPendingReceived ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={handleAcceptRequest}
+                      disabled={actionLoading}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        background: '#10b981',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: actionLoading ? 'wait' : 'pointer'
+                      }}
+                    >
+                      <span>✓</span>
+                      <span>Accept</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeclineRequest}
+                      disabled={actionLoading}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: actionLoading ? 'wait' : 'pointer'
+                      }}
+                    >
+                      <span>✕</span>
+                      <span>Decline</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendFriendRequest}
+                    disabled={sendingFriendReq || actionLoading}
+                    className="btn-profile-primary btn-add-friend"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      background: 'var(--theme-primary, #7c3aed)',
+                      color: '#fff',
+                      border: 'none',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: sendingFriendReq ? 'wait' : 'pointer'
+                    }}
+                  >
+                    <span>➕</span>
+                    <span>{sendingFriendReq ? 'Sending...' : 'Add Friend'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

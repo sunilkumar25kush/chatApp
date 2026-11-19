@@ -16,6 +16,7 @@ import NotificationsModal from './NotificationsModal';
 import { socket } from '../services/socket';
 import AnimatedList from './AnimatedList';
 import api from '../services/api';
+import UserAvatar from './common/UserAvatar';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -530,7 +531,8 @@ export default function Sidebar({
                           <img
                             src={user.avatar}
                             alt=""
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                            referrerPolicy="no-referrer"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
                             onError={() => setUserAvatarError(true)}
                           />
                         ) : (
@@ -905,56 +907,13 @@ export default function Sidebar({
                     const isOnline = item.isOnline;
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0, position: 'relative', zIndex: 2 }}>
-                        <div
-                          className="avatar-circle"
-                          style={{
-                            position: 'relative',
-                            width: 38,
-                            height: 38,
-                            borderRadius: '50%',
-                            flexShrink: 0,
-                            background: 'var(--bg-panel-hover, #374151)',
-                            overflow: 'visible'
-                          }}
-                        >
-                          {friend.avatar ? (
-                            <img
-                              src={friend.avatar}
-                              alt={friend.username || 'Friend'}
-                              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <div
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                borderRadius: '50%',
-                                background: 'var(--theme-primary, #7c3aed)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#fff',
-                                fontWeight: 700,
-                                fontSize: 13
-                              }}
-                            >
-                              {getUserInitials(friend.fullName || friend.username || 'Friend')}
-                            </div>
-                          )}
-                          <span
-                            style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              width: 10,
-                              height: 10,
-                              borderRadius: '50%',
-                              background: isOnline ? '#10b981' : '#6b7280',
-                              border: '2px solid var(--theme-sidebar-bg, var(--bg-surface, #ECEAC9))'
-                            }}
-                            title={isOnline ? 'Online' : 'Offline'}
-                          />
-                        </div>
+                        <UserAvatar
+                          src={friend.avatar}
+                          name={friend.fullName || friend.username || 'Friend'}
+                          size={38}
+                          showStatus={true}
+                          isOnline={isOnline}
+                        />
 
                         <div className="chat-item-content" style={{ flex: 1, minWidth: 0 }}>
                           <div className="chat-item-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -1141,10 +1100,10 @@ export default function Sidebar({
             {addFriendFoundUser && (
               <div style={{ background: 'var(--bg-input, rgba(255,255,255,0.04))', border: '1px solid var(--border-color, rgba(255,255,255,0.08))', borderRadius: 12, padding: 16, marginTop: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                  <img
-                    src={addFriendFoundUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${addFriendFoundUser.username}`}
-                    alt={addFriendFoundUser.username}
-                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
+                  <UserAvatar
+                    src={addFriendFoundUser.avatar}
+                    name={addFriendFoundUser.fullName || addFriendFoundUser.username}
+                    size={48}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main, #fff)' }}>

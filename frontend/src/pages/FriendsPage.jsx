@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import friendService from '../services/friendService';
 import { socket } from '../services/socket';
 import { toast } from '../utils/toast';
+import UserAvatar from '../components/common/UserAvatar';
 
 export default function FriendsPage({ onStartChat, onBack }) {
 
@@ -381,10 +382,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <img
-                          src={req.requester?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${req.requester?.username}`}
-                          alt={req.requester?.username}
-                          style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                        <UserAvatar
+                          src={req.requester?.avatar}
+                          name={req.requester?.fullName || req.requester?.username}
+                          size={44}
                         />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
@@ -491,26 +492,13 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ position: 'relative' }}>
-                          <img
-                            src={friend.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend.username}`}
-                            alt={friend.username}
-                            style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', background: '#2d3139' }}
-                          />
-                          <span
-                            style={{
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              width: 12,
-                              height: 12,
-                              borderRadius: '50%',
-                              background: isOnline ? '#10b981' : '#6b7280',
-                              border: '2px solid var(--theme-chat-bg, #181a20)'
-                            }}
-                            title={isOnline ? 'Online' : 'Offline'}
-                          />
-                        </div>
+                        <UserAvatar
+                          src={friend.avatar}
+                          name={friend.fullName || friend.username}
+                          size={48}
+                          showStatus={true}
+                          isOnline={isOnline}
+                        />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 15, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {friend.fullName || friend.username}
@@ -622,10 +610,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <img
-                          src={req.requester.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${req.requester.username}`}
-                          alt={req.requester.username}
-                          style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                        <UserAvatar
+                          src={req.requester?.avatar}
+                          name={req.requester?.fullName || req.requester?.username}
+                          size={44}
                         />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
@@ -711,10 +699,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <img
-                          src={req.recipient.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${req.recipient.username}`}
-                          alt={req.recipient.username}
-                          style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                        <UserAvatar
+                          src={req.recipient?.avatar}
+                          name={req.recipient?.fullName || req.recipient?.username}
+                          size={44}
                         />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
@@ -815,10 +803,10 @@ export default function FriendsPage({ onStartChat, onBack }) {
               {searchResult && (
                 <div style={{ background: 'var(--bg-deep, rgba(0, 0, 0, 0.25))', border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))', borderRadius: 12, padding: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-                    <img
-                      src={searchResult.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${searchResult.username}`}
-                      alt={searchResult.username}
-                      style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#2d3139' }}
+                    <UserAvatar
+                      src={searchResult.avatar}
+                      name={searchResult.fullName || searchResult.username}
+                      size={56}
                     />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main, #f3f4f6)' }}>

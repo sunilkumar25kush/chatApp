@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/ThemeContext';
@@ -8,8 +8,13 @@ export default function Navbar() {
   const { resolvedMode, toggleTheme } = useTheme();
   const isDark = resolvedMode === 'dark';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatar]);
 
   const handleLogout = () => {
     logout();
@@ -49,11 +54,13 @@ export default function Navbar() {
           {isAuthenticated ? (
             <div className="navbar-user-section">
               <div className="user-profile-pill">
-                {user?.avatar ? (
+                {user?.avatar && !avatarError ? (
                   <img
                     src={user.avatar}
-                    alt={displayName}
+                    alt=""
+                    referrerPolicy="no-referrer"
                     className="user-pill-avatar"
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
                   <span className="user-pill-initials">
@@ -155,8 +162,14 @@ export default function Navbar() {
             {isAuthenticated ? (
               <div className="mobile-user-section">
                 <div className="mobile-user-card">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt={displayName} className="mobile-user-avatar" />
+                  {user?.avatar && !avatarError ? (
+                    <img
+                      src={user.avatar}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      className="mobile-user-avatar"
+                      onError={() => setAvatarError(true)}
+                    />
                   ) : (
                     <div className="mobile-user-initials">
                       {(displayName.substring(0, 2)).toUpperCase()}
