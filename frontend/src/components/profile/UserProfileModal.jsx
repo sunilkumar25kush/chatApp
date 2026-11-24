@@ -10,7 +10,7 @@ import toast from '../../utils/toast';
 import SpotlightCard from '../SpotlightCard';
 import '../SpotlightCard.css';
 
-export default function UserProfileModal({ targetUserId, onClose }) {
+export default function UserProfileModal({ targetUserId, onClose, initialRelationship = null }) {
   const { user: currentUser, updateLocalUser } = useAuth();
   const { resolvedMode } = useTheme();
   const isLight = resolvedMode === 'light' || (typeof document !== 'undefined' && (
@@ -27,7 +27,9 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
-  const [relationshipStatus, setRelationshipStatus] = useState(null);
+  const [relationshipStatus, setRelationshipStatus] = useState(
+    initialRelationship ? { status: initialRelationship } : null
+  );
   const [sendingFriendReq, setSendingFriendReq] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -78,16 +80,31 @@ export default function UserProfileModal({ targetUserId, onClose }) {
   useEffect(() => {
     const identifier = profileData?.publicId || profileData?._id || targetUserId;
     if (!isMe && identifier) {
+      let isMounted = true;
       try {
         const resPromise = friendService.getRelationshipStatus(identifier);
         if (resPromise && typeof resPromise.then === 'function') {
           resPromise
-            .then((res) => setRelationshipStatus(res?.relationship || res))
-            .catch(() => setRelationshipStatus({ status: 'none' }));
+            .then((res) => {
+              if (isMounted) {
+                setRelationshipStatus(res?.relationship || res);
+              }
+            })
+            .catch(() => {
+              if (isMounted) {
+                // Retain initial status if already provided (e.g. accepted), otherwise fallback to none
+                setRelationshipStatus((prev) => prev || { status: 'none' });
+              }
+            });
         }
       } catch {
-        setRelationshipStatus({ status: 'none' });
+        if (isMounted) {
+          setRelationshipStatus((prev) => prev || { status: 'none' });
+        }
       }
+      return () => {
+        isMounted = false;
+      };
     }
   }, [isMe, profileData?.publicId, profileData?._id, targetUserId]);
 
@@ -606,6 +623,32 @@ export default function UserProfileModal({ targetUserId, onClose }) {
                       <span>Decline</span>
                     </button>
                   </div>
+                ) : relationshipStatus === null ? (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'var(--text-muted, #9ca3af)',
+                      fontSize: 13,
+                      fontWeight: 500
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 14,
+                        height: 14,
+                        border: '2px solid rgba(255,255,255,0.2)',
+                        borderTopColor: 'var(--theme-primary, #a78bfa)',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite'
+                      }}
+                    />
+                    <span>Checking...</span>
+                  </span>
                 ) : (
                   <button
                     type="button"
@@ -800,4 +843,5 @@ export default function UserProfileModal({ targetUserId, onClose }) {
 UserProfileModal.propTypes = {
   targetUserId: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
+  initialRelationship: PropTypes.string
 };

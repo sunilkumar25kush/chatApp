@@ -11,6 +11,7 @@ const roomJoinRequestRoutes = require('./roomJoinRequestRoutes');
 const messageRoutes = require('./messageRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const storyRoutes = require('./storyRoutes');
 const adminRoutes = require('./adminRoutes');
 const reportRoutes = require('./reportRoutes');
 const { getPublicSettings } = require('../controllers/adminDashboardController');
@@ -82,5 +83,8 @@ router.use('/upload', uploadRoutes);
 
 // Persistent Notifications routes
 router.use('/notifications', notificationRoutes);
+
+// Stories & Status routes
+router.use('/stories', storyRoutes);
 
 module.exports = router;

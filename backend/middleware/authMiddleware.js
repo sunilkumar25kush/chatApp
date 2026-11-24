@@ -35,7 +35,7 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'development') {
       try {
         const devUser = (await User.findOne({ username: 'sunilkumar' }).select('-password')) ||
                         (await User.findOne({ accountStatus: 'active' }).select('-password'));

@@ -17,6 +17,7 @@ import { socket } from '../services/socket';
 import AnimatedList from './AnimatedList';
 import api from '../services/api';
 import UserAvatar from './common/UserAvatar';
+import StoriesTray from './stories/StoriesTray';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -642,6 +643,20 @@ export default function Sidebar({
                     <span className="tooltip">Friends</span>
                 </button>
                 <button 
+                  className={`nav-item ${activeTab === 'status' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('status')} 
+                  title="Status & Stories" 
+                  aria-label="Status & Stories" 
+                  aria-selected={activeTab === 'status'} 
+                  role="tab"
+                >
+                    <svg className="icon bi bi-record-circle" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                      <path d="M11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+                    </svg>
+                    <span className="tooltip">Status</span>
+                </button>
+                <button 
                   className={`nav-item ${activeTab === 'calls' ? 'active' : ''}`} 
                   onClick={() => setActiveTab('calls')} 
                   title="Calls" 
@@ -763,12 +778,15 @@ export default function Sidebar({
             {/* Header with Title & Action Button */}
             <div className="chat-list-header">
                 <div className="header-title-container">
-                    <h1 className="panel-title">{activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Rooms'}</h1>
+                    <h1 className="panel-title">{activeTab === 'status' ? 'Status' : activeTab === 'friends' ? 'Friends' : activeTab === 'calls' ? 'Calls' : 'Rooms'}</h1>
                     <span className="connection-status-pill connected" title="Connected">
                         <span className="status-dot"></span> JoyBoy
                     </span>
                 </div>
             </div>
+
+            {/* Horizontal Stories & Status Tray */}
+            <StoriesTray currentUser={user} />
 
             {/* Search Bar */}
             <div className="search-container">

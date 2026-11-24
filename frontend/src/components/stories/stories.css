@@ -1,0 +1,629 @@
+/* ============================================================
+   STORIES & STATUS FEATURE STYLES (WhatsApp & Instagram Inspired)
+   ============================================================ */
+
+/* ─── Horizontal Stories Tray ────────────────────────────── */
+.stories-tray-container {
+  padding: 12px 14px 10px;
+  background: var(--bg-surface, var(--theme-sidebar-bg, #1a1c23));
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
+  position: relative;
+  user-select: none;
+}
+
+.stories-tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stories-tray-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #9ca3af);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stories-tray-title-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary, var(--theme-primary, #a855f7));
+}
+
+.stories-tray-add-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary, var(--theme-primary, #a855f7));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: opacity 0.2s;
+}
+
+.stories-tray-add-btn:hover {
+  opacity: 0.8;
+}
+
+.stories-scroll-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 6px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stories-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+.stories-scroll-row {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─── Story Bubble Item ──────────────────────────────────── */
+.story-bubble-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 66px;
+  max-width: 72px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: center;
+  position: relative;
+  transition: transform 0.18s ease;
+}
+
+.story-bubble-item:hover {
+  transform: translateY(-2px);
+}
+
+.story-bubble-item:active {
+  transform: scale(0.96);
+}
+
+/* ─── Story Rings ────────────────────────────────────────── */
+.story-ring-wrapper {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  padding: 2.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: all 0.25s ease;
+}
+
+/* Unseen stories: Vibrant Instagram/WhatsApp gradient */
+.story-ring-unseen {
+  background: linear-gradient(45deg, #f59e0b, #ec4899, #8b5cf6, #3b82f6);
+  background-size: 200% 200%;
+  animation: storyRingGlow 4s ease infinite;
+}
+
+@keyframes storyRingGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Seen stories: Sleek muted ring */
+.story-ring-seen {
+  background: var(--border-color, rgba(156, 163, 175, 0.4));
+}
+
+/* User's own story: Purple theme gradient if active */
+.story-ring-my-active {
+  background: linear-gradient(135deg, var(--color-primary, #7c3aed), #ec4899);
+}
+
+/* No active stories: Neutral ring */
+.story-ring-none {
+  background: transparent;
+  padding: 0;
+}
+
+.story-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-surface, var(--theme-sidebar-bg, #1a1c23));
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* ─── Add Status Plus Badge ──────────────────────────────── */
+.story-add-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary, var(--theme-primary, #7c3aed));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid var(--bg-surface, var(--theme-sidebar-bg, #1a1c23));
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.story-bubble-item:hover .story-add-badge {
+  transform: scale(1.15);
+  background: #9333ea;
+}
+
+.story-bubble-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main, #f3f4f6);
+  max-width: 68px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.story-bubble-time {
+  font-size: 10px;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1;
+}
+
+/* ─── Full-Screen Story Viewer Overlay ───────────────────── */
+.story-viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  animation: storyFadeIn 0.2s ease-out;
+}
+
+@keyframes storyFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.story-viewer-modal {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100%;
+  max-height: 840px;
+  background: #000000;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .story-viewer-modal {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ─── Story Top Progress Bars ────────────────────────────── */
+.story-progress-container {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 20;
+}
+
+.story-progress-segment {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.story-progress-fill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 3px;
+  transform-origin: left;
+  transition: width 0.05s linear;
+}
+
+/* ─── Story Viewer Header ────────────────────────────────── */
+.story-viewer-header {
+  position: absolute;
+  top: 22px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.story-viewer-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.story-viewer-username {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.story-viewer-timestamp {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 6px;
+}
+
+.story-viewer-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.story-icon-btn {
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.story-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.08);
+}
+
+/* ─── Story Media Container ──────────────────────────────── */
+.story-media-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000000;
+}
+
+.story-media-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.story-media-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ─── Text Story Container ───────────────────────────────── */
+.story-text-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  box-sizing: border-box;
+}
+
+.story-text-content {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+  max-width: 90%;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Navigation Tap Zones ───────────────────────────────── */
+.story-tap-zone {
+  position: absolute;
+  top: 60px;
+  bottom: 80px;
+  width: 40%;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.story-tap-zone-left {
+  left: 0;
+}
+
+.story-tap-zone-right {
+  right: 0;
+}
+
+/* ─── Desktop Prev/Next Side Chevrons ─────────────────────── */
+.story-desktop-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 30;
+  transition: all 0.2s ease;
+}
+
+.story-desktop-chevron:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.story-desktop-chevron-left {
+  left: -60px;
+}
+
+.story-desktop-chevron-right {
+  right: -60px;
+}
+
+@media (max-width: 600px) {
+  .story-desktop-chevron {
+    display: none;
+  }
+}
+
+/* ─── Story Caption Bar ──────────────────────────────────── */
+.story-caption-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 16px 24px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
+  color: #ffffff;
+  font-size: 14px;
+  line-height: 1.4;
+  z-index: 20;
+  text-align: center;
+}
+
+/* ─── Story Viewers Bottom Bar (For Owner) ───────────────── */
+.story-viewers-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 25;
+  transition: background 0.2s;
+}
+
+.story-viewers-bar:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Viewers Drawer Modal ───────────────────────────────── */
+.story-viewers-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 60%;
+  background: #181a20;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  padding: 16px;
+  overflow-y: auto;
+  z-index: 40;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ─── Create Status Modal ────────────────────────────────── */
+.create-status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.create-status-modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-surface, #1e222b);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.create-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.create-status-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+}
+
+.create-status-tabs {
+  display: flex;
+  padding: 6px 16px;
+  gap: 8px;
+  background: var(--bg-input, rgba(0, 0, 0, 0.15));
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.06));
+}
+
+.create-status-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.create-status-tab-btn.active {
+  background: var(--color-primary, var(--theme-primary, #7c3aed));
+  color: #ffffff;
+}
+
+.create-status-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Dropzone for Photo & Video */
+.create-status-dropzone {
+  border: 2px dashed var(--border-color, rgba(255, 255, 255, 0.15));
+  border-radius: 14px;
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-status-dropzone:hover {
+  border-color: var(--color-primary, var(--theme-primary, #7c3aed));
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.create-status-preview-box {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-status-preview-box img,
+.create-status-preview-box video {
+  max-height: 280px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Palette Preset Pills */
+.color-preset-palette {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-preset-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-preset-pill:hover {
+  transform: scale(1.15);
+}
+
+.color-preset-pill.active {
+  border-color: #ffffff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--color-primary, #7c3aed);
+}

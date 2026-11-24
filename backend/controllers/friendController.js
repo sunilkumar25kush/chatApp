@@ -904,13 +904,26 @@ const getRelationshipStatus = async (req, res, next) => {
     const pairKey = Friendship.makePairKey(currentUserId, resolvedTargetId);
 
     if (isDBConnected()) {
-      const rel = await Friendship.findOne({
+      // Prioritize accepted relationship first
+      let rel = await Friendship.findOne({
         $or: [
           { pairKey },
           { requester: currentUserId, recipient: resolvedTargetId },
           { requester: resolvedTargetId, recipient: currentUserId }
-        ]
+        ],
+        status: 'accepted'
       });
+
+      // If no accepted relationship found, check for latest pending/rejected
+      if (!rel) {
+        rel = await Friendship.findOne({
+          $or: [
+            { pairKey },
+            { requester: currentUserId, recipient: resolvedTargetId },
+            { requester: resolvedTargetId, recipient: currentUserId }
+          ]
+        }).sort({ updatedAt: -1, createdAt: -1 });
+      }
 
       if (!rel) {
         return res.json({
@@ -956,11 +969,24 @@ const getRelationshipStatus = async (req, res, next) => {
         });
       }
     } else {
-      const rel = memoryFriendships.get(pairKey);
+      let rel = memoryFriendships.get(pairKey);
+      if (!rel) {
+        for (const item of memoryFriendships.values()) {
+          const reqId = (item.requester?._id || item.requester)?.toString();
+          const recId = (item.recipient?._id || item.recipient)?.toString();
+          if (
+            (reqId === currentUserId && recId === resolvedTargetId) ||
+            (reqId === resolvedTargetId && recId === currentUserId)
+          ) {
+            rel = item;
+            if (item.status === 'accepted') break;
+          }
+        }
+      }
       if (!rel) {
         return res.json({ success: true, relationship: { status: 'none' }, user: sanitizeUser(targetUser) });
       }
-      const reqId = rel.requester?._id || rel.requester;
+      const reqId = (rel.requester?._id || rel.requester)?.toString();
       if (rel.status === 'accepted') {
         return res.json({ success: true, relationship: { status: 'accepted', friendshipId: rel._id }, user: sanitizeUser(targetUser) });
       }

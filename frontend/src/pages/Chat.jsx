@@ -7,6 +7,7 @@ import ChatWindow from '../components/ChatWindow';
 import ErrorBoundary from '../components/ErrorBoundary';
 import CallHistoryPage from './CallHistoryPage';
 import FriendsPage from './FriendsPage';
+import StatusPage from '../components/stories/StatusPage';
 import DirectChatWindow from '../components/DirectChatWindow';
 import conversationService from '../services/conversationService';
 import api from '../services/api';
@@ -505,6 +506,16 @@ export default function Chat() {
         <main className="chat-panel">
           {activeTab === 'calls' ? (
             <CallHistoryPage />
+          ) : activeTab === 'status' ? (
+            <StatusPage
+              onBack={() => {
+                if (window.innerWidth < 768) {
+                  closeMobileChat();
+                } else {
+                  setActiveTab('all');
+                }
+              }}
+            />
           ) : activeDirectConversation ? (
             <DirectChatWindow
               conversation={activeDirectConversation}

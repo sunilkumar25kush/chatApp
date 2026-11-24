@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 const BACKEND_DIR = path.join(__dirname, '..');
+require('../models/User');
 const Notification = require('../models/Notification');
 const { createNotification } = require('../controllers/notificationController');
 
