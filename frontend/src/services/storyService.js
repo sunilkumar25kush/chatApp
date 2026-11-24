@@ -41,6 +41,36 @@ const storyService = {
   },
 
   /**
+   * Update privacy for an existing active story
+   * @param {string} storyId
+   * @param {{ visibility: string, allowedViewers?: string[], excludedViewers?: string[] }} data
+   * @returns {Promise<{ success: boolean, story: object }>}
+   */
+  updateStoryPrivacy: async (storyId, data) => {
+    const res = await api.put(`/stories/${storyId}/privacy`, data);
+    return res.data;
+  },
+
+  /**
+   * Get user's default story privacy preferences
+   * @returns {Promise<{ success: boolean, storyPrivacy: object }>}
+   */
+  getDefaultPrivacy: async () => {
+    const res = await api.get('/stories/privacy/default');
+    return res.data;
+  },
+
+  /**
+   * Update user's default story privacy preferences
+   * @param {{ visibility: string, allowedViewers?: string[], excludedViewers?: string[] }} data
+   * @returns {Promise<{ success: boolean, storyPrivacy: object }>}
+   */
+  updateDefaultPrivacy: async (data) => {
+    const res = await api.put('/stories/privacy/default', data);
+    return res.data;
+  },
+
+  /**
    * Upload media file (photo or video) using the existing upload endpoint
    * @param {File} file
    * @returns {Promise<{ url: string, fileType: string, fileName: string, fileSize: number }>}

@@ -8,7 +8,9 @@ const {
   recordStoryView,
   getStoryViews,
   updateStoryPrivacy,
-  deleteStory
+  deleteStory,
+  getDefaultStoryPrivacy,
+  updateDefaultStoryPrivacy
 } = require('../controllers/storyController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -21,6 +23,11 @@ router.route('/')
 
 router.get('/feed', getStoriesFeed);
 router.get('/user/:userId', getUserStories);
+
+// Default privacy preference endpoints (MUST be defined before /:storyId)
+router.route('/privacy/default')
+  .get(getDefaultStoryPrivacy)
+  .put(updateDefaultStoryPrivacy);
 
 router.route('/:storyId')
   .get(getStoryById)

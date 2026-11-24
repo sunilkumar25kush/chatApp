@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import storyService from '../../services/storyService';
 import ImageCropperModal from '../profile/ImageCropperModal';
+import StoryPrivacySelector from './StoryPrivacySelector';
 import { toast } from '../../utils/toast';
 import './stories.css';
 
@@ -44,6 +45,34 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
   const [textBg, setTextBg] = useState(TEXT_BACKGROUNDS[0].value);
   const [textColor, setTextColor] = useState(TEXT_COLORS[0].value);
   const [textAlign, setTextAlign] = useState('center');
+
+  // Story Privacy State
+  const [privacy, setPrivacy] = useState({
+    visibility: 'friends',
+    allowedViewers: [],
+    excludedViewers: []
+  });
+  const [showPrivacySelector, setShowPrivacySelector] = useState(false);
+
+  // Load user default privacy on open
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof storyService.getDefaultPrivacy === 'function') {
+      storyService.getDefaultPrivacy()
+        .then((res) => {
+          if (res?.storyPrivacy) {
+            let vis = res.storyPrivacy.visibility || 'friends';
+            if (vis === 'custom') vis = 'only_share_with';
+            setPrivacy({
+              visibility: vis,
+              allowedViewers: (res.storyPrivacy.allowedViewers || []).map((u) => u._id || u),
+              excludedViewers: (res.storyPrivacy.excludedViewers || []).map((u) => u._id || u)
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -118,7 +147,10 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
           mediaType: 'photo',
           mediaUrl: uploadRes.url,
           caption: photoCaption,
-          duration: 5
+          duration: 5,
+          visibility: privacy.visibility,
+          allowedViewers: privacy.allowedViewers,
+          excludedViewers: privacy.excludedViewers
         });
         toast.success('Photo Status published!');
       } else if (activeTab === 'video') {
@@ -131,7 +163,10 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
           mediaType: 'video',
           mediaUrl: uploadRes.url,
           caption: videoCaption,
-          duration: Math.min(videoDuration || 15, 60)
+          duration: Math.min(videoDuration || 15, 60),
+          visibility: privacy.visibility,
+          allowedViewers: privacy.allowedViewers,
+          excludedViewers: privacy.excludedViewers
         });
         toast.success('Video Status published!');
       } else if (activeTab === 'text') {
@@ -143,6 +178,9 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
           mediaType: 'text',
           caption: '',
           duration: 5,
+          visibility: privacy.visibility,
+          allowedViewers: privacy.allowedViewers,
+          excludedViewers: privacy.excludedViewers,
           textConfig: {
             text: textContent.trim(),
             background: textBg,
@@ -528,46 +566,69 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
               </div>
             )}
 
-            {/* Publish Action Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
+            {/* Publish & Privacy Action Footer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+              {/* Privacy Selector Trigger Badge */}
               <button
                 type="button"
-                onClick={onClose}
+                className="story-privacy-badge-btn"
+                onClick={() => setShowPrivacySelector(true)}
+                title="Change who can view this status"
                 disabled={publishing}
-                style={{
-                  padding: '10px 18px',
-                  borderRadius: 10,
-                  background: 'transparent',
-                  border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
-                  color: 'var(--text-main, #fff)',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: 'pointer'
-                }}
               >
-                Cancel
+                <span>
+                  {privacy.visibility === 'friends_except' ? '🚫' : privacy.visibility === 'only_share_with' ? '⭐' : '👥'}
+                </span>
+                <span>
+                  {privacy.visibility === 'friends_except'
+                    ? `Friends Except (${privacy.excludedViewers?.length || 0})`
+                    : privacy.visibility === 'only_share_with'
+                    ? `Only Share (${privacy.allowedViewers?.length || 0})`
+                    : 'Status (My Contacts)'}
+                </span>
+                <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
               </button>
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={publishing}
-                style={{
-                  padding: '10px 22px',
-                  borderRadius: 10,
-                  background: 'var(--color-primary, var(--theme-primary, #7c3aed))',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: publishing ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)'
-                }}
-              >
-                {publishing ? 'Publishing...' : 'Share Status'}
-              </button>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={publishing}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: 10,
+                    background: 'transparent',
+                    border: '1px solid var(--border-color, rgba(255,255,255,0.15))',
+                    color: 'var(--text-main, #fff)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePublish}
+                  disabled={publishing}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: 10,
+                    background: 'var(--color-primary, var(--theme-primary, #7c3aed))',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: publishing ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)'
+                  }}
+                >
+                  {publishing ? 'Publishing...' : 'Share Status'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -580,6 +641,19 @@ export default function CreateStatusModal({ isOpen, onClose, onStoryCreated }) {
           aspect={9 / 16} // 9:16 mobile story aspect
           onCropComplete={handleCropComplete}
           onCancel={() => setIsCropping(false)}
+        />
+      )}
+
+      {/* Privacy Selector Sub-Modal */}
+      {showPrivacySelector && (
+        <StoryPrivacySelector
+          isOpen={showPrivacySelector}
+          onClose={() => setShowPrivacySelector(false)}
+          initialPrivacy={privacy}
+          onSave={async (updatedPrivacy) => {
+            setPrivacy(updatedPrivacy);
+          }}
+          title="Status Privacy"
         />
       )}
     </>

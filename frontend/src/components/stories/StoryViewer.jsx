@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import UserAvatar from '../common/UserAvatar';
 import storyService from '../../services/storyService';
+import StoryPrivacySelector from './StoryPrivacySelector';
 import { toast } from '../../utils/toast';
 import './stories.css';
 
@@ -34,6 +35,7 @@ export default function StoryViewer({
   const [mediaLoading, setMediaLoading] = useState(true);
   const [mediaError, setMediaError] = useState(false);
   const [showViewersDrawer, setShowViewersDrawer] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const videoRef = useRef(null);
   const progressIntervalRef = useRef(null);
@@ -112,7 +114,7 @@ export default function StoryViewer({
 
   // Manage progress bar animation
   useEffect(() => {
-    if (!isOpen || !activeStory || isPaused || mediaLoading || mediaError || showViewersDrawer) {
+    if (!isOpen || !activeStory || isPaused || mediaLoading || mediaError || showViewersDrawer || showPrivacyModal) {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       return;
     }
@@ -301,6 +303,23 @@ export default function StoryViewer({
                 aria-label={isMuted ? 'Unmute video' : 'Mute video'}
               >
                 {isMuted ? '🔇' : '🔊'}
+              </button>
+            )}
+
+            {/* Privacy settings (owner only) */}
+            {isMe && (
+              <button
+                type="button"
+                className="story-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPaused(true);
+                  setShowPrivacyModal(true);
+                }}
+                title="Change status privacy"
+                aria-label="Change status privacy"
+              >
+                🔒
               </button>
             )}
 
@@ -516,6 +535,29 @@ export default function StoryViewer({
         >
           ›
         </button>
+      )}
+
+      {/* Story Privacy Modal */}
+      {showPrivacyModal && activeStory && (
+        <StoryPrivacySelector
+          isOpen={showPrivacyModal}
+          onClose={() => {
+            setShowPrivacyModal(false);
+            setIsPaused(false);
+          }}
+          initialPrivacy={{
+            visibility: activeStory.visibility || 'friends',
+            allowedViewers: activeStory.allowedViewers || [],
+            excludedViewers: activeStory.excludedViewers || []
+          }}
+          onSave={async (updatedPrivacy) => {
+            await storyService.updateStoryPrivacy(activeStory._id, updatedPrivacy);
+            activeStory.visibility = updatedPrivacy.visibility;
+            activeStory.allowedViewers = updatedPrivacy.allowedViewers;
+            activeStory.excludedViewers = updatedPrivacy.excludedViewers;
+          }}
+          title="Edit Status Privacy"
+        />
       )}
     </div>
   );

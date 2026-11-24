@@ -29,24 +29,52 @@ const canViewStory = (story, viewerId, friendIdsSet) => {
   const authorId = (story.userId?._id || story.userId || story.user?._id || story.user)?.toString();
   if (authorId === viewerId) return true;
 
-  // Check exclusion list
-  const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
-  if (excluded.includes(viewerId)) return false;
-
   const visibility = story.visibility || 'friends';
 
-  if (visibility === 'public') return true;
-
-  if (visibility === 'friends') {
-    return friendIdsSet.has(authorId);
+  // 1. If public
+  if (visibility === 'public') {
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    return !excluded.includes(viewerId);
   }
 
-  if (visibility === 'custom') {
+  // All other modes REQUIRE the viewer to be an accepted friend!
+  // Pending friend requests or non-friends are NOT allowed.
+  if (!friendIdsSet.has(authorId)) {
+    return false;
+  }
+
+  // 2. Friends Except... (visibility === 'friends_except')
+  if (visibility === 'friends_except') {
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    return !excluded.includes(viewerId);
+  }
+
+  // 3. Only Share With... (visibility === 'only_share_with' || visibility === 'custom')
+  if (visibility === 'only_share_with' || visibility === 'custom') {
     const allowed = (story.allowedViewers || []).map((id) => (id?._id || id).toString());
     return allowed.includes(viewerId);
   }
 
+  // 4. Default 'friends' (My Contacts)
+  if (visibility === 'friends') {
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    return !excluded.includes(viewerId);
+  }
+
   return false;
+};
+
+/**
+ * Strips private audience lists from story object if viewer is not the author
+ */
+const sanitizeStoryForViewer = (storyObj, currentUserId) => {
+  if (!storyObj) return storyObj;
+  const authorId = (storyObj.userId?._id || storyObj.userId || storyObj.user?._id || storyObj.user)?.toString();
+  if (authorId !== currentUserId) {
+    delete storyObj.allowedViewers;
+    delete storyObj.excludedViewers;
+  }
+  return storyObj;
 };
 
 /**
@@ -69,12 +97,33 @@ const createStory = async (req, res, next) => {
       backgroundColor,
       textColor,
       caption,
-      visibility = 'friends',
-      allowedViewers = [],
-      excludedViewers = [],
+      visibility: reqVisibility,
+      allowedViewers: reqAllowed,
+      excludedViewers: reqExcluded,
       duration,
       textConfig
     } = req.body;
+
+    let visibility = reqVisibility;
+    let allowedViewers = reqAllowed;
+    let excludedViewers = reqExcluded;
+
+    // Fallback to user default story privacy setting if not specified
+    if (!visibility && isDBConnected()) {
+      try {
+        const authorUser = await User.findById(currentUserId).select('privacy.storyPrivacy');
+        if (authorUser?.privacy?.storyPrivacy) {
+          visibility = authorUser.privacy.storyPrivacy.visibility || 'friends';
+          if (!allowedViewers) allowedViewers = authorUser.privacy.storyPrivacy.allowedViewers || [];
+          if (!excludedViewers) excludedViewers = authorUser.privacy.storyPrivacy.excludedViewers || [];
+        }
+      } catch {
+        /* fallback to friends */
+      }
+    }
+    if (!visibility) visibility = 'friends';
+    if (!Array.isArray(allowedViewers)) allowedViewers = [];
+    if (!Array.isArray(excludedViewers)) excludedViewers = [];
 
     const normalizedMediaType = mediaType === 'photo' ? 'image' : mediaType;
 
@@ -278,10 +327,11 @@ const getStoriesFeed = async (req, res, next) => {
         }
 
         const group = userGroupMap.get(authorId);
-        const storyObj = st.toObject ? st.toObject() : { ...st };
+        let storyObj = st.toObject ? st.toObject() : { ...st };
         storyObj.viewsCount = viewCountsMap.get(st._id.toString()) || 0;
         storyObj.hasViewed = viewedStoryIdsSet.has(st._id.toString());
         storyObj.user = author;
+        storyObj = sanitizeStoryForViewer(storyObj, currentUserId);
 
         group.stories.push(storyObj);
         if (new Date(st.createdAt) > new Date(group.latestTimestamp)) {
@@ -303,12 +353,16 @@ const getStoriesFeed = async (req, res, next) => {
         return new Date(b.latestTimestamp) - new Date(a.latestTimestamp);
       });
 
+      const sanitizedStories = authorizedStories.map((st) =>
+        sanitizeStoryForViewer(st.toObject ? st.toObject() : { ...st }, currentUserId)
+      );
+
       return res.json({
         success: true,
         count: authorizedStories.length,
         myGroup,
         friendGroups,
-        stories: authorizedStories
+        stories: sanitizedStories
       });
     } else {
       // Memory fallback
@@ -399,10 +453,14 @@ const getUserStories = async (req, res, next) => {
         canViewStory(st, currentUserId, friendIdsSet)
       );
 
+      const sanitizedStories = authorizedStories.map((st) =>
+        sanitizeStoryForViewer(st.toObject ? st.toObject() : { ...st }, currentUserId)
+      );
+
       return res.json({
         success: true,
-        count: authorizedStories.length,
-        stories: authorizedStories
+        count: sanitizedStories.length,
+        stories: sanitizedStories
       });
     } else {
       const list = Array.from(memoryStories.values()).filter((st) => {
@@ -470,9 +528,10 @@ const getStoryById = async (req, res, next) => {
       }
 
       const viewsCount = await StoryView.countDocuments({ storyId: story._id });
-      const storyObj = story.toObject();
+      let storyObj = story.toObject();
       storyObj.viewsCount = viewsCount;
       storyObj.user = storyObj.userId;
+      storyObj = sanitizeStoryForViewer(storyObj, currentUserId);
 
       return res.json({
         success: true,
@@ -483,7 +542,7 @@ const getStoryById = async (req, res, next) => {
       if (!story || new Date(story.expiresAt) <= new Date()) {
         return res.status(404).json({ success: false, message: 'Story not found or has expired.' });
       }
-      return res.json({ success: true, story });
+      return res.json({ success: true, story: sanitizeStoryForViewer({ ...story }, currentUserId) });
     }
   } catch (err) {
     next(err);
@@ -653,7 +712,8 @@ const updateStoryPrivacy = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid story ID' });
     }
 
-    if (visibility && !['friends', 'public', 'custom'].includes(visibility)) {
+    const validVisibilities = ['friends', 'friends_except', 'custom', 'only_share_with', 'public'];
+    if (visibility && !validVisibilities.includes(visibility)) {
       return res.status(400).json({ success: false, message: 'Invalid visibility value' });
     }
 
@@ -672,6 +732,17 @@ const updateStoryPrivacy = async (req, res, next) => {
       if (Array.isArray(excludedViewers)) story.excludedViewers = excludedViewers;
 
       await story.save();
+      await story.populate('userId', 'username fullName avatar publicId');
+      await story.populate('allowedViewers', 'username fullName avatar publicId');
+      await story.populate('excludedViewers', 'username fullName avatar publicId');
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${currentUserId}`).emit('story_privacy_updated', {
+          storyId: story._id,
+          visibility: story.visibility
+        });
+      }
 
       return res.json({
         success: true,
@@ -684,7 +755,116 @@ const updateStoryPrivacy = async (req, res, next) => {
         return res.status(404).json({ success: false, message: 'Story not found' });
       }
       if (visibility) story.visibility = visibility;
+      if (Array.isArray(allowedViewers)) story.allowedViewers = allowedViewers;
+      if (Array.isArray(excludedViewers)) story.excludedViewers = excludedViewers;
       return res.json({ success: true, message: 'Story privacy updated', story });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Get default story privacy settings for current user
+ * @route   GET /api/stories/privacy/default
+ * @access  Private
+ */
+const getDefaultStoryPrivacy = async (req, res, next) => {
+  try {
+    const currentUserId = getUserId(req);
+    if (!currentUserId) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    if (isDBConnected()) {
+      const user = await User.findById(currentUserId)
+        .populate('privacy.storyPrivacy.allowedViewers', 'username fullName avatar publicId')
+        .populate('privacy.storyPrivacy.excludedViewers', 'username fullName avatar publicId');
+
+      const storyPrivacy = user?.privacy?.storyPrivacy || {
+        visibility: 'friends',
+        allowedViewers: [],
+        excludedViewers: []
+      };
+
+      return res.json({
+        success: true,
+        storyPrivacy: {
+          visibility: storyPrivacy.visibility || 'friends',
+          allowedViewers: storyPrivacy.allowedViewers || [],
+          excludedViewers: storyPrivacy.excludedViewers || []
+        }
+      });
+    } else {
+      return res.json({
+        success: true,
+        storyPrivacy: {
+          visibility: 'friends',
+          allowedViewers: [],
+          excludedViewers: []
+        }
+      });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Update default story privacy settings for current user
+ * @route   PUT /api/stories/privacy/default
+ * @access  Private
+ */
+const updateDefaultStoryPrivacy = async (req, res, next) => {
+  try {
+    const currentUserId = getUserId(req);
+    if (!currentUserId) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const { visibility, allowedViewers, excludedViewers } = req.body;
+    const validVisibilities = ['friends', 'friends_except', 'custom', 'only_share_with', 'public'];
+
+    if (visibility && !validVisibilities.includes(visibility)) {
+      return res.status(400).json({ success: false, message: 'Invalid visibility option' });
+    }
+
+    if (isDBConnected()) {
+      const user = await User.findById(currentUserId);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      if (!user.privacy) user.privacy = {};
+      if (!user.privacy.storyPrivacy) {
+        user.privacy.storyPrivacy = { visibility: 'friends', allowedViewers: [], excludedViewers: [] };
+      }
+
+      if (visibility) user.privacy.storyPrivacy.visibility = visibility;
+      if (Array.isArray(allowedViewers)) user.privacy.storyPrivacy.allowedViewers = allowedViewers;
+      if (Array.isArray(excludedViewers)) user.privacy.storyPrivacy.excludedViewers = excludedViewers;
+
+      await user.save();
+
+      const populatedUser = await User.findById(currentUserId)
+        .populate('privacy.storyPrivacy.allowedViewers', 'username fullName avatar publicId')
+        .populate('privacy.storyPrivacy.excludedViewers', 'username fullName avatar publicId');
+
+      return res.json({
+        success: true,
+        message: 'Default story privacy updated successfully',
+        storyPrivacy: populatedUser.privacy.storyPrivacy
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: 'Default story privacy updated',
+        storyPrivacy: {
+          visibility: visibility || 'friends',
+          allowedViewers: allowedViewers || [],
+          excludedViewers: excludedViewers || []
+        }
+      });
     }
   } catch (err) {
     next(err);
@@ -761,5 +941,7 @@ module.exports = {
   recordStoryView,
   getStoryViews,
   updateStoryPrivacy,
-  deleteStory
+  deleteStory,
+  getDefaultStoryPrivacy,
+  updateDefaultStoryPrivacy
 };

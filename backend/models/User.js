@@ -89,7 +89,16 @@ const userSchema = new mongoose.Schema(
       showOnline: { type: Boolean, default: true },
       showLastSeen: { type: Boolean, default: true },
       showReadReceipts: { type: Boolean, default: true },
-      allowMessagesFrom: { type: String, enum: ['everyone', 'contacts', 'nobody'], default: 'everyone' }
+      allowMessagesFrom: { type: String, enum: ['everyone', 'contacts', 'nobody'], default: 'everyone' },
+      storyPrivacy: {
+        visibility: {
+          type: String,
+          enum: ['friends', 'friends_except', 'custom', 'only_share_with', 'public'],
+          default: 'friends'
+        },
+        excludedViewers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+        allowedViewers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+      }
     },
     notificationPrefs: {
       soundEnabled: { type: Boolean, default: true },

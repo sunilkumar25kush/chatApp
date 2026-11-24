@@ -46,7 +46,7 @@ const storySchema = new mongoose.Schema(
     },
     visibility: {
       type: String,
-      enum: ['friends', 'public', 'custom'],
+      enum: ['friends', 'friends_except', 'custom', 'only_share_with', 'public'],
       default: 'friends'
     },
     allowedViewers: [

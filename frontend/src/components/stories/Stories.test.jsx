@@ -23,7 +23,10 @@ vi.mock('../../services/storyService', () => ({
     createStory: vi.fn(),
     viewStory: vi.fn(),
     deleteStory: vi.fn(),
-    uploadMedia: vi.fn()
+    uploadMedia: vi.fn(),
+    getDefaultPrivacy: vi.fn().mockResolvedValue({ success: true, storyPrivacy: { visibility: 'friends' } }),
+    updateDefaultPrivacy: vi.fn().mockResolvedValue({ success: true }),
+    updateStoryPrivacy: vi.fn().mockResolvedValue({ success: true })
   }
 }));
 

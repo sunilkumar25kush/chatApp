@@ -18,6 +18,8 @@ import AnimatedList from './AnimatedList';
 import api from '../services/api';
 import UserAvatar from './common/UserAvatar';
 import StoriesTray from './stories/StoriesTray';
+import StoryPrivacySelector from './stories/StoryPrivacySelector';
+import storyService from '../services/storyService';
 
 export default function Sidebar({
   activeTab = 'chats',
@@ -59,6 +61,7 @@ export default function Sidebar({
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showThemeSettings, setShowThemeSettings] = useState(false);
   const [showPersonalityStudio, setShowPersonalityStudio] = useState(false);
+  const [showStoryPrivacySettings, setShowStoryPrivacySettings] = useState(false);
   const [pendingFriendCount, setPendingFriendCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
@@ -325,6 +328,13 @@ export default function Sidebar({
       action: () => { setShowUserMenu(false); setShowPersonalityStudio(true); }
     },
     {
+      id: 'story-privacy',
+      icon: '🔒',
+      title: 'Story Privacy',
+      description: 'Who can view your status',
+      action: () => { setShowUserMenu(false); setShowStoryPrivacySettings(true); }
+    },
+    {
       id: 'logout',
       icon: '🚪',
       title: 'Logout',
@@ -364,6 +374,16 @@ export default function Sidebar({
       action: () => {
         setShowSettingsMenu(false);
         setShowProfile(true);
+      }
+    },
+    {
+      id: 'story-privacy',
+      icon: '🔒',
+      title: 'Story Privacy',
+      description: 'Control who sees your status',
+      action: () => {
+        setShowSettingsMenu(false);
+        setShowStoryPrivacySettings(true);
       }
     },
     {
@@ -1053,6 +1073,18 @@ export default function Sidebar({
 
       {showThemeSettings && (
         <ThemeSettingsModal onClose={() => setShowThemeSettings(false)} />
+      )}
+
+      {showStoryPrivacySettings && (
+        <StoryPrivacySelector
+          isOpen={showStoryPrivacySettings}
+          onClose={() => setShowStoryPrivacySettings(false)}
+          onSave={async (privacyPayload) => {
+            await storyService.updateDefaultPrivacy(privacyPayload);
+          }}
+          title="Default Status Privacy"
+          isDefaultSetting={true}
+        />
       )}
 
       <AppearanceStudioModal
