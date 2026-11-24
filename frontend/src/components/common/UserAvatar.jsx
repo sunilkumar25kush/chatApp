@@ -77,6 +77,8 @@ export default function UserAvatar({
         maxHeight: size,
         aspectRatio: '1 / 1',
         borderRadius: '50%',
+        clipPath: 'circle(50% at 50% 50%)',
+        isolation: 'isolate',
         overflow: 'hidden',
         flexShrink: 0,
         display: 'flex',

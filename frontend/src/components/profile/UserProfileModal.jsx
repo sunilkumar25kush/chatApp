@@ -87,7 +87,12 @@ export default function UserProfileModal({ targetUserId, onClose, initialRelatio
           resPromise
             .then((res) => {
               if (isMounted) {
-                setRelationshipStatus(res?.relationship || res);
+                const rel = res?.relationship || res;
+                if (rel?.status === 'none' && initialRelationship === 'accepted') {
+                  setRelationshipStatus((prev) => prev || { status: 'accepted' });
+                } else {
+                  setRelationshipStatus(rel);
+                }
               }
             })
             .catch(() => {

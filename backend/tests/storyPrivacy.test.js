@@ -34,7 +34,7 @@ after(async () => {
   if (dbConnected) {
     await Story.deleteMany({ textContent: /^\[TEST_PRIVACY\]/ });
     await User.deleteMany({ username: /^privuser_/ });
-    await Friendship.deleteMany({});
+    await mongoose.disconnect();
   }
 });
 

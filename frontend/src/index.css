@@ -344,6 +344,8 @@
 .user-avatar-circle {
   aspect-ratio: 1 / 1;
   border-radius: 50%;
+  clip-path: circle(50% at 50% 50%);
+  isolation: isolate;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
@@ -356,6 +358,7 @@
   height: 100% !important;
   aspect-ratio: 1 / 1 !important;
   border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
   object-fit: cover !important;
   display: block !important;
 }
