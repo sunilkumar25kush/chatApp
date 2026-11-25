@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { animateModalEnter } from '../utils/animations';
 import api from '../services/api';
 import { socket } from '../services/socket';
+import UserAvatar from './common/UserAvatar';
 
 export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomName, onMemberAdded, onViewProfile, onToast }) {
   const [requests, setRequests] = useState([]);
@@ -187,28 +188,11 @@ export default function RoomJoinRequestsModal({ isOpen, onClose, roomId, roomNam
                       }
                     }}
                   >
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: 16,
-                        flexShrink: 0,
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {u.avatar ? (
-                        <img src={u.avatar} alt={u.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        (u.username || 'U').slice(0, 2).toUpperCase()
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={u.avatar}
+                      name={u.username || 'User'}
+                      size={44}
+                    />
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -1640,7 +1640,7 @@ export default function DirectChatWindow({
           targetUserId={targetProfileId}
           onClose={() => setTargetProfileId(null)}
           initialRelationship={
-            friend && (targetProfileId === friend._id?.toString() || targetProfileId === friend.id?.toString())
+            friend && (String(targetProfileId) === String(friend._id) || String(targetProfileId) === String(friend.id))
               ? 'accepted'
               : null
           }

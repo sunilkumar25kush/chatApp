@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
 import { SkeletonCallHistory } from '../components/SkeletonLoaders';
+import UserAvatar from '../components/common/UserAvatar';
 
 export default function CallHistoryPage() {
   const { user } = useAuth();
@@ -130,13 +131,11 @@ export default function CallHistoryPage() {
               return (
                 <div key={call._id} className="call-history-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--bg-panel)', borderRadius: 12, border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 180px' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'var(--text-main)', overflow: 'hidden', flexShrink: 0 }}>
-                      {otherUser?.avatar ? (
-                         <img src={otherUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                         otherName.substring(0, 2).toUpperCase()
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={otherUser?.avatar}
+                      name={otherName}
+                      size={44}
+                    />
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, color: isMissed ? '#ef4444' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {otherName}
