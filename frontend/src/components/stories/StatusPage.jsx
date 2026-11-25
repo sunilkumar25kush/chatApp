@@ -41,15 +41,137 @@ export default function StatusPage({ onBack }) {
     fetchFeed();
   }, [fetchFeed]);
 
+  // Real-time socket events for stories lifecycle and multi-tab synchronization
   useEffect(() => {
-    const handleUpdate = () => fetchFeed();
-    socket.on('story_new', handleUpdate);
-    socket.on('story_viewed', handleUpdate);
-    socket.on('story_deleted', handleUpdate);
+    // 1. New story created by author or eligible friend
+    const handleNewStory = () => {
+      fetchFeed();
+    };
+
+    // 2. Story viewed: update view count and sync seen/unseen state across tabs in real-time
+    const handleStoryViewed = (payload = {}) => {
+      const { storyId, isOwnView, totalViews, viewer } = payload;
+      if (!storyId) {
+        fetchFeed();
+        return;
+      }
+
+      if (isOwnView) {
+        // Multi-tab sync: mark story as seen so it moves from Recent to Viewed updates
+        setFriendGroups((prev) =>
+          prev.map((fg) => {
+            const hasTarget = (fg.stories || []).some((s) => (s._id || s.id) === storyId);
+            if (!hasTarget) return fg;
+            const updatedStories = fg.stories.map((s) =>
+              (s._id || s.id) === storyId ? { ...s, viewed: true } : s
+            );
+            const hasUnseen = updatedStories.some((s) => !s.viewed);
+            return { ...fg, stories: updatedStories, hasUnseen };
+          })
+        );
+      } else if (viewer) {
+        // A viewer viewed the user's story: update view count live
+        setMyGroup((prev) => {
+          if (!prev || !prev.stories) return prev;
+          const updated = prev.stories.map((s) => {
+            if ((s._id || s.id) === storyId) {
+              const currentViewers = s.viewers || [];
+              const viewerId = viewer.user?._id || viewer.user?.id;
+              const exists = currentViewers.some((v) => (v.user?._id || v.user?.id) === viewerId);
+              return {
+                ...s,
+                viewsCount: totalViews || (s.viewsCount || 0) + 1,
+                viewers: exists ? currentViewers : [...currentViewers, viewer]
+              };
+            }
+            return s;
+          });
+          return { ...prev, stories: updated };
+        });
+      }
+    };
+
+    // 3. Story deleted or expired: remove from UI immediately without page refresh
+    const handleStoryRemoved = ({ storyId } = {}) => {
+      if (!storyId) {
+        fetchFeed();
+        return;
+      }
+      setMyGroup((prev) => {
+        if (!prev || !prev.stories) return prev;
+        const filtered = prev.stories.filter((s) => (s._id || s.id) !== storyId);
+        return filtered.length > 0 ? { ...prev, stories: filtered } : null;
+      });
+      setFriendGroups((prev) =>
+        prev
+          .map((fg) => {
+            const filtered = (fg.stories || []).filter((s) => (s._id || s.id) !== storyId);
+            if (filtered.length === 0) return null;
+            const hasUnseen = filtered.some((s) => !s.viewed);
+            return { ...fg, stories: filtered, hasUnseen };
+          })
+          .filter(Boolean)
+      );
+    };
+
+    // 4. Story privacy updated: re-sync feed for accurate audience
+    const handleStoryUpdated = () => {
+      fetchFeed();
+    };
+
+    // 5. Reconnection & online sync: catch up on any missed events while disconnected
+    const handleSync = () => {
+      fetchFeed();
+    };
+
+    // Bind canonical and legacy event names
+    socket.on('story:created', handleNewStory);
+    socket.on('story_new', handleNewStory);
+    socket.on('story:viewed', handleStoryViewed);
+    socket.on('story_viewed', handleStoryViewed);
+    socket.on('story:deleted', handleStoryRemoved);
+    socket.on('story_deleted', handleStoryRemoved);
+    socket.on('story:expired', handleStoryRemoved);
+    socket.on('story_expired', handleStoryRemoved);
+    socket.on('story:updated', handleStoryUpdated);
+    socket.on('story_privacy_updated', handleStoryUpdated);
+    socket.on('connect', handleSync);
+    window.addEventListener('online', handleSync);
+
+    // Periodic client-side sweep for stories passing their 24h expiration timestamp
+    const sweepInterval = setInterval(() => {
+      const now = new Date();
+      setMyGroup((prev) => {
+        if (!prev || !prev.stories) return prev;
+        const valid = prev.stories.filter((s) => new Date(s.expiresAt) > now);
+        return valid.length > 0 ? { ...prev, stories: valid } : null;
+      });
+      setFriendGroups((prev) =>
+        prev
+          .map((fg) => {
+            const valid = (fg.stories || []).filter((s) => new Date(s.expiresAt) > now);
+            if (valid.length === 0) return null;
+            const hasUnseen = valid.some((s) => !s.viewed);
+            return { ...fg, stories: valid, hasUnseen };
+          })
+          .filter(Boolean)
+      );
+    }, 60000);
+
     return () => {
-      socket.off('story_new', handleUpdate);
-      socket.off('story_viewed', handleUpdate);
-      socket.off('story_deleted', handleUpdate);
+      socket.off('story:created', handleNewStory);
+      socket.off('story_new', handleNewStory);
+      socket.off('story:viewed', handleStoryViewed);
+      socket.off('story_viewed', handleStoryViewed);
+      socket.off('story:deleted', handleStoryRemoved);
+      socket.off('story_deleted', handleStoryRemoved);
+      socket.off('story:expired', handleStoryRemoved);
+      socket.off('story_expired', handleStoryRemoved);
+      socket.off('story:updated', handleStoryUpdated);
+      socket.off('story_privacy_updated', handleStoryUpdated);
+      socket.off('connect', handleSync);
+      window.removeEventListener('online', handleSync);
+      clearInterval(sweepInterval);
     };
   }, [fetchFeed]);
 

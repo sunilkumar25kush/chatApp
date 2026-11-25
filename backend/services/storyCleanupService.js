@@ -94,8 +94,34 @@ const cleanupExpiredStories = async (maxRetries = 2) => {
         // Delete all associated StoryView records
         await StoryView.deleteMany({ storyId: story._id });
 
+        const authorIdStr = (story.userId?._id || story.userId)?.toString();
+
         // Delete the story document itself
         await Story.findByIdAndDelete(story._id);
+
+        // Real-time broadcast: notify author and friends that story has expired
+        try {
+          const { getIO } = require('../socket/socket');
+          const io = getIO ? getIO() : null;
+          if (io && authorIdStr) {
+            io.to(`user:${authorIdStr}`).emit('story:expired', { storyId: story._id.toString(), authorId: authorIdStr });
+            io.to(`user:${authorIdStr}`).emit('story_expired', { storyId: story._id.toString(), authorId: authorIdStr });
+
+            const Friendship = require('../models/Friendship');
+            const friendships = await Friendship.find({
+              $or: [{ requester: authorIdStr }, { recipient: authorIdStr }],
+              status: 'accepted'
+            }).select('requester recipient');
+
+            friendships.forEach((f) => {
+              const friendId = f.requester.toString() === authorIdStr ? f.recipient.toString() : f.requester.toString();
+              io.to(`user:${friendId}`).emit('story:expired', { storyId: story._id.toString(), authorId: authorIdStr });
+              io.to(`user:${friendId}`).emit('story_expired', { storyId: story._id.toString(), authorId: authorIdStr });
+            });
+          }
+        } catch (socketErr) {
+          logger.warn(`[StoryCleanup] Socket broadcast of story:expired failed: ${socketErr.message}`);
+        }
       }
 
       logger.info(`[StoryCleanup] Successfully purged ${expiredStories.length} expired stories and views.`);

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import UserAvatar from '../common/UserAvatar';
 import storyService from '../../services/storyService';
 import StoryPrivacySelector from './StoryPrivacySelector';
+import { socket } from '../../services/socket';
 import { toast } from '../../utils/toast';
 import './stories.css';
 
@@ -36,6 +37,7 @@ export default function StoryViewer({
   const [mediaError, setMediaError] = useState(false);
   const [showViewersDrawer, setShowViewersDrawer] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [liveStoryUpdates, setLiveStoryUpdates] = useState({});
 
   const videoRef = useRef(null);
   const progressIntervalRef = useRef(null);
@@ -45,6 +47,10 @@ export default function StoryViewer({
   const currentStories = activeGroup?.stories || [];
   const activeStory = currentStories[storyIndex] || null;
   const isMe = activeGroup?.user?._id?.toString() === currentUserId || activeGroup?.isMe;
+
+  const liveUpdate = activeStory?._id ? liveStoryUpdates[activeStory._id] : null;
+  const viewersList = liveUpdate?.viewers || activeStory?.viewers || [];
+  const viewsCount = liveUpdate?.viewsCount ?? (activeStory?.viewsCount || viewersList.length);
 
   // Sync initial user group when opened
   useEffect(() => {
@@ -111,6 +117,62 @@ export default function StoryViewer({
       setMediaError(false);
     }
   }, [storyIndex, userIndex, userGroups]);
+
+  // Real-time synchronization for active story views, deletion, and expiration
+  useEffect(() => {
+    if (!isOpen || !activeStory?._id) return;
+
+    const handleRealtimeView = (data = {}) => {
+      if (data.storyId === activeStory._id && data.viewer && isMe) {
+        setLiveStoryUpdates((prev) => {
+          const currentEntry = prev[data.storyId] || {
+            viewers: activeStory.viewers || [],
+            viewsCount: activeStory.viewsCount || 0
+          };
+          const viewerId = data.viewer.user?._id || data.viewer.user?.id;
+          const exists = currentEntry.viewers.some(
+            (v) => (v.user?._id || v.user?.id) === viewerId
+          );
+          const newViewers = exists ? currentEntry.viewers : [...currentEntry.viewers, data.viewer];
+          return {
+            ...prev,
+            [data.storyId]: {
+              viewers: newViewers,
+              viewsCount: data.totalViews || newViewers.length
+            }
+          };
+        });
+      }
+    };
+
+    const handleStoryRemoved = (data = {}) => {
+      if (data.storyId === activeStory._id) {
+        toast.info('This status update has expired or was removed');
+        onStoryDeleted?.(data.storyId);
+        if (currentStories.length <= 1) {
+          onClose();
+        } else {
+          advanceToNext();
+        }
+      }
+    };
+
+    socket.on('story:viewed', handleRealtimeView);
+    socket.on('story_viewed', handleRealtimeView);
+    socket.on('story:deleted', handleStoryRemoved);
+    socket.on('story_deleted', handleStoryRemoved);
+    socket.on('story:expired', handleStoryRemoved);
+    socket.on('story_expired', handleStoryRemoved);
+
+    return () => {
+      socket.off('story:viewed', handleRealtimeView);
+      socket.off('story_viewed', handleRealtimeView);
+      socket.off('story:deleted', handleStoryRemoved);
+      socket.off('story_deleted', handleStoryRemoved);
+      socket.off('story:expired', handleStoryRemoved);
+      socket.off('story_expired', handleStoryRemoved);
+    };
+  }, [isOpen, activeStory?._id, isMe, currentStories.length, advanceToNext, onClose, onStoryDeleted]);
 
   // Manage progress bar animation
   useEffect(() => {
@@ -472,7 +534,7 @@ export default function StoryViewer({
             }}
           >
             <span>👁</span>
-            <span>{activeStory.viewers?.length || 0} views</span>
+            <span>{viewsCount} views</span>
           </button>
         )}
 
@@ -481,7 +543,7 @@ export default function StoryViewer({
           <div className="story-viewers-drawer" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff' }}>
-                Viewed by ({activeStory.viewers?.length || 0})
+                Viewed by ({viewsCount})
               </h4>
               <button
                 type="button"
@@ -493,13 +555,13 @@ export default function StoryViewer({
               </button>
             </div>
 
-            {(!activeStory.viewers || activeStory.viewers.length === 0) ? (
+            {(!viewersList || viewersList.length === 0) ? (
               <p style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', margin: '20px 0' }}>
                 No views yet
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {activeStory.viewers.map((v, i) => {
+                {viewersList.map((v, i) => {
                   const viewer = v.user || {};
                   return (
                     <div key={viewer._id || i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

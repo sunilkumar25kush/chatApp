@@ -78,6 +78,79 @@ const sanitizeStoryForViewer = (storyObj, currentUserId) => {
 };
 
 /**
+ * Safely obtain Socket.IO server instance
+ */
+const getSocketIO = (req) => {
+  try {
+    return (req && req.app && req.app.get('io')) || require('../socket/socket').getIO();
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Resolves the list of viewer user IDs eligible to receive real-time events for this story
+ * Enforces audience controls (friends, friends_except, only_share_with, public).
+ */
+const getEligibleViewerIds = async (story, authorId) => {
+  let friendIds = [];
+  if (isDBConnected()) {
+    const friendships = await Friendship.find({
+      $or: [{ requester: authorId }, { recipient: authorId }],
+      status: 'accepted'
+    }).select('requester recipient');
+    friendIds = friendships.map((f) =>
+      f.requester.toString() === authorId ? f.recipient.toString() : f.requester.toString()
+    );
+  } else {
+    try {
+      const { memoryFriendships } = require('./friendController');
+      if (memoryFriendships) {
+        for (const rel of memoryFriendships.values()) {
+          if (rel.status === 'accepted') {
+            const reqId = (rel.requester?._id || rel.requester)?.toString();
+            const recId = (rel.recipient?._id || rel.recipient)?.toString();
+            if (reqId === authorId && recId) friendIds.push(recId);
+            else if (recId === authorId && reqId) friendIds.push(reqId);
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const friendIdsSet = new Set(friendIds);
+  const eligibleIds = [];
+
+  const visibility = story.visibility || 'friends';
+  if (visibility === 'public') {
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    friendIds.forEach((fId) => {
+      if (!excluded.includes(fId)) eligibleIds.push(fId);
+    });
+  } else if (visibility === 'friends_except') {
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    friendIds.forEach((fId) => {
+      if (!excluded.includes(fId)) eligibleIds.push(fId);
+    });
+  } else if (visibility === 'only_share_with' || visibility === 'custom') {
+    const allowed = (story.allowedViewers || []).map((id) => (id?._id || id).toString());
+    allowed.forEach((fId) => {
+      if (friendIdsSet.has(fId)) eligibleIds.push(fId);
+    });
+  } else {
+    // default 'friends'
+    const excluded = (story.excludedViewers || []).map((id) => (id?._id || id).toString());
+    friendIds.forEach((fId) => {
+      if (!excluded.includes(fId)) eligibleIds.push(fId);
+    });
+  }
+
+  return eligibleIds;
+};
+
+/**
  * @desc    Create a new story / status
  * @route   POST /api/stories
  * @access  Private
@@ -212,27 +285,25 @@ const createStory = async (req, res, next) => {
       memoryStories.set(storyId, storyDoc);
     }
 
-    // Real-time broadcast to all eligible friends
-    const io = req.app.get('io');
+    // Real-time broadcast strictly to eligible audience
+    const io = getSocketIO(req);
     if (io) {
       try {
-        let friendIds = [];
-        if (isDBConnected()) {
-          const friendships = await Friendship.find({
-            $or: [{ requester: currentUserId }, { recipient: currentUserId }],
-            status: 'accepted'
-          });
-          friendIds = friendships.map((f) =>
-            f.requester.toString() === currentUserId ? f.recipient.toString() : f.requester.toString()
-          );
-        }
+        const authorStory = typeof storyDoc.toObject === 'function' ? storyDoc.toObject() : { ...storyDoc };
 
-        io.to(`user:${currentUserId}`).emit('story_new', { story: storyDoc });
-        friendIds.forEach((friendId) => {
-          io.to(`user:${friendId}`).emit('story_new', { story: storyDoc });
-        });
+        // 1. Author receives in all active user sessions/tabs
+        io.to(`user:${currentUserId}`).emit('story:created', { story: authorStory });
+        io.to(`user:${currentUserId}`).emit('story_new', { story: authorStory });
+
+        // 2. Eligible friends receive sanitized story payload (private audience lists stripped)
+        const eligibleViewerIds = await getEligibleViewerIds(authorStory, currentUserId);
+        for (const viewerId of eligibleViewerIds) {
+          const sanitized = sanitizeStoryForViewer({ ...authorStory }, viewerId);
+          io.to(`user:${viewerId}`).emit('story:created', { story: sanitized });
+          io.to(`user:${viewerId}`).emit('story_new', { story: sanitized });
+        }
       } catch (e) {
-        logger.error(`[StorySocket] Failed to broadcast story_new: ${e.message}`);
+        logger.error(`[StorySocket] Failed to broadcast story:created: ${e.message}`);
       }
     }
 
@@ -604,17 +675,46 @@ const recordStoryView = async (req, res, next) => {
 
       const count = await StoryView.countDocuments({ storyId });
 
-      // If new view, emit real-time event to story owner
+      // If new view, emit real-time event to story owner AND viewer (for multi-tab sync)
       if (isNewView) {
-        const io = req.app.get('io');
+        const io = getSocketIO(req);
         if (io) {
           const viewerUser = await User.findById(currentUserId).select('username fullName avatar publicId');
-          io.to(`user:${authorId}`).emit('story_viewed', {
+          const viewedAt = new Date();
+          
+          // 1. Notify story author
+          io.to(`user:${authorId}`).emit('story:viewed', {
             storyId,
+            authorId,
             viewer: {
               user: viewerUser,
-              viewedAt: new Date()
+              viewedAt
             },
+            totalViews: count
+          });
+          io.to(`user:${authorId}`).emit('story_viewed', {
+            storyId,
+            authorId,
+            viewer: {
+              user: viewerUser,
+              viewedAt
+            },
+            totalViews: count
+          });
+
+          // 2. Multi-tab synchronization: notify viewer's own user room so other tabs mark story as seen
+          io.to(`user:${currentUserId}`).emit('story:viewed', {
+            storyId,
+            authorId,
+            viewedAt,
+            isOwnView: true,
+            totalViews: count
+          });
+          io.to(`user:${currentUserId}`).emit('story_viewed', {
+            storyId,
+            authorId,
+            viewedAt,
+            isOwnView: true,
             totalViews: count
           });
         }
@@ -626,11 +726,55 @@ const recordStoryView = async (req, res, next) => {
         viewsCount: count
       });
     } else {
+      let isNewView = false;
       const key = `${storyId}_${currentUserId}`;
       if (!memoryStoryViews.has(key)) {
         memoryStoryViews.set(key, { storyId, viewerId: currentUserId, viewedAt: new Date() });
+        isNewView = true;
       }
-      return res.json({ success: true, message: 'Story view recorded' });
+      let count = 0;
+      for (const v of memoryStoryViews.values()) {
+        if (v.storyId === storyId) count++;
+      }
+
+      if (isNewView) {
+        const io = getSocketIO(req);
+        if (io) {
+          const st = memoryStories.get(storyId);
+          const authorId = (st?.userId?._id || st?.userId)?.toString();
+          const viewedAt = new Date();
+          if (authorId) {
+            io.to(`user:${authorId}`).emit('story:viewed', {
+              storyId,
+              authorId,
+              viewer: { user: req.user, viewedAt },
+              totalViews: count
+            });
+            io.to(`user:${authorId}`).emit('story_viewed', {
+              storyId,
+              authorId,
+              viewer: { user: req.user, viewedAt },
+              totalViews: count
+            });
+          }
+          io.to(`user:${currentUserId}`).emit('story:viewed', {
+            storyId,
+            authorId,
+            viewedAt,
+            isOwnView: true,
+            totalViews: count
+          });
+          io.to(`user:${currentUserId}`).emit('story_viewed', {
+            storyId,
+            authorId,
+            viewedAt,
+            isOwnView: true,
+            totalViews: count
+          });
+        }
+      }
+
+      return res.json({ success: true, message: 'Story view recorded', viewsCount: count });
     }
   } catch (err) {
     next(err);
@@ -736,12 +880,33 @@ const updateStoryPrivacy = async (req, res, next) => {
       await story.populate('allowedViewers', 'username fullName avatar publicId');
       await story.populate('excludedViewers', 'username fullName avatar publicId');
 
-      const io = req.app.get('io');
+      const io = getSocketIO(req);
       if (io) {
-        io.to(`user:${currentUserId}`).emit('story_privacy_updated', {
-          storyId: story._id,
+        const authorStory = typeof story.toObject === 'function' ? story.toObject() : { ...story };
+        io.to(`user:${currentUserId}`).emit('story:updated', {
+          storyId: story._id.toString(),
+          story: authorStory,
           visibility: story.visibility
         });
+        io.to(`user:${currentUserId}`).emit('story_privacy_updated', {
+          storyId: story._id.toString(),
+          visibility: story.visibility
+        });
+
+        // Broadcast to eligible viewers
+        const eligibleViewerIds = await getEligibleViewerIds(story, currentUserId);
+        for (const vId of eligibleViewerIds) {
+          const sanitized = sanitizeStoryForViewer({ ...authorStory }, vId);
+          io.to(`user:${vId}`).emit('story:updated', {
+            storyId: story._id.toString(),
+            story: sanitized,
+            visibility: story.visibility
+          });
+          io.to(`user:${vId}`).emit('story_privacy_updated', {
+            storyId: story._id.toString(),
+            visibility: story.visibility
+          });
+        }
       }
 
       return res.json({
@@ -911,12 +1076,23 @@ const deleteStory = async (req, res, next) => {
       // 2. Delete all StoryView records
       await StoryView.deleteMany({ storyId });
 
-      // 3. Delete Story document
+      // 3. Resolve eligible viewers before deletion for real-time broadcast
+      const eligibleViewerIds = await getEligibleViewerIds(story, currentUserId);
+
+      // 4. Delete Story document
       await Story.findByIdAndDelete(storyId);
 
-      const io = req.app.get('io');
+      const io = getSocketIO(req);
       if (io) {
-        io.to(`user:${currentUserId}`).emit('story_deleted', { storyId });
+        // Author room
+        io.to(`user:${currentUserId}`).emit('story:deleted', { storyId, authorId: currentUserId });
+        io.to(`user:${currentUserId}`).emit('story_deleted', { storyId, authorId: currentUserId });
+
+        // Eligible friends who had the story in their feed
+        for (const viewerId of eligibleViewerIds) {
+          io.to(`user:${viewerId}`).emit('story:deleted', { storyId, authorId: currentUserId });
+          io.to(`user:${viewerId}`).emit('story_deleted', { storyId, authorId: currentUserId });
+        }
       }
 
       return res.json({ success: true, message: 'Story and associated media deleted successfully' });
@@ -925,7 +1101,19 @@ const deleteStory = async (req, res, next) => {
       if (!story) {
         return res.status(404).json({ success: false, message: 'Story not found' });
       }
+      const eligibleViewerIds = await getEligibleViewerIds(story, currentUserId);
       memoryStories.delete(storyId);
+
+      const io = getSocketIO(req);
+      if (io) {
+        io.to(`user:${currentUserId}`).emit('story:deleted', { storyId, authorId: currentUserId });
+        io.to(`user:${currentUserId}`).emit('story_deleted', { storyId, authorId: currentUserId });
+        for (const viewerId of eligibleViewerIds) {
+          io.to(`user:${viewerId}`).emit('story:deleted', { storyId, authorId: currentUserId });
+          io.to(`user:${viewerId}`).emit('story_deleted', { storyId, authorId: currentUserId });
+        }
+      }
+
       return res.json({ success: true, message: 'Story deleted successfully' });
     }
   } catch (err) {
@@ -943,5 +1131,8 @@ module.exports = {
   updateStoryPrivacy,
   deleteStory,
   getDefaultStoryPrivacy,
-  updateDefaultStoryPrivacy
+  updateDefaultStoryPrivacy,
+  getEligibleViewerIds,
+  canViewStory,
+  sanitizeStoryForViewer
 };
