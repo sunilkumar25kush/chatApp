@@ -48,6 +48,15 @@ export default function StoryViewer({
   const activeStory = currentStories[storyIndex] || null;
   const isMe = activeGroup?.user?._id?.toString() === currentUserId || activeGroup?.isMe;
 
+  const isImageStory = Boolean(
+    activeStory &&
+    (activeStory.mediaType === 'image' ||
+      activeStory.mediaType === 'photo' ||
+      (!activeStory.mediaType && activeStory.mediaUrl))
+  );
+  const isVideoStory = Boolean(activeStory && activeStory.mediaType === 'video');
+  const isTextStory = Boolean(activeStory && activeStory.mediaType === 'text');
+
   const liveUpdate = activeStory?._id ? liveStoryUpdates[activeStory._id] : null;
   const viewersList = liveUpdate?.viewers || activeStory?.viewers || [];
   const viewsCount = liveUpdate?.viewsCount ?? (activeStory?.viewsCount || viewersList.length);
@@ -59,11 +68,21 @@ export default function StoryViewer({
       setStoryIndex(0);
       setProgress(0);
       setIsPaused(false);
-      setMediaLoading(true);
       setMediaError(false);
       setShowViewersDrawer(false);
     }
   }, [isOpen, initialUserGroupIndex]);
+
+  // Reset media loading & error state whenever active story changes
+  useEffect(() => {
+    if (!activeStory) return;
+    setMediaError(false);
+    if (activeStory.mediaType === 'text') {
+      setMediaLoading(false);
+    } else {
+      setMediaLoading(true);
+    }
+  }, [activeStory?._id, activeStory?.mediaType]);
 
   // Mark active story as viewed
   useEffect(() => {
@@ -353,7 +372,7 @@ export default function StoryViewer({
             </button>
 
             {/* Mute toggle for video */}
-            {activeStory.mediaType === 'video' && (
+            {isVideoStory && (
               <button
                 type="button"
                 className="story-icon-btn"
@@ -456,11 +475,11 @@ export default function StoryViewer({
             </div>
           )}
 
-          {/* Photo Story */}
-          {activeStory.mediaType === 'photo' && (
+          {/* Photo / Image Story */}
+          {isImageStory && (
             <img
               src={activeStory.mediaUrl}
-              alt=""
+              alt={activeStory.caption || 'Story photo'}
               className="story-media-image"
               onLoad={() => setMediaLoading(false)}
               onError={() => {
@@ -471,7 +490,7 @@ export default function StoryViewer({
           )}
 
           {/* Video Story */}
-          {activeStory.mediaType === 'video' && (
+          {isVideoStory && (
             <video
               ref={videoRef}
               src={activeStory.mediaUrl}
@@ -489,7 +508,7 @@ export default function StoryViewer({
           )}
 
           {/* Text Story */}
-          {activeStory.mediaType === 'text' && (
+          {isTextStory && (
             <div
               className="story-text-container"
               style={{
@@ -501,7 +520,6 @@ export default function StoryViewer({
                     ? 'flex-end'
                     : 'center'
               }}
-              onLoad={() => setMediaLoading(false)}
             >
               <span
                 className="story-text-content"

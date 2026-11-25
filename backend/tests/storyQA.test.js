@@ -24,9 +24,7 @@ describe('STEP 7: Story Functional & Security QA Test Suite', () => {
   const excludedFriendId = new mongoose.Types.ObjectId().toString();
   const strangerId = new mongoose.Types.ObjectId().toString();
 
-  // For the friend viewers, the story author is in their friendIdsSet
-  const friendFriendsSet = new Set([authorId]);
-  const strangerFriendsSet = new Set();
+  const friendIdsSet = new Set([friendId, excludedFriendId]);
 
   // ── Functional Testing ──────────────────────────────────────────
 
@@ -163,9 +161,9 @@ describe('STEP 7: Story Functional & Security QA Test Suite', () => {
     };
 
     // Friend can view
-    assert.equal(canViewStory(friendsStory, friendId, friendFriendsSet), true);
+    assert.equal(canViewStory(friendsStory, friendId, friendIdsSet), true);
     // Stranger CANNOT view
-    assert.equal(canViewStory(friendsStory, strangerId, strangerFriendsSet), false);
+    assert.equal(canViewStory(friendsStory, strangerId, friendIdsSet), false);
   });
 
   test('Security: Reject access to excluded users under "Friends Except..."', () => {
@@ -177,11 +175,11 @@ describe('STEP 7: Story Functional & Security QA Test Suite', () => {
     };
 
     // Normal friend can view
-    assert.equal(canViewStory(friendsExceptStory, friendId, friendFriendsSet), true);
+    assert.equal(canViewStory(friendsExceptStory, friendId, friendIdsSet), true);
     // Excluded friend CANNOT view
-    assert.equal(canViewStory(friendsExceptStory, excludedFriendId, friendFriendsSet), false);
+    assert.equal(canViewStory(friendsExceptStory, excludedFriendId, friendIdsSet), false);
     // Stranger CANNOT view
-    assert.equal(canViewStory(friendsExceptStory, strangerId, strangerFriendsSet), false);
+    assert.equal(canViewStory(friendsExceptStory, strangerId, friendIdsSet), false);
   });
 
   test('Security: Reject unselected friends under "Only Share With..."', () => {
@@ -193,9 +191,9 @@ describe('STEP 7: Story Functional & Security QA Test Suite', () => {
     };
 
     // Selected friend can view
-    assert.equal(canViewStory(onlyShareStory, friendId, friendFriendsSet), true);
+    assert.equal(canViewStory(onlyShareStory, friendId, friendIdsSet), true);
     // Unselected friend CANNOT view
-    assert.equal(canViewStory(onlyShareStory, excludedFriendId, friendFriendsSet), false);
+    assert.equal(canViewStory(onlyShareStory, excludedFriendId, friendIdsSet), false);
   });
 
   test('Security: Only story owner can access viewer list (403 for non-owners)', async () => {
@@ -262,3 +260,4 @@ describe('STEP 7: Story Functional & Security QA Test Suite', () => {
     assert.ok(authorCopy.excludedViewers);
   });
 });
+
